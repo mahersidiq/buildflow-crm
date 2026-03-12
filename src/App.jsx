@@ -1289,7 +1289,7 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
   // ── Project Detail ──
   if(selectedId){
     const p=projects.find(x=>x.id===selectedId);
-    if(!p){setSelectedId(null);return null;}
+    if(!p) return null; // don't reset — project may not be loaded yet
     const budget_pct=p.value?Math.round((p.spent/p.value)*100):0;
     const projEsts=estimates.filter(e=>e.projectId===p.id);
     const projInvs=invoices.filter(i=>i.projectId===p.id);
@@ -1910,28 +1910,16 @@ export default function App() {
     });
   };
 
-  const pages = {
-    dashboard:<Dashboard projects={projects} invoices={invoices} cos={cos} onNav={navigate}/>,
-    projects:<Projects projects={projects} setProjects={setProjectsDB} estimates={estimates} setEstimates={setEstimatesDB} invoices={invoices} setInvoices={setInvoicesDB} budgetItems={budgetItems} setBudgetItems={setBudgetDB} cos={cos} setCos={setCosDB} logs={logs} setLogs={setLogsDB} bids={bids} setBids={setBidsDB} docs={docs} setDocs={setDocsDB} photos={photos} setPhotos={setPhotosDB} initialId={navPayload}/>,
-    estimates:<GlobalEstimates estimates={estimates} setEstimates={setEstimatesDB} projects={projects}/>,
-    invoices:<GlobalInvoices invoices={invoices} setInvoices={setInvoicesDB} projects={projects}/>,
-    cos:<ChangeOrders cos={cos} setCos={setCosDB} projects={projects}/>,
-    budget:<div style={{display:"flex",flexDirection:"column",gap:20}}>
-      <PageHead eyebrow="Cost Management" title="Budget Tracker"/>
-      {projects.filter(p=>p.status==="Active"||p.status==="Complete").map(p=>(
-        <div key={p.id}>
-          <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:14,display:"flex",alignItems:"center",gap:10}}>{p.name}<Badge s={p.status}/></div>
-          <Budget projectId={p.id} budgetItems={budgetItems} setBudgetItems={setBudgetDB} projects={projects} setProjects={setProjectsDB}/>
-          <div style={{height:24}}/>
-        </div>
-      ))}
-    </div>,
-    bids:<SubBids bids={bids} setBids={setBidsDB} projects={projects}/>,
-    schedule:<Schedule projects={projects} setProjects={setProjectsDB}/>,
-    logs:<DailyLogs logs={logs} setLogs={setLogsDB} projects={projects}/>,
-    docs:<Documents docs={docs} setDocs={setDocsDB} projects={projects}/>,
-    photos:<Photos photos={photos} setPhotos={setPhotosDB} projects={projects}/>,
-    contacts:<Contacts contacts={contacts} setContacts={setContactsDB}/>,
+  const sharedProps = {
+    projects, setProjects:setProjectsDB,
+    estimates, setEstimates:setEstimatesDB,
+    invoices, setInvoices:setInvoicesDB,
+    budgetItems, setBudgetItems:setBudgetDB,
+    cos, setCos:setCosDB,
+    logs, setLogs:setLogsDB,
+    bids, setBids:setBidsDB,
+    docs, setDocs:setDocsDB,
+    photos, setPhotos:setPhotosDB,
   };
 
   const Sidebar = () => (
@@ -2007,7 +1995,30 @@ export default function App() {
 
       <div className="mainPad" style={{flex:1,overflow:"auto",padding:"32px 36px"}}>
         <div style={{maxWidth:1100}}>
-          {pages[tab]||pages.dashboard}
+          {/* Always mount Projects so its state (selectedId, activeTab) survives tab switches */}
+          <div style={{display:tab==="projects"?"block":"none"}}>
+            <Projects {...sharedProps} contacts={contacts} initialId={navPayload}/>
+          </div>
+          {tab==="dashboard"&&<Dashboard projects={projects} invoices={invoices} cos={cos} onNav={navigate}/>}
+          {tab==="estimates"&&<GlobalEstimates estimates={estimates} setEstimates={setEstimatesDB} projects={projects}/>}
+          {tab==="invoices"&&<GlobalInvoices invoices={invoices} setInvoices={setInvoicesDB} projects={projects}/>}
+          {tab==="cos"&&<ChangeOrders cos={cos} setCos={setCosDB} projects={projects}/>}
+          {tab==="budget"&&<div style={{display:"flex",flexDirection:"column",gap:20}}>
+            <PageHead eyebrow="Cost Management" title="Budget Tracker"/>
+            {projects.filter(p=>p.status==="Active"||p.status==="Complete").map(p=>(
+              <div key={p.id}>
+                <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:14,display:"flex",alignItems:"center",gap:10}}>{p.name}<Badge s={p.status}/></div>
+                <Budget projectId={p.id} budgetItems={budgetItems} setBudgetItems={setBudgetDB} projects={projects} setProjects={setProjectsDB}/>
+                <div style={{height:24}}/>
+              </div>
+            ))}
+          </div>}
+          {tab==="bids"&&<SubBids bids={bids} setBids={setBidsDB} projects={projects}/>}
+          {tab==="schedule"&&<Schedule projects={projects} setProjects={setProjectsDB}/>}
+          {tab==="logs"&&<DailyLogs logs={logs} setLogs={setLogsDB} projects={projects}/>}
+          {tab==="docs"&&<Documents docs={docs} setDocs={setDocsDB} projects={projects}/>}
+          {tab==="photos"&&<Photos photos={photos} setPhotos={setPhotosDB} projects={projects}/>}
+          {tab==="contacts"&&<Contacts contacts={contacts} setContacts={setContactsDB}/>}
         </div>
       </div>
     </div>
