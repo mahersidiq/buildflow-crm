@@ -1,4 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const SUPABASE_URL = "https://daxqltkdkfpkhnzttfln.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRheHFsdGtka2Zwa2huenR0ZmxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNTQwMjAsImV4cCI6MjA4ODkzMDAyMH0.2Kx2oGa7ftl9q8XiVCGqqzAiPcP6Q4KSeoz0Mc-LDpo";
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ─── TOKENS ───────────────────────────────────────────────────────────────────
 const C = {
@@ -18,16 +23,7 @@ const today = () => new Date().toISOString().slice(0,10);
 const uid = () => Date.now() + Math.random();
 
 // ─── SEED DATA ────────────────────────────────────────────────────────────────
-const SEED_PROJECTS = [];
-const SEED_CONTACTS = [];
-const SEED_BUDGET = [];
-const SEED_ESTIMATES = [];
-const SEED_INVOICES = [];
-const SEED_COS = [];
-const SEED_LOGS = [];
-const SEED_BIDS = [];
-const SEED_DOCS = [];
-const SEED_PHOTOS = [];
+// No seed data — all data lives in Supabase
 
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const Ic = ({ d, s=18, stroke="currentColor" }) => (
@@ -1677,21 +1673,179 @@ const GlobalEstimates = ({estimates,setEstimates,projects}) => {
   );
 };
 
+
+// ─── DB HELPERS ───────────────────────────────────────────────────────────────
+const fromDb = {
+  project: r => ({ id:r.id, name:r.name, client:r.client||"", status:r.status||"Lead", phase:r.phase||"Pre-Construction", type:r.type||"Residential", value:r.value||0, spent:r.spent||0, progress:r.progress||0, address:r.address||"", start:r.start_date||"", end:r.end_date||"", notes:r.notes||"" }),
+  contact: r => ({ id:r.id, name:r.name, company:r.company||"", type:r.type||"Client", email:r.email||"", phone:r.phone||"", city:r.city||"" }),
+  budget: r => ({ id:r.id, projectId:r.project_id, category:r.category||"", budgeted:r.budgeted||0, actual:r.actual||0, committed:r.committed||0, notes:r.notes||"" }),
+  estimate: (r, lines) => ({ id:r.id, projectId:r.project_id, name:r.name||"", status:r.status||"Draft", date:r.date||"", notes:r.notes||"", lineItems:(lines||[]).map(l=>({ id:l.id, category:l.category||"", description:l.description||"", qty:l.qty||1, unit:l.unit||"LS", cost:l.cost||0, markup:l.markup||0 })) }),
+  invoice: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", description:r.description||"", amount:r.amount||0, issued:r.issued||"", due:r.due||"", status:r.status||"Pending", stripeLink:r.stripe_payment_link||"" }),
+  co: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", title:r.title||"", category:r.category||"", description:r.description||"", amount:r.amount||0, status:r.status||"Pending", requestedBy:r.requested_by||"Owner", date:r.date||"" }),
+  log: r => ({ id:r.id, projectId:r.project_id, date:r.date||"", author:r.author||"", weather:r.weather||"", crew:r.crew||0, notes:r.notes||"" }),
+  bidPkg: (r, bids) => ({ id:r.id, projectId:r.project_id, trade:r.trade||"", scope:r.scope||"", dueDate:r.due_date||"", status:r.status||"Open", bids:(bids||[]).map(b=>({ subId:b.id, subName:b.sub_name||"", amount:b.amount||0, notes:b.notes||"", submitted:b.submitted||"", awarded:b.awarded||false })) }),
+  doc: r => ({ id:r.id, projectId:r.project_id, name:r.name||"", type:r.type||"Contract", date:r.date||"", notes:r.notes||"", uploader:r.uploader||"" }),
+  photo: r => ({ id:r.id, projectId:r.project_id, caption:r.caption||"", tag:r.tag||"Progress", date:r.date||"", author:r.author||"", emoji:r.emoji||"📷", color:r.color||"#F4F5F7" }),
+};
+
 // ─── APP ROOT ────────────────────────────────────────────────────────────────
 export default function App() {
   const [tab,setTab] = useState("dashboard");
   const [navPayload,setNavPayload] = useState(null);
   const [menuOpen,setMenuOpen] = useState(false);
-  const [projects,setProjects] = useState(SEED_PROJECTS);
-  const [contacts,setContacts] = useState(SEED_CONTACTS);
-  const [estimates,setEstimates] = useState(SEED_ESTIMATES);
-  const [invoices,setInvoices] = useState(SEED_INVOICES);
-  const [budgetItems,setBudgetItems] = useState(SEED_BUDGET);
-  const [cos,setCos] = useState(SEED_COS);
-  const [logs,setLogs] = useState(SEED_LOGS);
-  const [bids,setBids] = useState(SEED_BIDS);
-  const [docs,setDocs] = useState(SEED_DOCS);
-  const [photos,setPhotos] = useState(SEED_PHOTOS);
+  const [loading,setLoading] = useState(true);
+  const [projects,setProjectsState] = useState([]);
+  const [contacts,setContactsState] = useState([]);
+  const [estimates,setEstimatesState] = useState([]);
+  const [invoices,setInvoicesState] = useState([]);
+  const [budgetItems,setBudgetItemsState] = useState([]);
+  const [cos,setCosState] = useState([]);
+  const [logs,setLogsState] = useState([]);
+  const [bids,setBidsState] = useState([]);
+  const [docs,setDocsState] = useState([]);
+  const [photos,setPhotosState] = useState([]);
+
+  // ── Load all data from Supabase ──
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [
+        {data:proj},{data:cont},{data:budg},{data:ests},{data:lines},
+        {data:invs},{data:cosr},{data:lgsr},{data:pkgs},{data:bdsr},
+        {data:dcsr},{data:phsr}
+      ] = await Promise.all([
+        sb.from("projects").select("*").order("created_at",{ascending:false}),
+        sb.from("contacts").select("*").order("created_at",{ascending:false}),
+        sb.from("budget_items").select("*"),
+        sb.from("estimates").select("*").order("created_at",{ascending:false}),
+        sb.from("estimate_line_items").select("*"),
+        sb.from("invoices").select("*").order("created_at",{ascending:false}),
+        sb.from("change_orders").select("*").order("created_at",{ascending:false}),
+        sb.from("daily_logs").select("*").order("date",{ascending:false}),
+        sb.from("bid_packages").select("*").order("created_at",{ascending:false}),
+        sb.from("bids").select("*"),
+        sb.from("documents").select("*").order("created_at",{ascending:false}),
+        sb.from("photos").select("*").order("created_at",{ascending:false}),
+      ]);
+      setProjectsState((proj||[]).map(fromDb.project));
+      setContactsState((cont||[]).map(fromDb.contact));
+      setBudgetItemsState((budg||[]).map(fromDb.budget));
+      const estsMapped = (ests||[]).map(e => fromDb.estimate(e, (lines||[]).filter(l=>l.estimate_id===e.id)));
+      setEstimatesState(estsMapped);
+      setInvoicesState((invs||[]).map(fromDb.invoice));
+      setCosState((cosr||[]).map(fromDb.co));
+      setLogsState((lgsr||[]).map(fromDb.log));
+      const pkgsMapped = (pkgs||[]).map(p => fromDb.bidPkg(p, (bdsr||[]).filter(b=>b.package_id===p.id)));
+      setBidsState(pkgsMapped);
+      setDocsState((dcsr||[]).map(fromDb.doc));
+      setPhotosState((phsr||[]).map(fromDb.photo));
+    } catch(e) { console.error("Load error",e); }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  // ── Projects CRUD ──
+  const setProjects = async (newProjects) => {
+    if (typeof newProjects === "function") newProjects = newProjects(projects);
+    setProjectsState(newProjects);
+    // detect changed/added vs deleted
+    const newIds = new Set(newProjects.map(p=>p.id));
+    const oldIds = new Set(projects.map(p=>p.id));
+    // deleted
+    for(const id of oldIds) if(!newIds.has(id)) await sb.from("projects").delete().eq("id",id);
+    // upserted
+    for(const p of newProjects) {
+      const row = { id:p.id, name:p.name, client:p.client, status:p.status, phase:p.phase, type:p.type, value:p.value, spent:p.spent, progress:p.progress, address:p.address, start_date:p.start||null, end_date:p.end||null, notes:p.notes };
+      await sb.from("projects").upsert(row);
+    }
+  };
+
+  const setContacts = async (newContacts) => {
+    if(typeof newContacts==="function") newContacts=newContacts(contacts);
+    setContactsState(newContacts);
+    const newIds=new Set(newContacts.map(c=>c.id));
+    for(const c of contacts) if(!newIds.has(c.id)) await sb.from("contacts").delete().eq("id",c.id);
+    for(const c of newContacts) await sb.from("contacts").upsert({id:c.id,name:c.name,company:c.company,type:c.type,email:c.email,phone:c.phone,city:c.city});
+  };
+
+  const setBudgetItems = async (newItems) => {
+    if(typeof newItems==="function") newItems=newItems(budgetItems);
+    setBudgetItemsState(newItems);
+    const newIds=new Set(newItems.map(b=>b.id));
+    for(const b of budgetItems) if(!newIds.has(b.id)) await sb.from("budget_items").delete().eq("id",b.id);
+    for(const b of newItems) await sb.from("budget_items").upsert({id:b.id,project_id:b.projectId,category:b.category,budgeted:b.budgeted,actual:b.actual,committed:b.committed,notes:b.notes});
+  };
+
+  const setEstimates = async (newEsts) => {
+    if(typeof newEsts==="function") newEsts=newEsts(estimates);
+    setEstimatesState(newEsts);
+    const newIds=new Set(newEsts.map(e=>e.id));
+    for(const e of estimates) if(!newIds.has(e.id)) { await sb.from("estimate_line_items").delete().eq("estimate_id",e.id); await sb.from("estimates").delete().eq("id",e.id); }
+    for(const e of newEsts) {
+      await sb.from("estimates").upsert({id:e.id,project_id:e.projectId,name:e.name,status:e.status,date:e.date||null,notes:e.notes});
+      // sync line items
+      const existingLines = estimates.find(x=>x.id===e.id)?.lineItems||[];
+      const newLineIds=new Set(e.lineItems.map(l=>l.id));
+      for(const l of existingLines) if(!newLineIds.has(l.id)) await sb.from("estimate_line_items").delete().eq("id",l.id);
+      for(const l of e.lineItems) await sb.from("estimate_line_items").upsert({id:l.id,estimate_id:e.id,category:l.category,description:l.description,qty:l.qty,unit:l.unit,cost:l.cost,markup:l.markup});
+    }
+  };
+
+  const setInvoices = async (newInvs) => {
+    if(typeof newInvs==="function") newInvs=newInvs(invoices);
+    setInvoicesState(newInvs);
+    const newIds=new Set(newInvs.map(i=>i.id));
+    for(const i of invoices) if(!newIds.has(i.id)) await sb.from("invoices").delete().eq("id",i.id);
+    for(const i of newInvs) await sb.from("invoices").upsert({id:i.id,project_id:i.projectId,number:i.number,description:i.description,amount:i.amount,issued:i.issued||null,due:i.due||null,status:i.status,stripe_payment_link:i.stripeLink||null});
+  };
+
+  const setCos = async (newCos) => {
+    if(typeof newCos==="function") newCos=newCos(cos);
+    setCosState(newCos);
+    const newIds=new Set(newCos.map(c=>c.id));
+    for(const c of cos) if(!newIds.has(c.id)) await sb.from("change_orders").delete().eq("id",c.id);
+    for(const c of newCos) await sb.from("change_orders").upsert({id:c.id,project_id:c.projectId,number:c.number,title:c.title,category:c.category,description:c.description,amount:c.amount,status:c.status,requested_by:c.requestedBy,date:c.date||null});
+  };
+
+  const setLogs = async (newLogs) => {
+    if(typeof newLogs==="function") newLogs=newLogs(logs);
+    setLogsState(newLogs);
+    const newIds=new Set(newLogs.map(l=>l.id));
+    for(const l of logs) if(!newIds.has(l.id)) await sb.from("daily_logs").delete().eq("id",l.id);
+    for(const l of newLogs) await sb.from("daily_logs").upsert({id:l.id,project_id:l.projectId,date:l.date||null,author:l.author,weather:l.weather,crew:l.crew,notes:l.notes});
+  };
+
+  const setBids = async (newBids) => {
+    if(typeof newBids==="function") newBids=newBids(bids);
+    setBidsState(newBids);
+    const newIds=new Set(newBids.map(b=>b.id));
+    for(const b of bids) if(!newIds.has(b.id)) { await sb.from("bids").delete().eq("package_id",b.id); await sb.from("bid_packages").delete().eq("id",b.id); }
+    for(const pkg of newBids) {
+      await sb.from("bid_packages").upsert({id:pkg.id,project_id:pkg.projectId,trade:pkg.trade,scope:pkg.scope,due_date:pkg.dueDate||null,status:pkg.status});
+      const existingPkg=bids.find(x=>x.id===pkg.id);
+      const existingBidIds=new Set((existingPkg?.bids||[]).map(b=>b.subId));
+      const newBidIds=new Set(pkg.bids.map(b=>b.subId));
+      for(const id of existingBidIds) if(!newBidIds.has(id)) await sb.from("bids").delete().eq("id",id);
+      for(const b of pkg.bids) await sb.from("bids").upsert({id:b.subId,package_id:pkg.id,sub_name:b.subName,amount:b.amount,notes:b.notes,submitted:b.submitted||null,awarded:b.awarded});
+    }
+  };
+
+  const setDocs = async (newDocs) => {
+    if(typeof newDocs==="function") newDocs=newDocs(docs);
+    setDocsState(newDocs);
+    const newIds=new Set(newDocs.map(d=>d.id));
+    for(const d of docs) if(!newIds.has(d.id)) await sb.from("documents").delete().eq("id",d.id);
+    for(const d of newDocs) await sb.from("documents").upsert({id:d.id,project_id:d.projectId,name:d.name,type:d.type,date:d.date||null,notes:d.notes,uploader:d.uploader});
+  };
+
+  const setPhotos = async (newPhotos) => {
+    if(typeof newPhotos==="function") newPhotos=newPhotos(photos);
+    setPhotosState(newPhotos);
+    const newIds=new Set(newPhotos.map(p=>p.id));
+    for(const p of photos) if(!newIds.has(p.id)) await sb.from("photos").delete().eq("id",p.id);
+    for(const p of newPhotos) await sb.from("photos").upsert({id:p.id,project_id:p.projectId,caption:p.caption,tag:p.tag,date:p.date||null,author:p.author,emoji:p.emoji,color:p.color});
+  };
 
   const navigate = (t,payload=null) => { setTab(t); setNavPayload(payload); setMenuOpen(false); };
 
@@ -1709,6 +1863,17 @@ export default function App() {
     {id:"photos",label:"Photos",icon:"photos"},
     {id:"contacts",label:"Contacts",icon:"contacts"},
   ];
+
+  if(loading) return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:C.bg,fontFamily:"'Inter',system-ui,sans-serif",flexDirection:"column",gap:16}}>
+      <div style={{width:40,height:40,background:C.accent,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center"}}><Ic d={I.hard} s={20} stroke="#fff"/></div>
+      <div style={{fontSize:14,fontWeight:600,color:C.textSub}}>Loading BuildFlow Pro...</div>
+      <div style={{width:200,height:3,background:C.border,borderRadius:3,overflow:"hidden"}}>
+        <div style={{width:"60%",height:"100%",background:C.accent,borderRadius:3,animation:"slide 1.2s ease-in-out infinite"}}/>
+      </div>
+      <style>{`@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(400%)}}`}</style>
+    </div>
+  );
 
   const pages = {
     dashboard:<Dashboard projects={projects} invoices={invoices} cos={cos} onNav={navigate}/>,
@@ -1778,11 +1943,6 @@ export default function App() {
           .sidebar{display:none!important;}
           .mobileHeader{display:flex!important;}
           .mainPad{padding:16px!important;padding-top:68px!important;}
-          .statGrid4{grid-template-columns:repeat(2,1fr)!important;}
-          .statGrid3{grid-template-columns:repeat(2,1fr)!important;}
-          .grid2{grid-template-columns:1fr!important;}
-          .photoGrid{grid-template-columns:repeat(2,1fr)!important;}
-          .dashGrid{grid-template-columns:1fr!important;}
         }
         @media(min-width:769px){
           .mobileHeader{display:none!important;}
@@ -1790,12 +1950,10 @@ export default function App() {
         }
       `}</style>
 
-      {/* Desktop Sidebar */}
       <div className="sidebar" style={{width:205,background:"#fff",borderRight:`1px solid ${C.border}`,flexShrink:0}}>
         <Sidebar/>
       </div>
 
-      {/* Mobile Header */}
       <div className="mobileHeader" style={{position:"fixed",top:0,left:0,right:0,zIndex:200,background:"#fff",borderBottom:`1px solid ${C.border}`,padding:"12px 16px",display:"none",alignItems:"center",justifyContent:"space-between"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:28,height:28,background:C.accent,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center"}}><Ic d={I.hard} s={13} stroke="#fff"/></div>
@@ -1806,14 +1964,12 @@ export default function App() {
         </button>
       </div>
 
-      {/* Mobile Menu */}
       {menuOpen&&<div className="mobileMenu" onClick={()=>setMenuOpen(false)} style={{position:"fixed",inset:0,background:"rgba(15,17,23,0.3)",zIndex:300}}>
         <div onClick={e=>e.stopPropagation()} style={{width:240,height:"100%",background:"#fff",borderRight:`1px solid ${C.border}`}}>
           <Sidebar/>
         </div>
       </div>}
 
-      {/* Main */}
       <div className="mainPad" style={{flex:1,overflow:"auto",padding:"32px 36px"}}>
         <div style={{maxWidth:1100}}>
           {pages[tab]||pages.dashboard}
