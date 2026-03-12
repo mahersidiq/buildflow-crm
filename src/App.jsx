@@ -18,88 +18,16 @@ const today = () => new Date().toISOString().slice(0,10);
 const uid = () => Date.now() + Math.random();
 
 // ─── SEED DATA ────────────────────────────────────────────────────────────────
-const SEED_PROJECTS = [
-  {id:1,name:"Riverside Luxury Remodel",client:"Marcus & Diane Webb",status:"Active",phase:"Framing",value:284000,start:"2026-01-10",end:"2026-06-15",address:"4821 Riverside Dr, Dallas TX",type:"Residential",progress:42,notes:"Master bath and kitchen full gut. Client prefers weekly updates."},
-  {id:2,name:"Oakwood Office Buildout",client:"Nexus Capital Group",status:"Active",phase:"MEP Rough-In",value:540000,start:"2026-02-01",end:"2026-08-30",address:"2100 Commerce St #400, Dallas TX",type:"Commercial",progress:31,notes:"Open floor plan. Permits pulled Feb 3."},
-  {id:3,name:"Highland Park Kitchen & Bath",client:"Sandra Thornton",status:"Estimate",phase:"Pre-Construction",value:92000,start:"2026-04-01",end:"2026-07-01",address:"508 Lakewood Blvd, Dallas TX",type:"Residential",progress:0,notes:""},
-  {id:4,name:"Uptown Restaurant Reno",client:"Vela Hospitality LLC",status:"Lead",phase:"Pre-Construction",value:175000,start:"2026-05-01",end:"2026-09-15",address:"3200 McKinney Ave, Dallas TX",type:"Commercial",progress:0,notes:""},
-  {id:5,name:"Mockingbird Townhome",client:"Stratton Dev Group",status:"Complete",phase:"Closeout",value:420000,start:"2025-06-01",end:"2026-01-30",address:"1940 Mockingbird Ln, Dallas TX",type:"Residential",progress:100,notes:""},
-];
-const SEED_CONTACTS = [
-  {id:1,name:"Marcus Webb",company:"",type:"Client",email:"mwebb@email.com",phone:"214-555-0192",city:"Dallas"},
-  {id:2,name:"Lisa Crane",company:"Nexus Capital Group",type:"Client",email:"lcrane@nexuscap.com",phone:"972-555-0341",city:"Dallas"},
-  {id:3,name:"Sandra Thornton",company:"",type:"Client",email:"sandra.t@gmail.com",phone:"214-555-0887",city:"Highland Park"},
-  {id:4,name:"Ace Electric",company:"Ace Electric Co.",type:"Subcontractor",email:"dispatch@aceelectric.com",phone:"972-555-0210",city:"Garland"},
-  {id:5,name:"ProPlumb DFW",company:"ProPlumb DFW",type:"Subcontractor",email:"bids@proplumb.com",phone:"817-555-0334",city:"Fort Worth"},
-  {id:6,name:"Dallas Lumber",company:"Dallas Lumber Supply",type:"Vendor",email:"orders@dallaslumber.com",phone:"214-555-0500",city:"Dallas"},
-];
-const SEED_BUDGET = [
-  {id:1,projectId:1,category:"Demo & Site Prep",budgeted:18000,actual:17200,committed:0,notes:""},
-  {id:2,projectId:1,category:"Framing",budgeted:42000,actual:38500,committed:3500,notes:""},
-  {id:3,projectId:1,category:"Electrical",budgeted:28000,actual:14000,committed:14000,notes:"Ace Electric"},
-  {id:4,projectId:1,category:"Plumbing",budgeted:22000,actual:11000,committed:11000,notes:"ProPlumb"},
-  {id:5,projectId:1,category:"HVAC",budgeted:18000,actual:0,committed:18000,notes:""},
-  {id:6,projectId:1,category:"Drywall",budgeted:14000,actual:0,committed:0,notes:""},
-  {id:7,projectId:1,category:"Finishes",budgeted:38000,actual:0,committed:0,notes:""},
-  {id:8,projectId:1,category:"Permits & Fees",budgeted:4200,actual:4200,committed:0,notes:""},
-  {id:9,projectId:1,category:"General Conditions",budgeted:22000,actual:12500,committed:0,notes:""},
-  {id:10,projectId:2,category:"Demo & Site Prep",budgeted:32000,actual:30000,committed:0,notes:""},
-  {id:11,projectId:2,category:"Framing",budgeted:85000,actual:75000,committed:10000,notes:""},
-  {id:12,projectId:2,category:"Electrical",budgeted:68000,actual:0,committed:68000,notes:""},
-  {id:13,projectId:2,category:"Plumbing",budgeted:42000,actual:0,committed:42000,notes:""},
-  {id:14,projectId:2,category:"HVAC",budgeted:55000,actual:0,committed:55000,notes:""},
-];
-const SEED_ESTIMATES = [
-  {id:1,projectId:3,name:"Base Bid",status:"Sent",date:"2026-03-01",notes:"Full kitchen and bath renovation",lineItems:[
-    {id:1,category:"Demo",description:"Full demo of kitchen and 2 baths",qty:1,unit:"LS",cost:8500,markup:15},
-    {id:2,category:"Framing",description:"New partition walls - kitchen",qty:1,unit:"LS",cost:4200,markup:15},
-    {id:3,category:"Electrical",description:"New circuits, outlets, fixtures",qty:1,unit:"LS",cost:12000,markup:15},
-    {id:4,category:"Plumbing",description:"Relocate kitchen sink, new bath rough-in",qty:1,unit:"LS",cost:9500,markup:15},
-    {id:5,category:"Cabinets",description:"Custom cabinets - kitchen",qty:1,unit:"LS",cost:18000,markup:10},
-    {id:6,category:"Countertops",description:"Quartz counters - 42 LF",qty:42,unit:"LF",cost:180,markup:20},
-    {id:7,category:"Tile",description:"Floor tile - kitchen and baths",qty:380,unit:"SF",cost:12,markup:25},
-    {id:8,category:"Painting",description:"Interior paint - all affected areas",qty:1,unit:"LS",cost:4800,markup:15},
-    {id:9,category:"GC Overhead",description:"General conditions and supervision",qty:1,unit:"LS",cost:6500,markup:0},
-  ]},
-];
-const SEED_INVOICES = [
-  {id:1,projectId:1,number:"INV-2026-001",description:"Draw #1 – Mobilization & Demo",amount:71000,issued:"2026-01-15",due:"2026-01-30",status:"Paid"},
-  {id:2,projectId:1,number:"INV-2026-002",description:"Draw #2 – Framing Complete",amount:71000,issued:"2026-02-20",due:"2026-03-06",status:"Paid"},
-  {id:3,projectId:1,number:"INV-2026-003",description:"Draw #3 – MEP Rough-In",amount:71000,issued:"2026-03-10",due:"2026-03-25",status:"Pending"},
-  {id:4,projectId:2,number:"INV-2026-004",description:"Draw #1 – Mobilization",amount:135000,issued:"2026-02-05",due:"2026-02-20",status:"Paid"},
-  {id:5,projectId:2,number:"INV-2026-005",description:"Draw #2 – Demo & Site Prep",amount:135000,issued:"2026-03-01",due:"2026-03-16",status:"Overdue"},
-];
-const SEED_COS = [
-  {id:1,projectId:1,number:"CO-001",title:"Owner added wine cellar",category:"Scope Addition",description:"Install custom wine cellar in basement – owner upgrade request",amount:14500,status:"Approved",date:"2026-02-14",requestedBy:"Owner"},
-  {id:2,projectId:1,number:"CO-002",title:"Hidden water damage – master bath",category:"Unforeseen",description:"Discovered mold and rotted subfloor behind shower wall",amount:6800,status:"Pending",date:"2026-03-08",requestedBy:"GC"},
-  {id:3,projectId:2,number:"CO-001",title:"Added server room",category:"Scope Addition",description:"Client added dedicated server room with supplemental AC",amount:28000,status:"Approved",date:"2026-02-22",requestedBy:"Owner"},
-];
-const SEED_LOGS = [
-  {id:1,projectId:1,date:"2026-03-11",author:"Jake Moreno",weather:"Sunny 74°F",crew:8,notes:"Framing crew completed master bedroom walls. Started hallway framing. Plumber on site to review rough-in layout. No issues.",photos:4},
-  {id:2,projectId:1,date:"2026-03-10",author:"Jake Moreno",weather:"Cloudy 68°F",crew:6,notes:"Material delivery – lumber and hardware. Organized staging area. Light rain delayed exterior work by 2 hours.",photos:2},
-  {id:3,projectId:2,date:"2026-03-11",author:"Lisa Crane",weather:"Clear 71°F",crew:12,notes:"MEP rough-in progressing on floors 2 and 3. Electrical panel location confirmed with engineer. Inspection scheduled for 3/15.",photos:6},
-];
-const SEED_BIDS = [
-  {id:1,projectId:1,trade:"HVAC",scope:"Full HVAC system install – 4 zones",dueDate:"2026-03-20",status:"Open",bids:[
-    {subId:1,subName:"CoolAir DFW",amount:16800,notes:"Includes 2yr labor warranty",submitted:"2026-03-10",awarded:false},
-    {subId:2,subName:"Premier Mechanical",amount:17400,notes:"",submitted:"2026-03-11",awarded:false},
-  ]},
-  {id:2,projectId:2,trade:"Flooring",scope:"Commercial LVP and carpet – 18,000 SF",dueDate:"2026-03-18",status:"Awarded",bids:[
-    {subId:3,subName:"DFW Flooring Co",amount:54000,notes:"6 week lead time",submitted:"2026-03-05",awarded:true},
-    {subId:4,subName:"Floors Direct",amount:58500,notes:"",submitted:"2026-03-06",awarded:false},
-  ]},
-];
-const SEED_DOCS = [
-  {id:1,projectId:1,name:"Webb – Executed Contract.pdf",type:"Contract",date:"2025-12-22",notes:"Signed by both parties"},
-  {id:2,projectId:1,name:"Riverside – Architectural Plans v3.pdf",type:"Plans",date:"2026-01-08",notes:"Approved for construction"},
-  {id:3,projectId:2,name:"Oakwood – Building Permit #B2026-00441.pdf",type:"Permit",date:"2026-01-30",notes:""},
-  {id:4,projectId:2,name:"Nexus Capital – Signed Contract.pdf",type:"Contract",date:"2026-01-28",notes:""},
-];
-const SEED_PHOTOS = [
-  {id:1,projectId:1,caption:"Master bath demo complete",tag:"Progress",date:"2026-02-15",author:"Jake Moreno",emoji:"🏗️",color:"#E8F4F8"},
-  {id:2,projectId:1,caption:"Framing walls – master bedroom",tag:"Progress",date:"2026-03-10",author:"Jake Moreno",emoji:"🪵",color:"#F0F8E8"},
-  {id:3,projectId:2,caption:"MEP rough-in floor 2",tag:"Milestone",date:"2026-03-11",author:"Lisa Crane",emoji:"⚡",color:"#FEF3EC"},
-];
+const SEED_PROJECTS = [];
+const SEED_CONTACTS = [];
+const SEED_BUDGET = [];
+const SEED_ESTIMATES = [];
+const SEED_INVOICES = [];
+const SEED_COS = [];
+const SEED_LOGS = [];
+const SEED_BIDS = [];
+const SEED_DOCS = [];
+const SEED_PHOTOS = [];
 
 // ─── ICONS ────────────────────────────────────────────────────────────────────
 const Ic = ({ d, s=18, stroke="currentColor" }) => (
@@ -336,8 +264,8 @@ const Dashboard = ({projects,invoices,cos,onNav}) => {
     <div style={{display:"flex",flexDirection:"column",gap:24}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",paddingBottom:22,borderBottom:`1px solid ${C.border}`}}>
         <div>
-          <div style={{fontSize:22,fontWeight:800,color:C.text,letterSpacing:"-0.03em"}}>Good morning, Jake 👷</div>
-          <div style={{fontSize:13,color:C.textSub,marginTop:4}}>Thursday, March 12, 2026 · Dallas, TX</div>
+          <div style={{fontSize:22,fontWeight:800,color:C.text,letterSpacing:"-0.03em"}}>BuildFlow Pro 👷</div>
+          <div style={{fontSize:13,color:C.textSub,marginTop:4}}>{new Date().toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
         </div>
         <Btn onClick={()=>onNav("projects")}><Ic d={I.plus} s={14}/> New Project</Btn>
       </div>
@@ -1827,8 +1755,8 @@ export default function App() {
       </nav>
       <div style={{padding:"10px 12px",borderTop:`1px solid ${C.border}`}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:30,height:30,borderRadius:"50%",background:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0}}>JM</div>
-          <div><div style={{fontSize:12,fontWeight:600,color:C.text}}>Jake Moreno</div><div style={{fontSize:11,color:C.textMuted}}>Project Manager</div></div>
+          <div style={{width:30,height:30,borderRadius:"50%",background:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0}}>GC</div>
+          <div><div style={{fontSize:12,fontWeight:600,color:C.text}}>My Company</div><div style={{fontSize:11,color:C.textMuted}}>Project Manager</div></div>
         </div>
       </div>
     </div>
