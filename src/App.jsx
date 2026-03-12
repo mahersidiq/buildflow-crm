@@ -1148,7 +1148,7 @@ const Documents = ({projectId,docs,setDocs,projects}) => {
       </Card>}
 
       {filtered.length===0&&!form&&<Card><EmptyState msg="No documents found." action={<Btn sm onClick={()=>setForm({projectId:projects[0]?.id||"",name:"",type:"Contract",date:today(),notes:""})}>+ Add Document</Btn>}/></Card>}
-      <Table heads={[{l:"Document"},{l:"Type"},{!projectId&&{l:"Project"}}.l&&{l:"Project"},{l:"Date"},{l:"Uploaded By"},{l:""}].filter(Boolean)}>
+      <Table heads={[{l:"Document"},{l:"Type"},...(!projectId?[{l:"Project"}]:[]),{l:"Date"},{l:"Uploaded By"},{l:""}]}>
         {filtered.map(doc=>{
           const p=projects.find(x=>x.id===doc.projectId);
           const tc=TYPE_COLOR[doc.type]||C.textSub; const tb=TYPE_BG[doc.type]||C.bg;
