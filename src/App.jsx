@@ -22,6 +22,17 @@ const fmtDate = d => d ? new Date(d+"T12:00:00").toLocaleDateString("en-US",{mon
 const today = () => new Date().toISOString().slice(0,10);
 const uid = () => crypto.randomUUID();
 
+// ─── MOBILE HOOK ──────────────────────────────────────────────────────────────
+const useMobile = () => {
+  const [mobile, setMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const fn = () => setMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return mobile;
+};
+
 // ─── SEED DATA ────────────────────────────────────────────────────────────────
 // No seed data — all data lives in Supabase
 
@@ -130,37 +141,46 @@ const TA = ({label,value,onChange,rows=3}) => <Field label={label}>
   />
 </Field>;
 
-const Card = ({children,style={},onClick,onMouseEnter,onMouseLeave}) => <div onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:22,...style}}>{children}</div>;
+const Card = ({children,style={},onClick,onMouseEnter,onMouseLeave}) => {
+  const isMobile = useMobile();
+  return <div onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:isMobile?14:22,...style}}>{children}</div>;
+};
 
-const Stat = ({label,value,sub,color=C.accent,icon}) => (
-  <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"16px 20px",position:"relative",overflow:"hidden"}}>
-    <div style={{position:"absolute",top:0,left:0,width:3,height:"100%",background:color,borderRadius:"10px 0 0 10px"}}/>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-      <span style={{fontSize:11,color:C.textMuted,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase"}}>{label}</span>
-      {icon&&<div style={{width:28,height:28,borderRadius:7,background:color+"15",display:"flex",alignItems:"center",justifyContent:"center",color}}><Ic d={I[icon]} s={13}/></div>}
+const Stat = ({label,value,sub,color=C.accent,icon}) => {
+  const isMobile = useMobile();
+  return (
+    <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:isMobile?"12px 14px":"16px 20px",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:0,left:0,width:3,height:"100%",background:color,borderRadius:"10px 0 0 10px"}}/>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:isMobile?6:10}}>
+        <span style={{fontSize:isMobile?10:11,color:C.textMuted,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase"}}>{label}</span>
+        {icon&&!isMobile&&<div style={{width:28,height:28,borderRadius:7,background:color+"15",display:"flex",alignItems:"center",justifyContent:"center",color}}><Ic d={I[icon]} s={13}/></div>}
+      </div>
+      <div style={{fontSize:isMobile?18:24,fontWeight:700,color:C.text,letterSpacing:"-0.03em",lineHeight:1}}>{value}</div>
+      {sub&&<div style={{fontSize:11,color:C.textMuted,marginTop:4}}>{sub}</div>}
     </div>
-    <div style={{fontSize:24,fontWeight:700,color:C.text,letterSpacing:"-0.03em",lineHeight:1}}>{value}</div>
-    {sub&&<div style={{fontSize:11,color:C.textMuted,marginTop:5}}>{sub}</div>}
-  </div>
-);
+  );
+};
 
-const PageHead = ({eyebrow,title,action}) => (
-  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:20,borderBottom:`1px solid ${C.border}`,marginBottom:24}}>
-    <div>
-      {eyebrow&&<div style={{fontSize:11,color:C.accent,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:4}}>{eyebrow}</div>}
-      <div style={{fontSize:20,fontWeight:700,color:C.text,letterSpacing:"-0.02em"}}>{title}</div>
+const PageHead = ({eyebrow,title,action}) => {
+  const isMobile = useMobile();
+  return (
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:isMobile?"flex-start":"center",paddingBottom:isMobile?14:20,borderBottom:`1px solid ${C.border}`,marginBottom:isMobile?16:24,flexDirection:isMobile?"column":"row",gap:isMobile?10:0}}>
+      <div>
+        {eyebrow&&<div style={{fontSize:11,color:C.accent,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:4}}>{eyebrow}</div>}
+        <div style={{fontSize:isMobile?16:20,fontWeight:700,color:C.text,letterSpacing:"-0.02em"}}>{title}</div>
+      </div>
+      {action&&<div style={{width:isMobile?"100%":"auto"}}>{action}</div>}
     </div>
-    {action}
-  </div>
-);
+  );
+};
 
 const TH = ({children,right}) => <th style={{padding:"11px 14px",textAlign:right?"right":"left",fontSize:11,color:C.textSub,fontWeight:600,letterSpacing:"0.05em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{children}</th>;
 const TD = ({children,right,bold,muted,color}) => <td style={{padding:"12px 14px",fontSize:13,textAlign:right?"right":"left",color:color||(muted?C.textSub:C.text),fontWeight:bold?700:400}}>{children}</td>;
 
 const Table = ({heads,children,empty}) => (
   <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
-    <div style={{overflowX:"auto"}}>
-      <table style={{width:"100%",borderCollapse:"collapse"}}>
+    <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+      <table style={{width:"100%",borderCollapse:"collapse",minWidth:480}}>
         <thead><tr style={{borderBottom:`1px solid ${C.border}`,background:C.bg}}>{heads.map((h,i)=><TH key={i} right={h.r}>{h.l}</TH>)}</tr></thead>
         <tbody>{children}</tbody>
       </table>
@@ -199,8 +219,15 @@ const Modal = ({title,onClose,children,width=640}) => (
   </div>
 );
 
-const Grid = ({cols="1fr 1fr",gap=14,children,style={}}) => <div style={{display:"grid",gridTemplateColumns:cols,gap,...style}}>{children}</div>;
-const Span2 = ({children}) => <div style={{gridColumn:"span 2"}}>{children}</div>;
+const Grid = ({cols="1fr 1fr",gap=14,children,style={},mob=false}) => {
+  const isMobile = useMobile();
+  const tc = (isMobile||mob) ? "1fr" : cols;
+  return <div style={{display:"grid",gridTemplateColumns:tc,gap,...style}}>{children}</div>;
+};
+const Span2 = ({children}) => {
+  const isMobile = useMobile();
+  return <div style={{gridColumn:isMobile?"span 1":"span 2"}}>{children}</div>;
+};
 
 const Progress = ({pct,color=C.accent,h=6}) => (
   <div style={{height:h,background:C.bg,borderRadius:h/2}}>
@@ -230,13 +257,16 @@ const EmptyState = ({msg,action}) => (
 );
 
 const Tabs = ({tabs,active,onChange}) => (
-  <div style={{display:"flex",gap:2,borderBottom:`1px solid ${C.border}`,marginBottom:20}}>
-    {tabs.map(t=>(
-      <button key={t} onClick={()=>onChange(t)}
-        style={{padding:"9px 16px",border:"none",borderBottom:active===t?`2px solid ${C.accent}`:"2px solid transparent",background:"none",color:active===t?C.accent:C.textSub,fontSize:13,fontWeight:active===t?600:400,cursor:"pointer",textTransform:"capitalize",marginBottom:-1,fontFamily:"inherit"}}>
-        {t}
-      </button>
-    ))}
+  <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",marginBottom:20,scrollbarWidth:"none"}}
+    onScroll={e=>e.stopPropagation()}>
+    <div style={{display:"flex",gap:2,borderBottom:`1px solid ${C.border}`,minWidth:"max-content"}}>
+      {tabs.map(t=>(
+        <button key={t} onClick={()=>onChange(t)}
+          style={{padding:"9px 14px",border:"none",borderBottom:active===t?`2px solid ${C.accent}`:"2px solid transparent",background:"none",color:active===t?C.accent:C.textSub,fontSize:13,fontWeight:active===t?600:400,cursor:"pointer",textTransform:"capitalize",marginBottom:-1,fontFamily:"inherit",whiteSpace:"nowrap"}}>
+          {t}
+        </button>
+      ))}
+    </div>
   </div>
 );
 
@@ -256,24 +286,26 @@ const Dashboard = ({projects,invoices,cos,onNav}) => {
   const receivables = [...overdue,...pendingInv].reduce((s,i)=>s+i.amount,0);
   const pendingCOs = cos.filter(c=>c.status==="Pending");
 
+  const isMobile = useMobile();
+
   return (
-    <div style={{display:"flex",flexDirection:"column",gap:24}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",paddingBottom:22,borderBottom:`1px solid ${C.border}`}}>
+    <div style={{display:"flex",flexDirection:"column",gap:isMobile?16:24}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",paddingBottom:isMobile?14:22,borderBottom:`1px solid ${C.border}`}}>
         <div>
-          <div style={{fontSize:22,fontWeight:800,color:C.text,letterSpacing:"-0.03em"}}>BuildFlow Pro 👷</div>
-          <div style={{fontSize:13,color:C.textSub,marginTop:4}}>{new Date().toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
+          <div style={{fontSize:isMobile?17:22,fontWeight:800,color:C.text,letterSpacing:"-0.03em"}}>BuildFlow Pro 👷</div>
+          <div style={{fontSize:12,color:C.textSub,marginTop:4}}>{new Date().toLocaleDateString("en-US",{weekday:isMobile?"short":"long",year:"numeric",month:isMobile?"short":"long",day:"numeric"})}</div>
         </div>
-        <Btn onClick={()=>onNav("projects")}><Ic d={I.plus} s={14}/> New Project</Btn>
+        <Btn sm={isMobile} onClick={()=>onNav("projects")}><Ic d={I.plus} s={14}/> {isMobile?"New":"New Project"}</Btn>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14}}>
-        <Stat label="Active Jobs" value={active.length} sub={`${projects.length} total`} color={C.accent} icon="proj"/>
-        <Stat label="Total Pipeline" value={fmt(pipeline)} color={C.green} icon="trend"/>
-        <Stat label="Receivables Due" value={fmt(receivables)} sub={`${overdue.length} overdue`} color={overdue.length>0?C.red:C.amber} icon="inv"/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:isMobile?10:14}}>
+        <Stat label="Active" value={active.length} sub={`${projects.length} total`} color={C.accent} icon="proj"/>
+        <Stat label="Pipeline" value={fmt(pipeline)} color={C.green} icon="trend"/>
+        <Stat label="Receivables" value={fmt(receivables)} sub={`${overdue.length} overdue`} color={overdue.length>0?C.red:C.amber} icon="inv"/>
         <Stat label="Pending COs" value={pendingCOs.length} sub={fmt(pendingCOs.reduce((s,c)=>s+c.amount,0))} color={C.purple} icon="co"/>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:20}}>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 300px",gap:isMobile?16:20}}>
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
             <div style={{fontSize:14,fontWeight:600,color:C.text}}>Active Projects</div>
@@ -1298,15 +1330,17 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
     const approvedCOs=projCOs.filter(c=>c.status==="Approved").reduce((s,c)=>s+c.amount,0);
     const TABS = ["overview","budget","estimates","invoices","change orders","sub bids","daily logs","documents","photos"];
 
+    const isMobile = typeof window!=="undefined"&&window.innerWidth<=768;
+
     return (
-      <div style={{display:"flex",flexDirection:"column",gap:20}}>
+      <div style={{display:"flex",flexDirection:"column",gap:isMobile?14:20}}>
         {delId&&<Confirm msg={`Delete "${p.name}"? All linked data will be removed.`} onOk={del} onCancel={()=>setDelId(null)}/>}
 
         {/* Header */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <Btn v="secondary" sm onClick={()=>{setSelectedId(null);setEditMode(false);}}><Ic d={I.back} s={13}/> All Projects</Btn>
-            <div><div style={{fontSize:18,fontWeight:700,color:C.text}}>{p.name}</div><div style={{fontSize:12,color:C.textSub}}>{p.client} · {p.address}</div></div>
+        <div style={{display:"flex",alignItems:isMobile?"flex-start":"center",justifyContent:"space-between",flexWrap:"wrap",gap:10,flexDirection:isMobile?"column":"row"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <Btn v="secondary" sm onClick={()=>{setSelectedId(null);setEditMode(false);}}><Ic d={I.back} s={13}/> {isMobile?"Back":"All Projects"}</Btn>
+            <div><div style={{fontSize:isMobile?15:18,fontWeight:700,color:C.text}}>{p.name}</div><div style={{fontSize:11,color:C.textSub}}>{p.client}{p.address?" · "+p.address:""}</div></div>
             <Badge s={p.status}/>
           </div>
           <div style={{display:"flex",gap:8}}>
@@ -1316,9 +1350,9 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
         </div>
 
         {/* Stats */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14}}>
-          <Stat label="Contract Value" value={fmt(p.value)} color={C.accent} icon="dollar"/>
-          <Stat label="Spent to Date" value={fmt(p.spent)} sub={`${budget_pct}% of budget`} color={budget_pct>90?C.red:C.green} icon="trend"/>
+        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(4,1fr)",gap:isMobile?10:14}}>
+          <Stat label="Contract" value={fmt(p.value)} color={C.accent} icon="dollar"/>
+          <Stat label="Spent" value={fmt(p.spent)} sub={`${budget_pct}% of budget`} color={budget_pct>90?C.red:C.green} icon="trend"/>
           <Stat label="Remaining" value={fmt(p.value+approvedCOs-p.spent)} color={C.purple} icon="dollar"/>
           <Stat label="Progress" value={`${p.progress}%`} sub={p.phase} color={C.amber} icon="proj"/>
         </div>
@@ -1426,7 +1460,7 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
         })}
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:14}}>
+      <div style={{display:"grid",gridTemplateColumns:typeof window!=="undefined"&&window.innerWidth<=768?"1fr":"repeat(2,1fr)",gap:14}} className="proj-grid">
         {filtered.map(p=>{
           const pct=p.value?Math.round((p.spent/p.value)*100):0;
           return (
@@ -1962,36 +1996,79 @@ export default function App() {
         input[type=date]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer;}
         input::placeholder,textarea::placeholder{color:#B0B6BF;}
         textarea,button,select{font-family:inherit;}
-        @media(max-width:768px){
-          .sidebar{display:none!important;}
-          .mobileHeader{display:flex!important;}
-          .mainPad{padding:16px!important;padding-top:68px!important;}
-        }
+
         @media(min-width:769px){
           .mobileHeader{display:none!important;}
           .mobileMenu{display:none!important;}
+          .bottomNav{display:none!important;}
+        }
+
+        @media(max-width:768px){
+          .sidebar{display:none!important;}
+          .mobileHeader{display:flex!important;}
+          .mainPad{padding:12px!important;padding-top:62px!important;padding-bottom:76px!important;}
+          .bottomNav{display:flex!important;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #E8EAED;z-index:200;padding:4px 0 env(safe-area-inset-bottom,8px);}
+
+          /* Make ALL multi-column grids stack on mobile */
+          div[style*="repeat(4,1fr)"],
+          div[style*="repeat(3,1fr)"],
+          div[style*="repeat(2,1fr)"]{
+            grid-template-columns: 1fr 1fr !important;
+          }
+
+          /* Project card grid goes single col */
+          .proj-grid{grid-template-columns:1fr!important;}
+
+          /* Touch targets */
+          button{min-height:40px;min-width:40px;}
+          input,select,textarea{font-size:16px!important;} /* prevents iOS zoom */
+
+          /* Compact page header actions go full width */
+          .page-action{width:100%!important;}
+          .page-action button{width:100%!important;}
         }
       `}</style>
 
+      {/* Desktop Sidebar */}
       <div className="sidebar" style={{width:205,background:"#fff",borderRight:`1px solid ${C.border}`,flexShrink:0}}>
         <Sidebar/>
       </div>
 
-      <div className="mobileHeader" style={{position:"fixed",top:0,left:0,right:0,zIndex:200,background:"#fff",borderBottom:`1px solid ${C.border}`,padding:"12px 16px",display:"none",alignItems:"center",justifyContent:"space-between"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:28,height:28,background:C.accent,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center"}}><Ic d={I.hard} s={13} stroke="#fff"/></div>
-          <div style={{fontSize:13,fontWeight:800,color:C.text}}>BUILDFLOW PRO</div>
+      {/* Mobile Top Header */}
+      <div className="mobileHeader" style={{position:"fixed",top:0,left:0,right:0,zIndex:200,background:"#fff",borderBottom:`1px solid ${C.border}`,padding:"10px 16px",display:"none",alignItems:"center",justifyContent:"space-between",height:54}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <div style={{width:26,height:26,background:C.accent,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center"}}><Ic d={I.hard} s={12} stroke="#fff"/></div>
+          <div style={{fontSize:13,fontWeight:800,color:C.text,letterSpacing:"0.02em"}}>BUILDFLOW PRO</div>
         </div>
-        <button onClick={()=>setMenuOpen(!menuOpen)} style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:7,padding:"7px 10px",cursor:"pointer",color:C.textMid,display:"flex"}}>
-          <Ic d={menuOpen?I.x:I.menu} s={18}/>
+        <button onClick={()=>setMenuOpen(!menuOpen)} style={{background:"none",border:"none",cursor:"pointer",color:C.textMid,display:"flex",padding:4}}>
+          <Ic d={menuOpen?I.x:I.menu} s={22}/>
         </button>
       </div>
 
-      {menuOpen&&<div className="mobileMenu" onClick={()=>setMenuOpen(false)} style={{position:"fixed",inset:0,background:"rgba(15,17,23,0.3)",zIndex:300}}>
-        <div onClick={e=>e.stopPropagation()} style={{width:240,height:"100%",background:"#fff",borderRight:`1px solid ${C.border}`}}>
+      {/* Mobile Slide-out Menu */}
+      {menuOpen&&<div className="mobileMenu" onClick={()=>setMenuOpen(false)} style={{position:"fixed",inset:0,background:"rgba(15,17,23,0.4)",zIndex:300}}>
+        <div onClick={e=>e.stopPropagation()} style={{width:"75%",maxWidth:280,height:"100%",background:"#fff",borderRight:`1px solid ${C.border}`,overflowY:"auto"}}>
           <Sidebar/>
         </div>
       </div>}
+
+      {/* Mobile Bottom Nav - quick access to key tabs */}
+      <div className="bottomNav" style={{display:"none"}}>
+        {[
+          {id:"dashboard",label:"Home",icon:"home"},
+          {id:"projects",label:"Projects",icon:"proj"},
+          {id:"invoices",label:"Invoices",icon:"inv"},
+          {id:"budget",label:"Budget",icon:"budget"},
+          {id:"logs",label:"Logs",icon:"logs"},
+        ].map(item=>{
+          const active=tab===item.id;
+          return <button key={item.id} onClick={()=>navigate(item.id)}
+            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"none",border:"none",cursor:"pointer",padding:"4px 0",color:active?C.accent:C.textMuted}}>
+            <Ic d={I[item.icon]||I.home} s={active?20:18} stroke={active?C.accent:C.textMuted}/>
+            <span style={{fontSize:9,fontWeight:active?700:500,letterSpacing:"0.02em"}}>{item.label}</span>
+          </button>;
+        })}
+      </div>
 
       <div className="mainPad" style={{flex:1,overflow:"auto",padding:"32px 36px"}}>
         <div style={{maxWidth:1100}}>
