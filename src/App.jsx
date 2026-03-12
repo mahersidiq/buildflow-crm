@@ -130,7 +130,7 @@ const TA = ({label,value,onChange,rows=3}) => <Field label={label}>
   />
 </Field>;
 
-const Card = ({children,style={}}) => <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:22,...style}}>{children}</div>;
+const Card = ({children,style={},onClick,onMouseEnter,onMouseLeave}) => <div onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:22,...style}}>{children}</div>;
 
 const Stat = ({label,value,sub,color=C.accent,icon}) => (
   <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"16px 20px",position:"relative",overflow:"hidden"}}>
