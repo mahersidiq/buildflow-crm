@@ -20,7 +20,7 @@ const C = {
 const fmt = n => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(n||0);
 const fmtDate = d => d ? new Date(d+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) : "—";
 const today = () => new Date().toISOString().slice(0,10);
-const uid = () => Date.now() + Math.random();
+const uid = () => crypto.randomUUID();
 
 // ─── SEED DATA ────────────────────────────────────────────────────────────────
 // No seed data — all data lives in Supabase
@@ -1674,18 +1674,57 @@ const GlobalEstimates = ({estimates,setEstimates,projects}) => {
 };
 
 
+
 // ─── DB HELPERS ───────────────────────────────────────────────────────────────
 const fromDb = {
-  project: r => ({ id:r.id, name:r.name, client:r.client||"", status:r.status||"Lead", phase:r.phase||"Pre-Construction", type:r.type||"Residential", value:r.value||0, spent:r.spent||0, progress:r.progress||0, address:r.address||"", start:r.start_date||"", end:r.end_date||"", notes:r.notes||"" }),
+  project: r => ({ id:r.id, name:r.name, client:r.client||"", status:r.status||"Lead", phase:r.phase||"Pre-Construction", type:r.type||"Residential", value:parseFloat(r.value)||0, spent:parseFloat(r.spent)||0, progress:parseInt(r.progress)||0, address:r.address||"", start:r.start_date||"", end:r.end_date||"", notes:r.notes||"" }),
   contact: r => ({ id:r.id, name:r.name, company:r.company||"", type:r.type||"Client", email:r.email||"", phone:r.phone||"", city:r.city||"" }),
-  budget: r => ({ id:r.id, projectId:r.project_id, category:r.category||"", budgeted:r.budgeted||0, actual:r.actual||0, committed:r.committed||0, notes:r.notes||"" }),
-  estimate: (r, lines) => ({ id:r.id, projectId:r.project_id, name:r.name||"", status:r.status||"Draft", date:r.date||"", notes:r.notes||"", lineItems:(lines||[]).map(l=>({ id:l.id, category:l.category||"", description:l.description||"", qty:l.qty||1, unit:l.unit||"LS", cost:l.cost||0, markup:l.markup||0 })) }),
-  invoice: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", description:r.description||"", amount:r.amount||0, issued:r.issued||"", due:r.due||"", status:r.status||"Pending", stripeLink:r.stripe_payment_link||"" }),
-  co: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", title:r.title||"", category:r.category||"", description:r.description||"", amount:r.amount||0, status:r.status||"Pending", requestedBy:r.requested_by||"Owner", date:r.date||"" }),
-  log: r => ({ id:r.id, projectId:r.project_id, date:r.date||"", author:r.author||"", weather:r.weather||"", crew:r.crew||0, notes:r.notes||"" }),
-  bidPkg: (r, bids) => ({ id:r.id, projectId:r.project_id, trade:r.trade||"", scope:r.scope||"", dueDate:r.due_date||"", status:r.status||"Open", bids:(bids||[]).map(b=>({ subId:b.id, subName:b.sub_name||"", amount:b.amount||0, notes:b.notes||"", submitted:b.submitted||"", awarded:b.awarded||false })) }),
+  budget: r => ({ id:r.id, projectId:r.project_id, category:r.category||"", budgeted:parseFloat(r.budgeted)||0, actual:parseFloat(r.actual)||0, committed:parseFloat(r.committed)||0, notes:r.notes||"" }),
+  estimate: (r, lines) => ({ id:r.id, projectId:r.project_id, name:r.name||"", status:r.status||"Draft", date:r.date||"", notes:r.notes||"", lineItems:(lines||[]).map(l=>({ id:l.id, category:l.category||"", description:l.description||"", qty:parseFloat(l.qty)||1, unit:l.unit||"LS", cost:parseFloat(l.cost)||0, markup:parseFloat(l.markup)||0 })) }),
+  invoice: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", description:r.description||"", amount:parseFloat(r.amount)||0, issued:r.issued||"", due:r.due||"", status:r.status||"Pending" }),
+  co: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", title:r.title||"", category:r.category||"", description:r.description||"", amount:parseFloat(r.amount)||0, status:r.status||"Pending", requestedBy:r.requested_by||"Owner", date:r.date||"" }),
+  log: r => ({ id:r.id, projectId:r.project_id, date:r.date||"", author:r.author||"", weather:r.weather||"", crew:parseInt(r.crew)||0, notes:r.notes||"" }),
+  bidPkg: (r, bids) => ({ id:r.id, projectId:r.project_id, trade:r.trade||"", scope:r.scope||"", dueDate:r.due_date||"", status:r.status||"Open", bids:(bids||[]).map(b=>({ subId:b.id, subName:b.sub_name||"", amount:parseFloat(b.amount)||0, notes:b.notes||"", submitted:b.submitted||"", awarded:b.awarded||false })) }),
   doc: r => ({ id:r.id, projectId:r.project_id, name:r.name||"", type:r.type||"Contract", date:r.date||"", notes:r.notes||"", uploader:r.uploader||"" }),
   photo: r => ({ id:r.id, projectId:r.project_id, caption:r.caption||"", tag:r.tag||"Progress", date:r.date||"", author:r.author||"", emoji:r.emoji||"📷", color:r.color||"#F4F5F7" }),
+};
+
+// Direct DB operations — no diffing, just straight insert/update/delete
+const db = {
+  // Projects
+  async saveProject(p) { const {error} = await sb.from("projects").upsert({id:p.id,name:p.name,client:p.client,status:p.status,phase:p.phase,type:p.type,value:p.value||0,spent:p.spent||0,progress:p.progress||0,address:p.address,start_date:p.start||null,end_date:p.end||null,notes:p.notes}); if(error) console.error("saveProject",error); return !error; },
+  async deleteProject(id) { await sb.from("projects").delete().eq("id",id); },
+  // Contacts
+  async saveContact(c) { const {error} = await sb.from("contacts").upsert({id:c.id,name:c.name,company:c.company,type:c.type,email:c.email,phone:c.phone,city:c.city}); if(error) console.error("saveContact",error); return !error; },
+  async deleteContact(id) { await sb.from("contacts").delete().eq("id",id); },
+  // Budget
+  async saveBudget(b) { const {error} = await sb.from("budget_items").upsert({id:b.id,project_id:b.projectId,category:b.category,budgeted:b.budgeted||0,actual:b.actual||0,committed:b.committed||0,notes:b.notes}); if(error) console.error("saveBudget",error); return !error; },
+  async deleteBudget(id) { await sb.from("budget_items").delete().eq("id",id); },
+  // Estimates
+  async saveEstimate(e) { const {error} = await sb.from("estimates").upsert({id:e.id,project_id:e.projectId,name:e.name,status:e.status,date:e.date||null,notes:e.notes}); if(error) console.error("saveEstimate",error); return !error; },
+  async deleteEstimate(id) { await sb.from("estimate_line_items").delete().eq("estimate_id",id); await sb.from("estimates").delete().eq("id",id); },
+  async saveLineItem(l,estimateId) { const {error} = await sb.from("estimate_line_items").upsert({id:l.id,estimate_id:estimateId,category:l.category,description:l.description,qty:l.qty||1,unit:l.unit,cost:l.cost||0,markup:l.markup||0}); if(error) console.error("saveLineItem",error); return !error; },
+  async deleteLineItem(id) { await sb.from("estimate_line_items").delete().eq("id",id); },
+  // Invoices
+  async saveInvoice(i) { const {error} = await sb.from("invoices").upsert({id:i.id,project_id:i.projectId,number:i.number,description:i.description,amount:i.amount||0,issued:i.issued||null,due:i.due||null,status:i.status}); if(error) console.error("saveInvoice",error); return !error; },
+  async deleteInvoice(id) { await sb.from("invoices").delete().eq("id",id); },
+  // Change Orders
+  async saveCO(c) { const {error} = await sb.from("change_orders").upsert({id:c.id,project_id:c.projectId,number:c.number,title:c.title,category:c.category,description:c.description,amount:c.amount||0,status:c.status,requested_by:c.requestedBy,date:c.date||null}); if(error) console.error("saveCO",error); return !error; },
+  async deleteCO(id) { await sb.from("change_orders").delete().eq("id",id); },
+  // Daily Logs
+  async saveLog(l) { const {error} = await sb.from("daily_logs").upsert({id:l.id,project_id:l.projectId,date:l.date||null,author:l.author,weather:l.weather,crew:l.crew||0,notes:l.notes}); if(error) console.error("saveLog",error); return !error; },
+  async deleteLog(id) { await sb.from("daily_logs").delete().eq("id",id); },
+  // Bid Packages
+  async saveBidPkg(p) { const {error} = await sb.from("bid_packages").upsert({id:p.id,project_id:p.projectId,trade:p.trade,scope:p.scope,due_date:p.dueDate||null,status:p.status}); if(error) console.error("saveBidPkg",error); return !error; },
+  async deleteBidPkg(id) { await sb.from("bids").delete().eq("package_id",id); await sb.from("bid_packages").delete().eq("id",id); },
+  async saveBid(b,pkgId) { const {error} = await sb.from("bids").upsert({id:b.subId,package_id:pkgId,sub_name:b.subName,amount:b.amount||0,notes:b.notes,submitted:b.submitted||null,awarded:b.awarded||false}); if(error) console.error("saveBid",error); return !error; },
+  async deleteBid(id) { await sb.from("bids").delete().eq("id",id); },
+  // Documents
+  async saveDoc(d) { const {error} = await sb.from("documents").upsert({id:d.id,project_id:d.projectId,name:d.name,type:d.type,date:d.date||null,notes:d.notes,uploader:d.uploader}); if(error) console.error("saveDoc",error); return !error; },
+  async deleteDoc(id) { await sb.from("documents").delete().eq("id",id); },
+  // Photos
+  async savePhoto(p) { const {error} = await sb.from("photos").upsert({id:p.id,project_id:p.projectId,caption:p.caption,tag:p.tag,date:p.date||null,author:p.author,emoji:p.emoji,color:p.color}); if(error) console.error("savePhoto",error); return !error; },
+  async deletePhoto(id) { await sb.from("photos").delete().eq("id",id); },
 };
 
 // ─── APP ROOT ────────────────────────────────────────────────────────────────
@@ -1694,160 +1733,73 @@ export default function App() {
   const [navPayload,setNavPayload] = useState(null);
   const [menuOpen,setMenuOpen] = useState(false);
   const [loading,setLoading] = useState(true);
-  const [projects,setProjectsState] = useState([]);
-  const [contacts,setContactsState] = useState([]);
-  const [estimates,setEstimatesState] = useState([]);
-  const [invoices,setInvoicesState] = useState([]);
-  const [budgetItems,setBudgetItemsState] = useState([]);
-  const [cos,setCosState] = useState([]);
-  const [logs,setLogsState] = useState([]);
-  const [bids,setBidsState] = useState([]);
-  const [docs,setDocsState] = useState([]);
-  const [photos,setPhotosState] = useState([]);
+  const [projects,setProjects] = useState([]);
+  const [contacts,setContacts] = useState([]);
+  const [estimates,setEstimates] = useState([]);
+  const [invoices,setInvoices] = useState([]);
+  const [budgetItems,setBudgetItems] = useState([]);
+  const [cos,setCos] = useState([]);
+  const [logs,setLogs] = useState([]);
+  const [bids,setBids] = useState([]);
+  const [docs,setDocs] = useState([]);
+  const [photos,setPhotos] = useState([]);
 
-  // ── Load all data from Supabase ──
-  const loadAll = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [
-        {data:proj},{data:cont},{data:budg},{data:ests},{data:lines},
-        {data:invs},{data:cosr},{data:lgsr},{data:pkgs},{data:bdsr},
-        {data:dcsr},{data:phsr}
-      ] = await Promise.all([
-        sb.from("projects").select("*").order("created_at",{ascending:false}),
-        sb.from("contacts").select("*").order("created_at",{ascending:false}),
-        sb.from("budget_items").select("*"),
-        sb.from("estimates").select("*").order("created_at",{ascending:false}),
-        sb.from("estimate_line_items").select("*"),
-        sb.from("invoices").select("*").order("created_at",{ascending:false}),
-        sb.from("change_orders").select("*").order("created_at",{ascending:false}),
-        sb.from("daily_logs").select("*").order("date",{ascending:false}),
-        sb.from("bid_packages").select("*").order("created_at",{ascending:false}),
-        sb.from("bids").select("*"),
-        sb.from("documents").select("*").order("created_at",{ascending:false}),
-        sb.from("photos").select("*").order("created_at",{ascending:false}),
-      ]);
-      setProjectsState((proj||[]).map(fromDb.project));
-      setContactsState((cont||[]).map(fromDb.contact));
-      setBudgetItemsState((budg||[]).map(fromDb.budget));
-      const estsMapped = (ests||[]).map(e => fromDb.estimate(e, (lines||[]).filter(l=>l.estimate_id===e.id)));
-      setEstimatesState(estsMapped);
-      setInvoicesState((invs||[]).map(fromDb.invoice));
-      setCosState((cosr||[]).map(fromDb.co));
-      setLogsState((lgsr||[]).map(fromDb.log));
-      const pkgsMapped = (pkgs||[]).map(p => fromDb.bidPkg(p, (bdsr||[]).filter(b=>b.package_id===p.id)));
-      setBidsState(pkgsMapped);
-      setDocsState((dcsr||[]).map(fromDb.doc));
-      setPhotosState((phsr||[]).map(fromDb.photo));
-    } catch(e) { console.error("Load error",e); }
-    setLoading(false);
+  // ── Load all data ──
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const [
+          {data:proj,error:e1},{data:cont,error:e2},{data:budg,error:e3},
+          {data:ests,error:e4},{data:lines,error:e5},{data:invs,error:e6},
+          {data:cosr,error:e7},{data:lgsr,error:e8},{data:pkgs,error:e9},
+          {data:bdsr,error:e10},{data:dcsr,error:e11},{data:phsr,error:e12}
+        ] = await Promise.all([
+          sb.from("projects").select("*").order("created_at",{ascending:false}),
+          sb.from("contacts").select("*").order("created_at",{ascending:false}),
+          sb.from("budget_items").select("*"),
+          sb.from("estimates").select("*").order("created_at",{ascending:false}),
+          sb.from("estimate_line_items").select("*"),
+          sb.from("invoices").select("*").order("created_at",{ascending:false}),
+          sb.from("change_orders").select("*").order("created_at",{ascending:false}),
+          sb.from("daily_logs").select("*").order("date",{ascending:false}),
+          sb.from("bid_packages").select("*").order("created_at",{ascending:false}),
+          sb.from("bids").select("*"),
+          sb.from("documents").select("*").order("created_at",{ascending:false}),
+          sb.from("photos").select("*").order("created_at",{ascending:false}),
+        ]);
+        [e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11,e12].forEach(e=>e&&console.error("Load error:",e));
+        setProjects((proj||[]).map(fromDb.project));
+        setContacts((cont||[]).map(fromDb.contact));
+        setBudgetItems((budg||[]).map(fromDb.budget));
+        setEstimates((ests||[]).map(e=>fromDb.estimate(e,(lines||[]).filter(l=>l.estimate_id===e.id))));
+        setInvoices((invs||[]).map(fromDb.invoice));
+        setCos((cosr||[]).map(fromDb.co));
+        setLogs((lgsr||[]).map(fromDb.log));
+        setBids((pkgs||[]).map(p=>fromDb.bidPkg(p,(bdsr||[]).filter(b=>b.package_id===p.id))));
+        setDocs((dcsr||[]).map(fromDb.doc));
+        setPhotos((phsr||[]).map(fromDb.photo));
+      } catch(e) { console.error("Load failed:",e); }
+      setLoading(false);
+    })();
   }, []);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
-
-  // ── Projects CRUD ──
-  const setProjects = async (newProjects) => {
-    if (typeof newProjects === "function") newProjects = newProjects(projects);
-    setProjectsState(newProjects);
-    // detect changed/added vs deleted
-    const newIds = new Set(newProjects.map(p=>p.id));
-    const oldIds = new Set(projects.map(p=>p.id));
-    // deleted
-    for(const id of oldIds) if(!newIds.has(id)) await sb.from("projects").delete().eq("id",id);
-    // upserted
-    for(const p of newProjects) {
-      const row = { id:p.id, name:p.name, client:p.client, status:p.status, phase:p.phase, type:p.type, value:p.value, spent:p.spent, progress:p.progress, address:p.address, start_date:p.start||null, end_date:p.end||null, notes:p.notes };
-      await sb.from("projects").upsert(row);
-    }
-  };
-
-  const setContacts = async (newContacts) => {
-    if(typeof newContacts==="function") newContacts=newContacts(contacts);
-    setContactsState(newContacts);
-    const newIds=new Set(newContacts.map(c=>c.id));
-    for(const c of contacts) if(!newIds.has(c.id)) await sb.from("contacts").delete().eq("id",c.id);
-    for(const c of newContacts) await sb.from("contacts").upsert({id:c.id,name:c.name,company:c.company,type:c.type,email:c.email,phone:c.phone,city:c.city});
-  };
-
-  const setBudgetItems = async (newItems) => {
-    if(typeof newItems==="function") newItems=newItems(budgetItems);
-    setBudgetItemsState(newItems);
-    const newIds=new Set(newItems.map(b=>b.id));
-    for(const b of budgetItems) if(!newIds.has(b.id)) await sb.from("budget_items").delete().eq("id",b.id);
-    for(const b of newItems) await sb.from("budget_items").upsert({id:b.id,project_id:b.projectId,category:b.category,budgeted:b.budgeted,actual:b.actual,committed:b.committed,notes:b.notes});
-  };
-
-  const setEstimates = async (newEsts) => {
-    if(typeof newEsts==="function") newEsts=newEsts(estimates);
-    setEstimatesState(newEsts);
-    const newIds=new Set(newEsts.map(e=>e.id));
-    for(const e of estimates) if(!newIds.has(e.id)) { await sb.from("estimate_line_items").delete().eq("estimate_id",e.id); await sb.from("estimates").delete().eq("id",e.id); }
-    for(const e of newEsts) {
-      await sb.from("estimates").upsert({id:e.id,project_id:e.projectId,name:e.name,status:e.status,date:e.date||null,notes:e.notes});
-      // sync line items
-      const existingLines = estimates.find(x=>x.id===e.id)?.lineItems||[];
-      const newLineIds=new Set(e.lineItems.map(l=>l.id));
-      for(const l of existingLines) if(!newLineIds.has(l.id)) await sb.from("estimate_line_items").delete().eq("id",l.id);
-      for(const l of e.lineItems) await sb.from("estimate_line_items").upsert({id:l.id,estimate_id:e.id,category:l.category,description:l.description,qty:l.qty,unit:l.unit,cost:l.cost,markup:l.markup});
-    }
-  };
-
-  const setInvoices = async (newInvs) => {
-    if(typeof newInvs==="function") newInvs=newInvs(invoices);
-    setInvoicesState(newInvs);
-    const newIds=new Set(newInvs.map(i=>i.id));
-    for(const i of invoices) if(!newIds.has(i.id)) await sb.from("invoices").delete().eq("id",i.id);
-    for(const i of newInvs) await sb.from("invoices").upsert({id:i.id,project_id:i.projectId,number:i.number,description:i.description,amount:i.amount,issued:i.issued||null,due:i.due||null,status:i.status,stripe_payment_link:i.stripeLink||null});
-  };
-
-  const setCos = async (newCos) => {
-    if(typeof newCos==="function") newCos=newCos(cos);
-    setCosState(newCos);
-    const newIds=new Set(newCos.map(c=>c.id));
-    for(const c of cos) if(!newIds.has(c.id)) await sb.from("change_orders").delete().eq("id",c.id);
-    for(const c of newCos) await sb.from("change_orders").upsert({id:c.id,project_id:c.projectId,number:c.number,title:c.title,category:c.category,description:c.description,amount:c.amount,status:c.status,requested_by:c.requestedBy,date:c.date||null});
-  };
-
-  const setLogs = async (newLogs) => {
-    if(typeof newLogs==="function") newLogs=newLogs(logs);
-    setLogsState(newLogs);
-    const newIds=new Set(newLogs.map(l=>l.id));
-    for(const l of logs) if(!newIds.has(l.id)) await sb.from("daily_logs").delete().eq("id",l.id);
-    for(const l of newLogs) await sb.from("daily_logs").upsert({id:l.id,project_id:l.projectId,date:l.date||null,author:l.author,weather:l.weather,crew:l.crew,notes:l.notes});
-  };
-
-  const setBids = async (newBids) => {
-    if(typeof newBids==="function") newBids=newBids(bids);
-    setBidsState(newBids);
-    const newIds=new Set(newBids.map(b=>b.id));
-    for(const b of bids) if(!newIds.has(b.id)) { await sb.from("bids").delete().eq("package_id",b.id); await sb.from("bid_packages").delete().eq("id",b.id); }
-    for(const pkg of newBids) {
-      await sb.from("bid_packages").upsert({id:pkg.id,project_id:pkg.projectId,trade:pkg.trade,scope:pkg.scope,due_date:pkg.dueDate||null,status:pkg.status});
-      const existingPkg=bids.find(x=>x.id===pkg.id);
-      const existingBidIds=new Set((existingPkg?.bids||[]).map(b=>b.subId));
-      const newBidIds=new Set(pkg.bids.map(b=>b.subId));
-      for(const id of existingBidIds) if(!newBidIds.has(id)) await sb.from("bids").delete().eq("id",id);
-      for(const b of pkg.bids) await sb.from("bids").upsert({id:b.subId,package_id:pkg.id,sub_name:b.subName,amount:b.amount,notes:b.notes,submitted:b.submitted||null,awarded:b.awarded});
-    }
-  };
-
-  const setDocs = async (newDocs) => {
-    if(typeof newDocs==="function") newDocs=newDocs(docs);
-    setDocsState(newDocs);
-    const newIds=new Set(newDocs.map(d=>d.id));
-    for(const d of docs) if(!newIds.has(d.id)) await sb.from("documents").delete().eq("id",d.id);
-    for(const d of newDocs) await sb.from("documents").upsert({id:d.id,project_id:d.projectId,name:d.name,type:d.type,date:d.date||null,notes:d.notes,uploader:d.uploader});
-  };
-
-  const setPhotos = async (newPhotos) => {
-    if(typeof newPhotos==="function") newPhotos=newPhotos(photos);
-    setPhotosState(newPhotos);
-    const newIds=new Set(newPhotos.map(p=>p.id));
-    for(const p of photos) if(!newIds.has(p.id)) await sb.from("photos").delete().eq("id",p.id);
-    for(const p of newPhotos) await sb.from("photos").upsert({id:p.id,project_id:p.projectId,caption:p.caption,tag:p.tag,date:p.date||null,author:p.author,emoji:p.emoji,color:p.color});
-  };
-
   const navigate = (t,payload=null) => { setTab(t); setNavPayload(payload); setMenuOpen(false); };
+
+  // Wrap setters to also persist to DB
+  const mkSetProjects = (fn) => async (updater) => {
+    setProjects(prev => {
+      const next = typeof updater==="function" ? updater(prev) : updater;
+      // find added/changed
+      next.forEach(p => { if(!prev.find(x=>x.id===p.id&&JSON.stringify(x)===JSON.stringify(p))) db.saveProject(p); });
+      // find deleted
+      prev.forEach(p => { if(!next.find(x=>x.id===p.id)) db.deleteProject(p.id); });
+      return next;
+    });
+  };
+
+  // Simpler direct pattern — pass db to each module via context-like props
+  const dbOps = { db, setProjects, setContacts, setBudgetItems, setEstimates, setInvoices, setCos, setLogs, setBids, setDocs, setPhotos };
 
   const NAV = [
     {id:"dashboard",label:"Dashboard",icon:"home"},
@@ -1866,37 +1818,130 @@ export default function App() {
 
   if(loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:C.bg,fontFamily:"'Inter',system-ui,sans-serif",flexDirection:"column",gap:16}}>
-      <div style={{width:40,height:40,background:C.accent,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center"}}><Ic d={I.hard} s={20} stroke="#fff"/></div>
-      <div style={{fontSize:14,fontWeight:600,color:C.textSub}}>Loading BuildFlow Pro...</div>
-      <div style={{width:200,height:3,background:C.border,borderRadius:3,overflow:"hidden"}}>
-        <div style={{width:"60%",height:"100%",background:C.accent,borderRadius:3,animation:"slide 1.2s ease-in-out infinite"}}/>
+      <div style={{width:44,height:44,background:C.accent,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center"}}><Ic d={I.hard} s={22} stroke="#fff"/></div>
+      <div style={{fontSize:15,fontWeight:700,color:C.text}}>BuildFlow Pro</div>
+      <div style={{fontSize:13,color:C.textSub}}>Loading your projects...</div>
+      <div style={{width:200,height:3,background:C.border,borderRadius:3,overflow:"hidden",marginTop:4}}>
+        <div style={{width:"40%",height:"100%",background:C.accent,borderRadius:3,animation:"load 1s ease-in-out infinite alternate"}}/>
       </div>
-      <style>{`@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(400%)}}`}</style>
+      <style>{`@keyframes load{from{transform:translateX(0)}to{transform:translateX(300%)}}`}</style>
     </div>
   );
 
+  // These setters sync local state AND write to DB immediately
+  const setProjectsDB = async (updater) => {
+    setProjects(prev => {
+      const next = typeof updater==="function" ? updater(prev) : updater;
+      next.forEach(p => db.saveProject(p));
+      prev.filter(p=>!next.find(x=>x.id===p.id)).forEach(p=>db.deleteProject(p.id));
+      return next;
+    });
+  };
+  const setContactsDB = async (updater) => {
+    setContacts(prev => {
+      const next = typeof updater==="function" ? updater(prev) : updater;
+      next.forEach(c => db.saveContact(c));
+      prev.filter(c=>!next.find(x=>x.id===c.id)).forEach(c=>db.deleteContact(c.id));
+      return next;
+    });
+  };
+  const setBudgetDB = async (updater) => {
+    setBudgetItems(prev => {
+      const next = typeof updater==="function" ? updater(prev) : updater;
+      next.forEach(b => db.saveBudget(b));
+      prev.filter(b=>!next.find(x=>x.id===b.id)).forEach(b=>db.deleteBudget(b.id));
+      return next;
+    });
+  };
+  const setEstimatesDB = async (updater) => {
+    setEstimates(prev => {
+      const next = typeof updater==="function" ? updater(prev) : updater;
+      next.forEach(e => {
+        db.saveEstimate(e);
+        e.lineItems.forEach(l => db.saveLineItem(l, e.id));
+        const old = prev.find(x=>x.id===e.id);
+        if(old) old.lineItems.filter(l=>!e.lineItems.find(x=>x.id===l.id)).forEach(l=>db.deleteLineItem(l.id));
+      });
+      prev.filter(e=>!next.find(x=>x.id===e.id)).forEach(e=>db.deleteEstimate(e.id));
+      return next;
+    });
+  };
+  const setInvoicesDB = async (updater) => {
+    setInvoices(prev => {
+      const next = typeof updater==="function" ? updater(prev) : updater;
+      next.forEach(i => db.saveInvoice(i));
+      prev.filter(i=>!next.find(x=>x.id===i.id)).forEach(i=>db.deleteInvoice(i.id));
+      return next;
+    });
+  };
+  const setCosDB = async (updater) => {
+    setCos(prev => {
+      const next = typeof updater==="function" ? updater(prev) : updater;
+      next.forEach(c => db.saveCO(c));
+      prev.filter(c=>!next.find(x=>x.id===c.id)).forEach(c=>db.deleteCO(c.id));
+      return next;
+    });
+  };
+  const setLogsDB = async (updater) => {
+    setLogs(prev => {
+      const next = typeof updater==="function" ? updater(prev) : updater;
+      next.forEach(l => db.saveLog(l));
+      prev.filter(l=>!next.find(x=>x.id===l.id)).forEach(l=>db.deleteLog(l.id));
+      return next;
+    });
+  };
+  const setBidsDB = async (updater) => {
+    setBids(prev => {
+      const next = typeof updater==="function" ? updater(prev) : updater;
+      next.forEach(pkg => {
+        db.saveBidPkg(pkg);
+        pkg.bids.forEach(b => db.saveBid(b, pkg.id));
+        const old = prev.find(x=>x.id===pkg.id);
+        if(old) old.bids.filter(b=>!pkg.bids.find(x=>x.subId===b.subId)).forEach(b=>db.deleteBid(b.subId));
+      });
+      prev.filter(p=>!next.find(x=>x.id===p.id)).forEach(p=>db.deleteBidPkg(p.id));
+      return next;
+    });
+  };
+  const setDocsDB = async (updater) => {
+    setDocs(prev => {
+      const next = typeof updater==="function" ? updater(prev) : updater;
+      next.forEach(d => db.saveDoc(d));
+      prev.filter(d=>!next.find(x=>x.id===d.id)).forEach(d=>db.deleteDoc(d.id));
+      return next;
+    });
+  };
+  const setPhotosDB = async (updater) => {
+    setPhotos(prev => {
+      const next = typeof updater==="function" ? updater(prev) : updater;
+      next.forEach(p => db.savePhoto(p));
+      prev.filter(p=>!next.find(x=>x.id===p.id)).forEach(p=>db.deletePhoto(p.id));
+      return next;
+    });
+  };
+
   const pages = {
     dashboard:<Dashboard projects={projects} invoices={invoices} cos={cos} onNav={navigate}/>,
-    projects:<Projects projects={projects} setProjects={setProjects} estimates={estimates} setEstimates={setEstimates} invoices={invoices} setInvoices={setInvoices} budgetItems={budgetItems} setBudgetItems={setBudgetItems} cos={cos} setCos={setCos} logs={logs} setLogs={setLogs} bids={bids} setBids={setBids} docs={docs} setDocs={setDocs} photos={photos} setPhotos={setPhotos} initialId={navPayload}/>,
-    estimates:<GlobalEstimates estimates={estimates} setEstimates={setEstimates} projects={projects}/>,
-    invoices:<GlobalInvoices invoices={invoices} setInvoices={setInvoices} projects={projects}/>,
-    cos:<ChangeOrders cos={cos} setCos={setCos} projects={projects}/>,
+    projects:<Projects projects={projects} setProjects={setProjectsDB} estimates={estimates} setEstimates={setEstimatesDB} invoices={invoices} setInvoices={setInvoicesDB} budgetItems={budgetItems} setBudgetItems={setBudgetDB} cos={cos} setCos={setCosDB} logs={logs} setLogs={setLogsDB} bids={bids} setBids={setBidsDB} docs={docs} setDocs={setDocsDB} photos={photos} setPhotos={setPhotosDB} initialId={navPayload}/>,
+    estimates:<GlobalEstimates estimates={estimates} setEstimates={setEstimatesDB} projects={projects}/>,
+    invoices:<GlobalInvoices invoices={invoices} setInvoices={setInvoicesDB} projects={projects}/>,
+    cos:<ChangeOrders cos={cos} setCos={setCosDB} projects={projects}/>,
     budget:<div style={{display:"flex",flexDirection:"column",gap:20}}>
       <PageHead eyebrow="Cost Management" title="Budget Tracker"/>
       {projects.filter(p=>p.status==="Active"||p.status==="Complete").map(p=>(
         <div key={p.id}>
           <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:14,display:"flex",alignItems:"center",gap:10}}>{p.name}<Badge s={p.status}/></div>
-          <Budget projectId={p.id} budgetItems={budgetItems} setBudgetItems={setBudgetItems} projects={projects} setProjects={setProjects}/>
+          <Budget projectId={p.id} budgetItems={budgetItems} setBudgetItems={setBudgetDB} projects={projects} setProjects={setProjectsDB}/>
           <div style={{height:24}}/>
         </div>
       ))}
     </div>,
-    bids:<SubBids bids={bids} setBids={setBids} projects={projects}/>,
-    schedule:<Schedule projects={projects} setProjects={setProjects}/>,
-    logs:<DailyLogs logs={logs} setLogs={setLogs} projects={projects}/>,
-    docs:<Documents docs={docs} setDocs={setDocs} projects={projects}/>,
-    photos:<Photos photos={photos} setPhotos={setPhotos} projects={projects}/>,
-    contacts:<Contacts contacts={contacts} setContacts={setContacts}/>,
+    bids:<SubBids bids={bids} setBids={setBidsDB} projects={projects}/>,
+    schedule:<Schedule projects={projects} setProjects={setProjectsDB}/>,
+    logs:<DailyLogs logs={logs} setLogs={setLogsDB} projects={projects}/>,
+    docs:<Documents docs={docs} setDocs={setDocsDB} projects={projects}/>,
+    photos:<Photos photos={photos} setPhotos={setPhotosDB} projects={projects}/>,
+    contacts:<Contacts contacts={contacts} setContacts={setContactsDB}/>,
   };
 
   const Sidebar = () => (
