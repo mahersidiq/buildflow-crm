@@ -774,7 +774,7 @@ const ChangeOrders = ({projectId,cos,setCos,projects}) => {
         <Card style={{border:`1px solid ${C.accentB}`}}>
           <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:16}}>{form.id?"Edit":"New"} Change Order</div>
           <Grid cols="1fr 1fr" gap={12}>
-            {!projectId&&<Sel label="Project" value={form.projectId} onChange={e=>setForm({...form,projectId:parseInt(e.target.value)})} options={projects.map(p=>({v:p.id,l:p.name}))}/>}
+            {!projectId&&<Sel label="Project" value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} options={projects.map(p=>({v:p.id,l:p.name}))}/>}
             <Inp label="CO Title" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="Brief description of change"/>
             <Sel label="Category" value={form.category} onChange={e=>setForm({...form,category:e.target.value})} options={CATS}/>
             <Sel label="Requested By" value={form.requestedBy} onChange={e=>setForm({...form,requestedBy:e.target.value})} options={["Owner","GC","Architect","Engineer","Inspector","Subcontractor"]}/>
@@ -827,14 +827,14 @@ const DailyLogs = ({projectId,logs,setLogs,projects}) => {
   const [form,setForm] = useState(null);
   const [delId,setDelId] = useState(null);
   const [filterProj,setFilterProj] = useState(projectId||"All");
-  const items = projectId ? logs.filter(l=>l.projectId===projectId) : (filterProj==="All"?logs:logs.filter(l=>l.projectId===parseInt(filterProj)));
+  const items = projectId ? logs.filter(l=>l.projectId===projectId) : (filterProj==="All"?logs:logs.filter(l=>l.projectId===filterProj));
 
   const save = () => {
     if(!form.notes||!form.projectId) return;
     if(form.id) {
       setLogs(logs.map(l=>l.id===form.id?{...form,crew:parseInt(form.crew)||0}:l));
     } else {
-      setLogs([{...form,id:uid(),projectId:parseInt(form.projectId),crew:parseInt(form.crew)||0,photos:0},...logs]);
+      setLogs([{...form,id:uid(),projectId:form.projectId,crew:parseInt(form.crew)||0,photos:0},...logs]);
     }
     setForm(null);
   };
@@ -918,8 +918,8 @@ const SubBids = ({projectId,bids,setBids,projects}) => {
   const savePkg = () => {
     if(!pkgForm.trade) return;
     const projId=pkgForm.projectId||projectId;
-    if(pkgForm.id){setBids(bids.map(b=>b.id===pkgForm.id?{...pkgForm,projectId:parseInt(projId||pkgForm.projectId)}:b));}
-    else{setBids([...bids,{...pkgForm,id:uid(),projectId:parseInt(projId),status:"Open",bids:[]}]);}
+    if(pkgForm.id){setBids(bids.map(b=>b.id===pkgForm.id?{...pkgForm,projectId:projId||pkgForm.projectId}:b));}
+    else{setBids([...bids,{...pkgForm,id:uid(),projectId:projId,status:"Open",bids:[]}]);}
     setPkgForm(null);
   };
 
@@ -1044,7 +1044,7 @@ const Documents = ({projectId,docs,setDocs,projects}) => {
   const save = () => {
     if(!form.name) return;
     if(form.id){setDocs(docs.map(d=>d.id===form.id?form:d));}
-    else{setDocs([...docs,{...form,id:uid(),projectId:parseInt(form.projectId||projectId),uploader:"Jake Moreno",date:form.date||today()}]);}
+    else{setDocs([...docs,{...form,id:uid(),projectId:form.projectId||projectId,uploader:"Jake Moreno",date:form.date||today()}]);}
     setForm(null);
   };
   const del = () => { setDocs(docs.filter(d=>d.id!==delId)); setDelId(null); };
@@ -1112,7 +1112,7 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
   const save = () => {
     if(!form.caption) return;
     if(form.id){setPhotos(photos.map(p=>p.id===form.id?form:p));}
-    else{setPhotos([{...form,id:uid(),projectId:parseInt(form.projectId||projectId),emoji:EMOJIS[form.tag]||"📷",color:COLORS[Math.floor(Math.random()*COLORS.length)]},...photos]);}
+    else{setPhotos([{...form,id:uid(),projectId:form.projectId||projectId,emoji:EMOJIS[form.tag]||"📷",color:COLORS[Math.floor(Math.random()*COLORS.length)]},...photos]);}
     setForm(null);
   };
   const del = () => { setPhotos(photos.filter(p=>p.id!==delId)); setDelId(null); setLightbox(null); };
@@ -1257,12 +1257,15 @@ const PHASES = ["Pre-Construction","Demo & Site Prep","Foundation","Framing","ME
 
 const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoices,budgetItems,setBudgetItems,cos,setCos,logs,setLogs,bids,setBids,docs,setDocs,photos,setPhotos,initialId}) => {
   const [filter,setFilter] = useState("All");
-  const [selectedId,setSelectedId] = useState(initialId||null);
+  const [selectedId,setSelectedId] = useState(null);
   const [activeTab,setActiveTab] = useState("overview");
   const [form,setForm] = useState(null);
   const [editMode,setEditMode] = useState(false);
   const [editProj,setEditProj] = useState(null);
   const [delId,setDelId] = useState(null);
+
+  // Open project from dashboard nav — only fires once when initialId is set
+  useEffect(()=>{ if(initialId) setSelectedId(initialId); },[initialId]);
 
   const STATUSES = ["All","Lead","Estimate","Active","On Hold","Complete"];
   const filtered = filter==="All"?projects:projects.filter(p=>p.status===filter);
@@ -1551,7 +1554,7 @@ const GlobalInvoices = ({invoices,setInvoices,projects}) => {
   const save = () => {
     if(!form.description||!form.amount||!form.projectId) return;
     const num=`INV-${new Date().getFullYear()}-${String(invoices.length+1).padStart(3,"0")}`;
-    setInvoices([...invoices,{...form,id:uid(),number:num,status:"Pending",issued:today(),projectId:parseInt(form.projectId),amount:parseFloat(form.amount)}]);
+    setInvoices([...invoices,{...form,id:uid(),number:num,status:"Pending",issued:today(),projectId:form.projectId,amount:parseFloat(form.amount)}]);
     setForm(null);
   };
   const del = () => { setInvoices(invoices.filter(i=>i.id!==delId)); setDelId(null); };
@@ -1628,7 +1631,7 @@ const GlobalEstimates = ({estimates,setEstimates,projects}) => {
 
   const create = () => {
     if(!form.name||!form.projectId) return;
-    const e={id:uid(),projectId:parseInt(form.projectId),name:form.name,notes:form.notes,status:"Draft",date:today(),lineItems:[]};
+    const e={id:uid(),projectId:form.projectId,name:form.name,notes:form.notes,status:"Draft",date:today(),lineItems:[]};
     setEstimates([...estimates,e]);
     setNavTo(e.id);
     setShowForm(false);
@@ -1786,21 +1789,6 @@ export default function App() {
 
   const navigate = (t,payload=null) => { setTab(t); setNavPayload(payload); setMenuOpen(false); };
 
-  // Wrap setters to also persist to DB
-  const mkSetProjects = (fn) => async (updater) => {
-    setProjects(prev => {
-      const next = typeof updater==="function" ? updater(prev) : updater;
-      // find added/changed
-      next.forEach(p => { if(!prev.find(x=>x.id===p.id&&JSON.stringify(x)===JSON.stringify(p))) db.saveProject(p); });
-      // find deleted
-      prev.forEach(p => { if(!next.find(x=>x.id===p.id)) db.deleteProject(p.id); });
-      return next;
-    });
-  };
-
-  // Simpler direct pattern — pass db to each module via context-like props
-  const dbOps = { db, setProjects, setContacts, setBudgetItems, setEstimates, setInvoices, setCos, setLogs, setBids, setDocs, setPhotos };
-
   const NAV = [
     {id:"dashboard",label:"Dashboard",icon:"home"},
     {id:"projects",label:"Projects",icon:"proj"},
@@ -1828,94 +1816,96 @@ export default function App() {
     </div>
   );
 
-  // These setters sync local state AND write to DB immediately
-  const setProjectsDB = async (updater) => {
+  // Clean DB setters — update state immediately, write to DB in background
+  const setProjectsDB = (updater) => {
     setProjects(prev => {
       const next = typeof updater==="function" ? updater(prev) : updater;
+      const prevIds = new Set(prev.map(x=>x.id));
+      const nextIds = new Set(next.map(x=>x.id));
       next.forEach(p => db.saveProject(p));
-      prev.filter(p=>!next.find(x=>x.id===p.id)).forEach(p=>db.deleteProject(p.id));
+      prev.forEach(p => { if(!nextIds.has(p.id)) db.deleteProject(p.id); });
       return next;
     });
   };
-  const setContactsDB = async (updater) => {
+  const setContactsDB = (updater) => {
     setContacts(prev => {
       const next = typeof updater==="function" ? updater(prev) : updater;
       next.forEach(c => db.saveContact(c));
-      prev.filter(c=>!next.find(x=>x.id===c.id)).forEach(c=>db.deleteContact(c.id));
+      prev.forEach(c => { if(!next.find(x=>x.id===c.id)) db.deleteContact(c.id); });
       return next;
     });
   };
-  const setBudgetDB = async (updater) => {
+  const setBudgetDB = (updater) => {
     setBudgetItems(prev => {
       const next = typeof updater==="function" ? updater(prev) : updater;
       next.forEach(b => db.saveBudget(b));
-      prev.filter(b=>!next.find(x=>x.id===b.id)).forEach(b=>db.deleteBudget(b.id));
+      prev.forEach(b => { if(!next.find(x=>x.id===b.id)) db.deleteBudget(b.id); });
       return next;
     });
   };
-  const setEstimatesDB = async (updater) => {
+  const setEstimatesDB = (updater) => {
     setEstimates(prev => {
       const next = typeof updater==="function" ? updater(prev) : updater;
       next.forEach(e => {
         db.saveEstimate(e);
         e.lineItems.forEach(l => db.saveLineItem(l, e.id));
         const old = prev.find(x=>x.id===e.id);
-        if(old) old.lineItems.filter(l=>!e.lineItems.find(x=>x.id===l.id)).forEach(l=>db.deleteLineItem(l.id));
+        if(old) old.lineItems.forEach(l => { if(!e.lineItems.find(x=>x.id===l.id)) db.deleteLineItem(l.id); });
       });
-      prev.filter(e=>!next.find(x=>x.id===e.id)).forEach(e=>db.deleteEstimate(e.id));
+      prev.forEach(e => { if(!next.find(x=>x.id===e.id)) db.deleteEstimate(e.id); });
       return next;
     });
   };
-  const setInvoicesDB = async (updater) => {
+  const setInvoicesDB = (updater) => {
     setInvoices(prev => {
       const next = typeof updater==="function" ? updater(prev) : updater;
       next.forEach(i => db.saveInvoice(i));
-      prev.filter(i=>!next.find(x=>x.id===i.id)).forEach(i=>db.deleteInvoice(i.id));
+      prev.forEach(i => { if(!next.find(x=>x.id===i.id)) db.deleteInvoice(i.id); });
       return next;
     });
   };
-  const setCosDB = async (updater) => {
+  const setCosDB = (updater) => {
     setCos(prev => {
       const next = typeof updater==="function" ? updater(prev) : updater;
       next.forEach(c => db.saveCO(c));
-      prev.filter(c=>!next.find(x=>x.id===c.id)).forEach(c=>db.deleteCO(c.id));
+      prev.forEach(c => { if(!next.find(x=>x.id===c.id)) db.deleteCO(c.id); });
       return next;
     });
   };
-  const setLogsDB = async (updater) => {
+  const setLogsDB = (updater) => {
     setLogs(prev => {
       const next = typeof updater==="function" ? updater(prev) : updater;
       next.forEach(l => db.saveLog(l));
-      prev.filter(l=>!next.find(x=>x.id===l.id)).forEach(l=>db.deleteLog(l.id));
+      prev.forEach(l => { if(!next.find(x=>x.id===l.id)) db.deleteLog(l.id); });
       return next;
     });
   };
-  const setBidsDB = async (updater) => {
+  const setBidsDB = (updater) => {
     setBids(prev => {
       const next = typeof updater==="function" ? updater(prev) : updater;
       next.forEach(pkg => {
         db.saveBidPkg(pkg);
         pkg.bids.forEach(b => db.saveBid(b, pkg.id));
         const old = prev.find(x=>x.id===pkg.id);
-        if(old) old.bids.filter(b=>!pkg.bids.find(x=>x.subId===b.subId)).forEach(b=>db.deleteBid(b.subId));
+        if(old) old.bids.forEach(b => { if(!pkg.bids.find(x=>x.subId===b.subId)) db.deleteBid(b.subId); });
       });
-      prev.filter(p=>!next.find(x=>x.id===p.id)).forEach(p=>db.deleteBidPkg(p.id));
+      prev.forEach(p => { if(!next.find(x=>x.id===p.id)) db.deleteBidPkg(p.id); });
       return next;
     });
   };
-  const setDocsDB = async (updater) => {
+  const setDocsDB = (updater) => {
     setDocs(prev => {
       const next = typeof updater==="function" ? updater(prev) : updater;
       next.forEach(d => db.saveDoc(d));
-      prev.filter(d=>!next.find(x=>x.id===d.id)).forEach(d=>db.deleteDoc(d.id));
+      prev.forEach(d => { if(!next.find(x=>x.id===d.id)) db.deleteDoc(d.id); });
       return next;
     });
   };
-  const setPhotosDB = async (updater) => {
+  const setPhotosDB = (updater) => {
     setPhotos(prev => {
       const next = typeof updater==="function" ? updater(prev) : updater;
       next.forEach(p => db.savePhoto(p));
-      prev.filter(p=>!next.find(x=>x.id===p.id)).forEach(p=>db.deletePhoto(p.id));
+      prev.forEach(p => { if(!next.find(x=>x.id===p.id)) db.deletePhoto(p.id); });
       return next;
     });
   };
