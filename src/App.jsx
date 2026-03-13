@@ -6,6 +6,16 @@ const SUPABASE_URL = "https://daxqltkdkfpkhnzttfln.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRheHFsdGtka2Zwa2huenR0ZmxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNTQwMjAsImV4cCI6MjA4ODkzMDAyMH0.2Kx2oGa7ftl9q8XiVCGqqzAiPcP6Q4KSeoz0Mc-LDpo";
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ─── FILE UPLOAD ──────────────────────────────────────────────────────────────
+const uploadFile = async (file, bucket, path) => {
+  try {
+    const { error } = await sb.storage.from(bucket).upload(path, file, { upsert: true });
+    if (error) { console.error("upload error", error); return null; }
+    const { data } = sb.storage.from(bucket).getPublicUrl(path);
+    return data?.publicUrl || null;
+  } catch (e) { console.error("upload exception", e); return null; }
+};
+
 // ─── TOKENS ───────────────────────────────────────────────────────────────────
 const C = {
   bg:"#F4F5F7",surface:"#FFFFFF",border:"#E8EAED",borderStrong:"#D0D4DA",
@@ -71,6 +81,11 @@ const I = {
   trend:"M23 6l-9.5 9.5-5-5L1 18 M17 6h6v6",
   sun:"M12 17a5 5 0 100-10 5 5 0 000 10z M12 1v2 M12 21v2 M4.22 4.22l1.42 1.42 M18.36 18.36l1.42 1.42 M1 12h2 M21 12h2 M4.22 19.78l1.42-1.42 M18.36 5.64l1.42-1.42",
   hard:"M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z",
+  rfi:"M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+  punch:"M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
+  po:"M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z",
+  meeting:"M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z",
+  report:"M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
 };
 
 // ─── SHARED UI ────────────────────────────────────────────────────────────────
@@ -89,6 +104,11 @@ const STATUS_MAP = {
   Rejected:{bg:C.redL,text:C.red,border:C.redB},
   Open:{bg:C.blueL,text:C.blue,border:C.blueB},
   Awarded:{bg:C.greenL,text:C.green,border:C.greenB},
+  Answered:{bg:C.greenL,text:C.green,border:C.greenB},
+  Closed:{bg:C.purpleL,text:C.purple,border:C.purpleB},
+  Void:{bg:C.bg,text:C.textMuted,border:C.border},
+  "In Progress":{bg:C.blueL,text:C.blue,border:C.blueB},
+  Received:{bg:C.greenL,text:C.green,border:C.greenB},
 };
 
 const Badge = ({s}) => {
@@ -279,7 +299,7 @@ const InfoRow = ({label,value,color}) => (
 );
 
 // ─── GLOBAL SEARCH ────────────────────────────────────────────────────────────
-const GlobalSearch = ({projects,contacts,invoices,cos,estimates,onNav}) => {
+const GlobalSearch = ({projects,contacts,invoices,cos,estimates,rfis,onNav}) => {
   const [q,setQ] = useState("");
   const [open,setOpen] = useState(false);
   const inputRef = useRef(null);
@@ -298,6 +318,8 @@ const GlobalSearch = ({projects,contacts,invoices,cos,estimates,onNav}) => {
         .slice(0,2).map(c=>({type:"change order",label:`${c.number} – ${c.title}`,sub:"Change Order",nav:["cos"]})),
       ...estimates.filter(e=>e.name.toLowerCase().includes(ql))
         .slice(0,2).map(e=>({type:"estimate",label:e.name,sub:"Estimate",nav:["estimates"]})),
+      ...(rfis||[]).filter(r=>(r.number+r.subject).toLowerCase().includes(ql))
+        .slice(0,2).map(r=>({type:"rfi",label:`${r.number} – ${r.subject}`,sub:r.status,nav:["rfis"]})),
     ];
   })();
 
@@ -336,7 +358,7 @@ const GlobalSearch = ({projects,contacts,invoices,cos,estimates,onNav}) => {
 };
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-const Dashboard = ({projects,invoices,cos,onNav}) => {
+const Dashboard = ({projects,invoices,cos,rfis,punchList,onNav}) => {
   const active = projects.filter(p=>p.status==="Active");
   const pipeline = projects.reduce((s,p)=>s+p.value,0);
   const overdue = invoices.filter(i=>i.status==="Overdue");
@@ -346,6 +368,10 @@ const Dashboard = ({projects,invoices,cos,onNav}) => {
   const totalPaid = invoices.filter(i=>i.status==="Paid").reduce((s,i)=>s+i.amount,0);
   const totalBilled = invoices.reduce((s,i)=>s+i.amount,0);
   const collectionRate = totalBilled>0?Math.round((totalPaid/totalBilled)*100):0;
+
+  const openRFIs = (rfis||[]).filter(r=>r.status==="Open");
+  const overdueRFIs = openRFIs.filter(r=>r.dateNeeded&&r.dateNeeded<today());
+  const openPunch = (punchList||[]).filter(p=>p.status!=="Complete").length;
 
   // Projects nearing deadline (within 14 days)
   const todayStr = today();
@@ -401,6 +427,28 @@ const Dashboard = ({projects,invoices,cos,onNav}) => {
                   </div>;
                 })}
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {(overdueRFIs.length>0||openPunch>0)&&(
+        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":overdueRFIs.length>0&&openPunch>0?"1fr 1fr":"1fr",gap:14}}>
+          {overdueRFIs.length>0&&(
+            <div style={{background:C.redL,border:`1px solid ${C.redB}`,borderRadius:10,padding:"12px 16px",cursor:"pointer"}} onClick={()=>onNav("rfis")}>
+              <div style={{fontSize:12,fontWeight:700,color:C.red,marginBottom:8,display:"flex",alignItems:"center",gap:6}}><Ic d={I.rfi} s={13} stroke={C.red}/> {overdueRFIs.length} RFI{overdueRFIs.length!==1?"s":""} past response deadline</div>
+              <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                {overdueRFIs.slice(0,3).map(r=><div key={r.id} style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
+                  <span style={{color:C.text,fontWeight:500}}>{r.number} – {r.subject.substring(0,28)}</span>
+                  <span style={{color:C.red,fontWeight:700}}>Overdue</span>
+                </div>)}
+              </div>
+            </div>
+          )}
+          {openPunch>0&&(
+            <div style={{background:C.blueL,border:`1px solid ${C.blueB}`,borderRadius:10,padding:"12px 16px",cursor:"pointer"}} onClick={()=>onNav("punch")}>
+              <div style={{fontSize:12,fontWeight:700,color:C.blue,marginBottom:4,display:"flex",alignItems:"center",gap:6}}><Ic d={I.punch} s={13} stroke={C.blue}/> {openPunch} punch list item{openPunch!==1?"s":""} open</div>
+              <div style={{fontSize:12,color:C.textSub}}>Click to view and resolve</div>
             </div>
           )}
         </div>
@@ -463,13 +511,15 @@ const Dashboard = ({projects,invoices,cos,onNav}) => {
             })}
           </Card>
 
-          <Card style={{cursor:"pointer"}} onClick={()=>onNav("invoices")}>
+          <Card>
             <div style={{fontSize:13,fontWeight:600,color:C.text,marginBottom:12}}>Quick Actions</div>
             {[
               {label:"New Invoice",icon:"inv",nav:"invoices",color:C.accent},
+              {label:"Submit RFI",icon:"rfi",nav:"rfis",color:C.blue},
               {label:"Log Field Report",icon:"logs",nav:"logs",color:C.green},
               {label:"New Change Order",icon:"co",nav:"cos",color:C.amber},
-              {label:"View Schedule",icon:"sched",nav:"schedule",color:C.blue},
+              {label:"View Reports",icon:"report",nav:"reports",color:C.purple},
+              {label:"View Schedule",icon:"sched",nav:"schedule",color:C.textSub},
             ].map(a=>(
               <button key={a.label} onClick={e=>{e.stopPropagation();onNav(a.nav);}}
                 style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",background:"none",border:"none",borderBottom:`1px solid ${C.border}`,cursor:"pointer",width:"100%",textAlign:"left"}}
@@ -1175,26 +1225,49 @@ const Documents = ({projectId,docs,setDocs,projects}) => {
   const [form,setForm] = useState(null);
   const [delId,setDelId] = useState(null);
   const [filterType,setFilterType] = useState("All");
+  const [uploading,setUploading] = useState(false);
+  const fileRef = useRef(null);
   const items = projectId ? docs.filter(d=>d.projectId===projectId) : docs;
   const filtered = filterType==="All"?items:items.filter(d=>d.type===filterType);
   const TYPES = ["Contract","Plans","Permit","Engineering","Scope","Submittal","Inspection","RFI","Proposal","Other"];
   const TYPE_COLOR = {Contract:C.accent,Plans:C.purple,Permit:C.green,Engineering:C.blue,Scope:C.amber,Submittal:C.blue,Inspection:C.green,RFI:C.red,Proposal:C.amber,Other:C.textSub};
   const TYPE_BG = {Contract:C.accentL,Plans:C.purpleL,Permit:C.greenL,Engineering:C.blueL,Scope:C.amberL,Submittal:C.blueL,Inspection:C.greenL,RFI:C.redL,Proposal:C.amberL,Other:C.bg};
 
-  const save = () => {
+  const save = async () => {
     if(!form.name) return;
-    if(form.id){setDocs(docs.map(d=>d.id===form.id?form:d));}
-    else{setDocs([...docs,{...form,id:uid(),projectId:form.projectId||projectId,uploader:"Jake Moreno",date:form.date||today()}]);}
+    setUploading(true);
+    let fileUrl = form.fileUrl || "";
+    if(form._file) {
+      const id = form.id || uid();
+      const ext = form._file.name.split(".").pop();
+      const path = `documents/${id}.${ext}`;
+      const url = await uploadFile(form._file, "documents", path);
+      if(url) { fileUrl = url; toast.success("File uploaded"); }
+      else { toast.error("File upload failed — saving metadata only"); }
+      const rec = {...form, id: form.id || id, fileUrl, projectId: form.projectId||projectId, uploader: form.uploader || "", date: form.date||today()};
+      delete rec._file; delete rec._fileName;
+      if(form.id){setDocs(docs.map(d=>d.id===form.id?rec:d));}
+      else{setDocs([...docs,rec]);}
+    } else {
+      if(form.id){setDocs(docs.map(d=>d.id===form.id?form:d));}
+      else{setDocs([...docs,{...form,id:uid(),projectId:form.projectId||projectId,uploader:"",date:form.date||today()}]);}
+    }
+    setUploading(false);
     setForm(null);
   };
   const del = () => { setDocs(docs.filter(d=>d.id!==delId)); setDelId(null); };
+  const onFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if(!file) return;
+    setForm(f => ({...f, _file: file, _fileName: file.name, name: f.name || file.name}));
+  };
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
       {delId&&<Confirm msg="Delete this document record?" onOk={del} onCancel={()=>setDelId(null)}/>}
-      {!projectId&&<PageHead eyebrow="Files & Plans" title="Documents" action={<Btn onClick={()=>setForm({projectId:projects[0]?.id||"",name:"",type:"Contract",date:today(),notes:""})}><Ic d={I.plus} s={14}/> Add Document</Btn>}/>}
-      {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:13,fontWeight:600,color:C.text}}>Documents</div><Btn sm onClick={()=>setForm({name:"",type:"Contract",date:today(),notes:""})}><Ic d={I.plus} s={13}/> Add</Btn></div>}
-      
+      {!projectId&&<PageHead eyebrow="Files & Plans" title="Documents" action={<Btn onClick={()=>setForm({projectId:projects[0]?.id||"",name:"",type:"Contract",date:today(),notes:"",fileUrl:""})}><Ic d={I.plus} s={14}/> Add Document</Btn>}/>}
+      {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:13,fontWeight:600,color:C.text}}>Documents</div><Btn sm onClick={()=>setForm({name:"",type:"Contract",date:today(),notes:"",fileUrl:""})}><Ic d={I.plus} s={13}/> Add</Btn></div>}
+
       <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
         {["All",...TYPES].map(t=><button key={t} onClick={()=>setFilterType(t)} style={{background:filterType===t?(TYPE_BG[t]||C.accentL):C.surface,color:filterType===t?(TYPE_COLOR[t]||C.accent):C.textMid,border:`1px solid ${filterType===t?(TYPE_COLOR[t]||C.accent)+"40":C.border}`,borderRadius:7,padding:"5px 12px",fontSize:12,fontWeight:filterType===t?600:400,cursor:"pointer"}}>{t}</button>)}
       </div>
@@ -1202,16 +1275,29 @@ const Documents = ({projectId,docs,setDocs,projects}) => {
       {form!==null&&<Card style={{border:`1px solid ${C.accentB}`}}>
         <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:14}}>{form.id?"Edit":"Add"} Document</div>
         <Grid cols="1fr 1fr" gap={12}>
+          <Span2>
+            <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:4}}>Upload File</div>
+            <input ref={fileRef} type="file" onChange={onFileSelect} style={{display:"none"}}/>
+            <div onClick={()=>fileRef.current?.click()} style={{border:`2px dashed ${form._fileName||form.fileUrl?C.green+"60":C.border}`,borderRadius:8,padding:"14px 16px",cursor:"pointer",background:form._fileName||form.fileUrl?C.greenL:C.bg,display:"flex",alignItems:"center",gap:10,transition:"all 0.15s"}}>
+              <div style={{width:32,height:32,borderRadius:8,background:form._fileName||form.fileUrl?C.greenL:C.surface,display:"flex",alignItems:"center",justifyContent:"center",color:form._fileName||form.fileUrl?C.green:C.textMuted}}>
+                <Ic d={form._fileName||form.fileUrl?I.check:I.plus} s={14}/>
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:form._fileName||form.fileUrl?C.green:C.textMid}}>{form._fileName||form.fileUrl?"File selected":"Click to choose a file"}</div>
+                <div style={{fontSize:10,color:C.textMuted,marginTop:1}}>{form._fileName||(form.fileUrl?"Existing file attached":"PDF, Word, Excel, images, CAD files, etc.")}</div>
+              </div>
+            </div>
+          </Span2>
           <Span2><Inp label="Document / File Name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="e.g. Webb – Executed Contract.pdf"/></Span2>
           {!projectId&&<Sel label="Project" value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} options={projects.map(p=>({v:p.id,l:p.name}))}/>}
           <Sel label="Document Type" value={form.type} onChange={e=>setForm({...form,type:e.target.value})} options={TYPES}/>
           <Inp label="Date" type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/>
           <Span2><Inp label="Notes" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></Span2>
         </Grid>
-        <div style={{display:"flex",gap:10,marginTop:14}}><Btn onClick={save}>{form.id?"Save Changes":"Add Document"}</Btn><Btn v="secondary" onClick={()=>setForm(null)}>Cancel</Btn></div>
+        <div style={{display:"flex",gap:10,marginTop:14}}><Btn onClick={save} style={{opacity:uploading?0.6:1}}>{uploading?"Uploading...":(form.id?"Save Changes":"Add Document")}</Btn><Btn v="secondary" onClick={()=>setForm(null)}>Cancel</Btn></div>
       </Card>}
 
-      {filtered.length===0&&!form&&<Card><EmptyState msg="No documents found." action={<Btn sm onClick={()=>setForm({projectId:projects[0]?.id||"",name:"",type:"Contract",date:today(),notes:""})}>+ Add Document</Btn>}/></Card>}
+      {filtered.length===0&&!form&&<Card><EmptyState msg="No documents found." action={<Btn sm onClick={()=>setForm({projectId:projects[0]?.id||"",name:"",type:"Contract",date:today(),notes:"",fileUrl:""})}>+ Add Document</Btn>}/></Card>}
       <Table heads={[{l:"Document"},{l:"Type"},...(!projectId?[{l:"Project"}]:[]),{l:"Date"},{l:"Uploaded By"},{l:""}]}>
         {filtered.map(doc=>{
           const p=projects.find(x=>x.id===doc.projectId);
@@ -1220,14 +1306,21 @@ const Documents = ({projectId,docs,setDocs,projects}) => {
             <td style={{padding:"12px 14px"}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{width:30,height:30,background:tb,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",color:tc,flexShrink:0}}><Ic d={I.docs} s={13}/></div>
-                <div><div style={{fontSize:13,fontWeight:600,color:C.text}}>{doc.name}</div>{doc.notes&&<div style={{fontSize:11,color:C.textMuted,marginTop:1}}>{doc.notes}</div>}</div>
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,color:C.text}}>{doc.fileUrl?<a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" style={{color:C.text,textDecoration:"none",borderBottom:`1px solid ${C.accent}40`}}>{doc.name}</a>:doc.name}</div>
+                  {doc.notes&&<div style={{fontSize:11,color:C.textMuted,marginTop:1}}>{doc.notes}</div>}
+                  {doc.fileUrl&&<div style={{fontSize:10,color:C.green,marginTop:2,display:"flex",alignItems:"center",gap:3}}><Ic d={I.check} s={9}/> File attached</div>}
+                </div>
               </div>
             </td>
             <td style={{padding:"12px 14px"}}><span style={{fontSize:11,fontWeight:600,color:tc,background:tb,padding:"3px 9px",borderRadius:5}}>{doc.type}</span></td>
             {!projectId&&<TD muted>{p?.name?.substring(0,20)||"—"}</TD>}
             <TD muted>{fmtDate(doc.date)}</TD>
             <TD muted>{doc.uploader}</TD>
-            <td style={{padding:"12px 14px"}}><div style={{display:"flex",gap:6}}><EditBtn onClick={()=>setForm({...doc})}/><DeleteBtn onClick={()=>setDelId(doc.id)}/></div></td>
+            <td style={{padding:"12px 14px"}}><div style={{display:"flex",gap:6}}>
+              {doc.fileUrl&&<a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" style={{width:26,height:26,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",background:C.greenL,color:C.green,border:"none",cursor:"pointer"}} title="Download"><Ic d={I.docs} s={12}/></a>}
+              <EditBtn onClick={()=>setForm({...doc})}/><DeleteBtn onClick={()=>setDelId(doc.id)}/>
+            </div></td>
           </TR>;
         })}
       </Table>
@@ -1241,6 +1334,8 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
   const [lightbox,setLightbox] = useState(null);
   const [delId,setDelId] = useState(null);
   const [filterTag,setFilterTag] = useState("All");
+  const [uploading,setUploading] = useState(false);
+  const photoRef = useRef(null);
   const items = projectId ? photos.filter(p=>p.projectId===projectId) : photos;
   const filtered = filterTag==="All"?items:items.filter(p=>p.tag===filterTag);
   const TAGS = ["Progress","Milestone","Issue","Before","After","Inspection","Material","Complete"];
@@ -1249,14 +1344,36 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
   const EMOJIS = {Progress:"🏗️",Milestone:"✅",Issue:"⚠️",Before:"📸",After:"🏡",Inspection:"📋",Material:"📦",Complete:"🎉"};
   const COLORS = ["#E8F4F8","#F0F8E8","#FEF3EC","#F4F0FD","#F0FBF5","#FDF8EE","#FEF2F2","#EEF3FD"];
 
-  const save = () => {
+  const save = async () => {
     if(!form.caption) return;
-    if(form.id){setPhotos(photos.map(p=>p.id===form.id?form:p));}
-    else{setPhotos([{...form,id:uid(),projectId:form.projectId||projectId,emoji:EMOJIS[form.tag]||"📷",color:COLORS[Math.floor(Math.random()*COLORS.length)]},...photos]);}
+    setUploading(true);
+    let fileUrl = form.fileUrl || "";
+    if(form._file) {
+      const id = form.id || uid();
+      const ext = form._file.name.split(".").pop();
+      const path = `photos/${id}.${ext}`;
+      const url = await uploadFile(form._file, "photos", path);
+      if(url) { fileUrl = url; toast.success("Photo uploaded"); }
+      else { toast.error("Photo upload failed — saving metadata only"); }
+      const rec = {...form, id: form.id || id, fileUrl, projectId: form.projectId||projectId, emoji:EMOJIS[form.tag]||"📷", color:COLORS[Math.floor(Math.random()*COLORS.length)]};
+      delete rec._file; delete rec._preview;
+      if(form.id){setPhotos(photos.map(p=>p.id===form.id?rec:p));}
+      else{setPhotos([rec,...photos]);}
+    } else {
+      if(form.id){const rec={...form}; delete rec._file; delete rec._preview; setPhotos(photos.map(p=>p.id===form.id?rec:p));}
+      else{setPhotos([{...form,id:uid(),projectId:form.projectId||projectId,emoji:EMOJIS[form.tag]||"📷",color:COLORS[Math.floor(Math.random()*COLORS.length)]},...photos]);}
+    }
+    setUploading(false);
     setForm(null);
   };
   const del = () => { setPhotos(photos.filter(p=>p.id!==delId)); setDelId(null); setLightbox(null); };
   const lbPhoto = lightbox ? photos.find(p=>p.id===lightbox) : null;
+  const onPhotoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if(!file) return;
+    const preview = URL.createObjectURL(file);
+    setForm(f => ({...f, _file: file, _preview: preview}));
+  };
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -1264,21 +1381,26 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
       {lbPhoto&&(
         <div onClick={()=>setLightbox(null)} style={{position:"fixed",inset:0,background:"rgba(15,17,23,0.85)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:12,overflow:"hidden",maxWidth:540,width:"100%"}}>
-            <div style={{background:lbPhoto.color,height:260,display:"flex",alignItems:"center",justifyContent:"center",fontSize:64}}>{lbPhoto.emoji}</div>
+            {lbPhoto.fileUrl
+              ? <img src={lbPhoto.fileUrl} alt={lbPhoto.caption} style={{width:"100%",height:320,objectFit:"cover",display:"block"}}/>
+              : <div style={{background:lbPhoto.color,height:260,display:"flex",alignItems:"center",justifyContent:"center",fontSize:64}}>{lbPhoto.emoji}</div>}
             <div style={{padding:22}}>
               <div style={{fontSize:16,fontWeight:700,color:C.text,marginBottom:6}}>{lbPhoto.caption}</div>
               <div style={{fontSize:13,color:C.textSub,marginBottom:16}}>{projects.find(p=>p.id===lbPhoto.projectId)?.name} · {fmtDate(lbPhoto.date)} · {lbPhoto.author}</div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <span style={{fontSize:11,fontWeight:600,color:TAG_COLOR[lbPhoto.tag]||C.textSub,background:TAG_BG[lbPhoto.tag]||C.bg,padding:"3px 12px",borderRadius:20}}>{lbPhoto.tag}</span>
-                <div style={{display:"flex",gap:8}}><Btn danger sm onClick={()=>setDelId(lbPhoto.id)}><Ic d={I.trash} s={13}/> Delete</Btn><Btn v="secondary" sm onClick={()=>setLightbox(null)}>Close</Btn></div>
+                <div style={{display:"flex",gap:8}}>
+                  {lbPhoto.fileUrl&&<a href={lbPhoto.fileUrl} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none"}}><Btn v="secondary" sm>View Full Size</Btn></a>}
+                  <Btn danger sm onClick={()=>setDelId(lbPhoto.id)}><Ic d={I.trash} s={13}/> Delete</Btn><Btn v="secondary" sm onClick={()=>setLightbox(null)}>Close</Btn>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {!projectId&&<PageHead eyebrow="Job Site Documentation" title="Photo Gallery" action={<Btn onClick={()=>setForm({projectId:projects[0]?.id||"",caption:"",tag:"Progress",date:today(),author:""})}><Ic d={I.plus} s={14}/> Add Photo</Btn>}/>}
-      {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:13,fontWeight:600,color:C.text}}>Photos</div><Btn sm onClick={()=>setForm({caption:"",tag:"Progress",date:today(),author:""})}><Ic d={I.plus} s={13}/> Add Photo</Btn></div>}
+      {!projectId&&<PageHead eyebrow="Job Site Documentation" title="Photo Gallery" action={<Btn onClick={()=>setForm({projectId:projects[0]?.id||"",caption:"",tag:"Progress",date:today(),author:"",fileUrl:""})}><Ic d={I.plus} s={14}/> Add Photo</Btn>}/>}
+      {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:13,fontWeight:600,color:C.text}}>Photos</div><Btn sm onClick={()=>setForm({caption:"",tag:"Progress",date:today(),author:"",fileUrl:""})}><Ic d={I.plus} s={13}/> Add Photo</Btn></div>}
 
       <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
         {["All",...TAGS].map(t=><button key={t} onClick={()=>setFilterTag(t)} style={{background:filterTag===t?(TAG_BG[t]||C.accentL):C.surface,color:filterTag===t?(TAG_COLOR[t]||C.accent):C.textMid,border:`1px solid ${filterTag===t?(TAG_COLOR[t]||C.accent)+"40":C.border}`,borderRadius:7,padding:"5px 12px",fontSize:12,fontWeight:filterTag===t?600:400,cursor:"pointer"}}>{t}</button>)}
@@ -1287,22 +1409,37 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
       {form!==null&&<Card style={{border:`1px solid ${C.accentB}`}}>
         <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:14}}>{form.id?"Edit":"Add"} Photo</div>
         <Grid cols="1fr 1fr" gap={12}>
+          <Span2>
+            <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:4}}>Upload Photo</div>
+            <input ref={photoRef} type="file" accept="image/*" onChange={onPhotoSelect} style={{display:"none"}}/>
+            <div onClick={()=>photoRef.current?.click()} style={{border:`2px dashed ${form._preview||form.fileUrl?C.green+"60":C.border}`,borderRadius:8,cursor:"pointer",overflow:"hidden",transition:"all 0.15s"}}>
+              {(form._preview||form.fileUrl)
+                ? <img src={form._preview||form.fileUrl} alt="Preview" style={{width:"100%",height:160,objectFit:"cover",display:"block"}}/>
+                : <div style={{padding:"24px 16px",textAlign:"center",background:C.bg}}>
+                    <div style={{fontSize:24,marginBottom:6}}>📷</div>
+                    <div style={{fontSize:12,fontWeight:600,color:C.textMid}}>Click to upload a photo</div>
+                    <div style={{fontSize:10,color:C.textMuted,marginTop:2}}>JPG, PNG, HEIC, WebP</div>
+                  </div>}
+            </div>
+          </Span2>
           {!projectId&&<Sel label="Project" value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} options={projects.map(p=>({v:p.id,l:p.name}))}/>}
           <Sel label="Tag" value={form.tag} onChange={e=>setForm({...form,tag:e.target.value})} options={TAGS}/>
           <Inp label="Caption" value={form.caption} onChange={e=>setForm({...form,caption:e.target.value})} placeholder="Describe what this shows"/>
           <Inp label="Photographer" value={form.author} onChange={e=>setForm({...form,author:e.target.value})}/>
           <Inp label="Date" type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/>
         </Grid>
-        <div style={{display:"flex",gap:10,marginTop:14}}><Btn onClick={save}>{form.id?"Save":"Add Photo"}</Btn><Btn v="secondary" onClick={()=>setForm(null)}>Cancel</Btn></div>
+        <div style={{display:"flex",gap:10,marginTop:14}}><Btn onClick={save} style={{opacity:uploading?0.6:1}}>{uploading?"Uploading...":(form.id?"Save":"Add Photo")}</Btn><Btn v="secondary" onClick={()=>setForm(null)}>Cancel</Btn></div>
       </Card>}
 
-      {filtered.length===0&&!form&&<Card><EmptyState msg="No photos found." action={<Btn sm onClick={()=>setForm({projectId:projects[0]?.id||"",caption:"",tag:"Progress",date:today(),author:""})}>+ Add Photo</Btn>}/></Card>}
+      {filtered.length===0&&!form&&<Card><EmptyState msg="No photos found." action={<Btn sm onClick={()=>setForm({projectId:projects[0]?.id||"",caption:"",tag:"Progress",date:today(),author:"",fileUrl:""})}>+ Add Photo</Btn>}/></Card>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
         {filtered.map(p=>(
           <div key={p.id} onClick={()=>setLightbox(p.id)} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden",cursor:"pointer",transition:"all 0.15s"}}
             onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.02)";e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,0.1)";}}
             onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.boxShadow="none";}}>
-            <div style={{background:p.color,height:130,display:"flex",alignItems:"center",justifyContent:"center",fontSize:36}}>{p.emoji}</div>
+            {p.fileUrl
+              ? <img src={p.fileUrl} alt={p.caption} style={{width:"100%",height:130,objectFit:"cover",display:"block"}}/>
+              : <div style={{background:p.color,height:130,display:"flex",alignItems:"center",justifyContent:"center",fontSize:36}}>{p.emoji}</div>}
             <div style={{padding:"10px 12px"}}>
               <div style={{fontSize:12,fontWeight:600,color:C.text,marginBottom:4,lineHeight:1.3}}>{p.caption}</div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -1396,7 +1533,7 @@ const Contacts = ({contacts,setContacts}) => {
 // ─── PROJECTS (with full detail + tabs) ──────────────────────────────────────
 const PHASES = ["Pre-Construction","Demo & Site Prep","Foundation","Framing","MEP Rough-In","Insulation","Drywall","Finishes","Punch List","Closeout"];
 
-const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoices,budgetItems,setBudgetItems,cos,setCos,logs,setLogs,bids,setBids,docs,setDocs,photos,setPhotos,initialId}) => {
+const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoices,budgetItems,setBudgetItems,cos,setCos,logs,setLogs,bids,setBids,docs,setDocs,photos,setPhotos,rfis,setRfis,punchList,setPunchList,pos,setPOs,meetings,setMeetings,initialId}) => {
   const [filter,setFilter] = useState("All");
   const [search,setSearch] = useState("");
   const [selectedId,setSelectedId] = useState(null);
@@ -1442,7 +1579,7 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
     const projCOs=cos.filter(c=>c.projectId===p.id);
     const projBudget=budgetItems.filter(b=>b.projectId===p.id);
     const approvedCOs=projCOs.filter(c=>c.status==="Approved").reduce((s,c)=>s+c.amount,0);
-    const TABS = ["overview","budget","estimates","invoices","change orders","sub bids","daily logs","documents","photos"];
+    const TABS = ["overview","budget","estimates","invoices","change orders","rfis","purchase orders","punch list","sub bids","meetings","daily logs","documents","photos"];
 
     const isMobile = typeof window!=="undefined"&&window.innerWidth<=768;
 
@@ -1538,6 +1675,10 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
         {activeTab==="invoices"&&<ProjInvoices projectId={p.id} invoices={invoices} setInvoices={setInvoices} project={p}/>}
         {activeTab==="change orders"&&<ChangeOrders projectId={p.id} cos={cos} setCos={setCos} projects={projects}/>}
         {activeTab==="sub bids"&&<SubBids projectId={p.id} bids={bids} setBids={setBids} projects={projects}/>}
+        {activeTab==="rfis"&&<RFIs projectId={p.id} rfis={rfis} setRfis={setRfis} projects={projects}/>}
+        {activeTab==="purchase orders"&&<PurchaseOrders projectId={p.id} pos={pos} setPOs={setPOs} projects={projects}/>}
+        {activeTab==="punch list"&&<PunchList projectId={p.id} punchList={punchList} setPunchList={setPunchList} projects={projects}/>}
+        {activeTab==="meetings"&&<MeetingMinutes projectId={p.id} meetings={meetings} setMeetings={setMeetings} projects={projects}/>}
         {activeTab==="daily logs"&&<DailyLogs projectId={p.id} logs={logs} setLogs={setLogs} projects={projects}/>}
         {activeTab==="documents"&&<Documents projectId={p.id} docs={docs} setDocs={setDocs} projects={projects}/>}
         {activeTab==="photos"&&<Photos projectId={p.id} photos={photos} setPhotos={setPhotos} projects={projects}/>}
@@ -1836,6 +1977,496 @@ const GlobalEstimates = ({estimates,setEstimates,projects}) => {
 
 
 
+// ─── RFIs ─────────────────────────────────────────────────────────────────────
+const RFIs = ({projectId,rfis,setRfis,projects}) => {
+  const [form,setForm] = useState(null);
+  const [delId,setDelId] = useState(null);
+  const [filter,setFilter] = useState("All");
+  const items = projectId ? rfis.filter(r=>r.projectId===projectId) : rfis;
+  const filtered = filter==="All" ? items : items.filter(r=>r.status===filter);
+  const PRIORITIES = ["Low","Normal","High","Critical"];
+  const PRIORITY_COLOR = {Low:C.textSub,Normal:C.blue,High:C.amber,Critical:C.red};
+  const PRIORITY_BG = {Low:C.bg,Normal:C.blueL,High:C.amberL,Critical:C.redL};
+  const openCount = items.filter(r=>r.status==="Open").length;
+
+  const save = () => {
+    if(!form.subject) return;
+    const projId = form.projectId||projectId;
+    const maxNum = rfis.filter(r=>r.projectId===projId).reduce((m,r)=>{const n=parseInt(r.number?.split("-")[1]||0);return Math.max(m,n);},0);
+    const number = form.id ? form.number : `RFI-${String(maxNum+1).padStart(3,"0")}`;
+    if(form.id){setRfis(rfis.map(r=>r.id===form.id?{...form}:r));}
+    else{setRfis([...rfis,{...form,id:uid(),number,projectId:projId,dateSubmitted:today(),status:"Open"}]);}
+    setForm(null);
+    toast.success(form.id?"RFI updated":"RFI submitted");
+  };
+  const del = () => { setRfis(rfis.filter(r=>r.id!==delId)); setDelId(null); toast("RFI deleted",{icon:"🗑️"}); };
+  const setStatus = (id,s) => { setRfis(rfis.map(r=>r.id===id?{...r,status:s}:r)); toast.success(`RFI ${s.toLowerCase()}`); };
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      {delId&&<Confirm msg="Delete this RFI?" onOk={del} onCancel={()=>setDelId(null)}/>}
+      {!projectId&&<PageHead eyebrow="Field Communications" title="RFIs" action={<Btn onClick={()=>setForm({projectId:projects[0]?.id||"",subject:"",toParty:"Architect",fromParty:"GC",priority:"Normal",description:"",response:"",dateNeeded:""})}><Ic d={I.plus} s={14}/> New RFI</Btn>}/>}
+      {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:13,fontWeight:600,color:C.text}}>RFIs</span>
+          {openCount>0&&<span style={{background:C.amberL,color:C.amber,border:`1px solid ${C.amberB}`,borderRadius:10,padding:"2px 8px",fontSize:11,fontWeight:700}}>{openCount} open</span>}
+        </div>
+        <Btn sm onClick={()=>setForm({projectId,subject:"",toParty:"Architect",fromParty:"GC",priority:"Normal",description:"",response:"",dateNeeded:""})}><Ic d={I.plus} s={13}/> New RFI</Btn>
+      </div>}
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        {["All","Open","Answered","Closed","Void"].map(s=>(
+          <button key={s} onClick={()=>setFilter(s)} style={{background:filter===s?C.accent:C.surface,color:filter===s?"#fff":C.textMid,border:`1px solid ${filter===s?C.accent:C.border}`,borderRadius:7,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>
+            {s} ({s==="All"?items.length:items.filter(r=>r.status===s).length})
+          </button>
+        ))}
+      </div>
+      {form!==null&&(
+        <Card style={{border:`1px solid ${C.accentB}`}}>
+          <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:16}}>{form.id?"Edit":"New"} RFI</div>
+          <Grid cols="1fr 1fr" gap={12}>
+            {!projectId&&<Sel label="Project" value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} options={projects.map(p=>({v:p.id,l:p.name}))}/>}
+            <Inp label="Subject / Question" value={form.subject} onChange={e=>setForm({...form,subject:e.target.value})} placeholder="Brief description of the question"/>
+            <Sel label="To" value={form.toParty} onChange={e=>setForm({...form,toParty:e.target.value})} options={["Architect","Engineer","Owner","GC","Inspector","Subcontractor","Other"]}/>
+            <Sel label="From" value={form.fromParty} onChange={e=>setForm({...form,fromParty:e.target.value})} options={["GC","Architect","Engineer","Owner","Subcontractor","Other"]}/>
+            <Sel label="Priority" value={form.priority} onChange={e=>setForm({...form,priority:e.target.value})} options={PRIORITIES}/>
+            <Inp label="Response Needed By" type="date" value={form.dateNeeded} onChange={e=>setForm({...form,dateNeeded:e.target.value})}/>
+            <Span2><TA label="Question / Description" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} rows={3} placeholder="Full description of the question or clarification needed..."/></Span2>
+            {form.id&&<Span2><TA label="Response" value={form.response} onChange={e=>setForm({...form,response:e.target.value})} rows={3} placeholder="Enter the response from the party addressed..."/></Span2>}
+          </Grid>
+          <div style={{display:"flex",gap:10,marginTop:14}}><Btn onClick={save}>{form.id?"Save Changes":"Submit RFI"}</Btn><Btn v="secondary" onClick={()=>setForm(null)}>Cancel</Btn></div>
+        </Card>
+      )}
+      {filtered.length===0&&form===null&&<Card><EmptyState msg="No RFIs found." action={<Btn sm onClick={()=>setForm({projectId:projectId||projects[0]?.id||"",subject:"",toParty:"Architect",fromParty:"GC",priority:"Normal",description:"",response:"",dateNeeded:""})}>+ Submit First RFI</Btn>}/></Card>}
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {filtered.map(rfi=>{
+          const p = projects.find(x=>x.id===rfi.projectId);
+          const pc = PRIORITY_COLOR[rfi.priority]||C.textSub;
+          const pb = PRIORITY_BG[rfi.priority]||C.bg;
+          const isOverdue = rfi.dateNeeded&&rfi.dateNeeded<today()&&rfi.status==="Open";
+          return (
+            <Card key={rfi.id} style={{border:`1px solid ${isOverdue?C.redB:rfi.status==="Open"?C.amberB:C.border}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5,flexWrap:"wrap"}}>
+                    <span style={{fontSize:12,fontWeight:700,color:C.accent}}>{rfi.number}</span>
+                    <span style={{fontSize:13,fontWeight:600,color:C.text}}>{rfi.subject}</span>
+                    <Badge s={rfi.status}/>
+                    <span style={{fontSize:11,fontWeight:600,color:pc,background:pb,padding:"2px 9px",borderRadius:10}}>{rfi.priority}</span>
+                    {isOverdue&&<span style={{fontSize:11,fontWeight:700,color:C.red}}>⚠ Response overdue</span>}
+                  </div>
+                  <div style={{fontSize:12,color:C.textSub}}>
+                    {!projectId&&<span style={{fontWeight:600,color:C.textMid}}>{p?.name} · </span>}
+                    To: <strong>{rfi.toParty}</strong> · From: {rfi.fromParty} · Submitted: {fmtDate(rfi.dateSubmitted)}
+                    {rfi.dateNeeded&&<span> · Needed by: <span style={{color:isOverdue?C.red:C.textMid,fontWeight:600}}>{fmtDate(rfi.dateNeeded)}</span></span>}
+                  </div>
+                </div>
+              </div>
+              {rfi.description&&<div style={{fontSize:13,color:C.textMid,lineHeight:1.65,marginBottom:rfi.response?12:0,borderLeft:`3px solid ${C.border}`,paddingLeft:12}}>{rfi.description}</div>}
+              {rfi.response&&(
+                <div style={{background:C.greenL,border:`1px solid ${C.greenB}`,borderRadius:8,padding:"10px 14px",marginBottom:10}}>
+                  <div style={{fontSize:10,fontWeight:700,color:C.green,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>Response</div>
+                  <div style={{fontSize:13,color:C.textMid,lineHeight:1.65}}>{rfi.response}</div>
+                </div>
+              )}
+              <div style={{display:"flex",gap:8,borderTop:`1px solid ${C.border}`,paddingTop:10}}>
+                {rfi.status==="Open"&&<Btn sm onClick={()=>setForm({...rfi})}>Add Response</Btn>}
+                {rfi.status==="Open"&&rfi.response&&<Btn sm onClick={()=>setStatus(rfi.id,"Answered")}><Ic d={I.check} s={12}/> Mark Answered</Btn>}
+                {rfi.status==="Answered"&&<Btn sm v="secondary" onClick={()=>setStatus(rfi.id,"Closed")}>Close RFI</Btn>}
+                {(rfi.status==="Answered"||rfi.status==="Closed")&&<Btn v="secondary" sm onClick={()=>setStatus(rfi.id,"Open")}>Reopen</Btn>}
+                {rfi.status==="Open"&&<Btn danger sm onClick={()=>setStatus(rfi.id,"Void")}>Void</Btn>}
+                <EditBtn onClick={()=>setForm({...rfi})}/>
+                <DeleteBtn onClick={()=>setDelId(rfi.id)}/>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ─── PUNCH LIST ───────────────────────────────────────────────────────────────
+const PunchList = ({projectId,punchList,setPunchList,projects}) => {
+  const [form,setForm] = useState(null);
+  const [delId,setDelId] = useState(null);
+  const [filter,setFilter] = useState("All");
+  const items = projectId ? punchList.filter(p=>p.projectId===projectId) : punchList;
+  const filtered = filter==="All" ? items : items.filter(p=>p.status===filter);
+  const PRIORITIES = ["Low","Normal","High","Critical"];
+  const PRIORITY_COLOR = {Low:C.textSub,Normal:C.blue,High:C.amber,Critical:C.red};
+  const openCount = items.filter(p=>p.status!=="Complete").length;
+  const pct = items.length>0 ? Math.round((items.filter(p=>p.status==="Complete").length/items.length)*100) : 0;
+
+  const save = () => {
+    if(!form.description) return;
+    const projId = form.projectId||projectId;
+    const maxNum = punchList.filter(p=>p.projectId===projId).reduce((m,p)=>{const n=parseInt(p.number?.split("-")[1]||0);return Math.max(m,n);},0);
+    const number = form.id ? form.number : `PL-${String(maxNum+1).padStart(3,"0")}`;
+    if(form.id){setPunchList(punchList.map(p=>p.id===form.id?{...form}:p));}
+    else{setPunchList([...punchList,{...form,id:uid(),number,projectId:projId,status:"Open"}]);}
+    setForm(null);
+    toast.success(form.id?"Item updated":"Punch item added");
+  };
+  const del = () => { setPunchList(punchList.filter(p=>p.id!==delId)); setDelId(null); toast("Item deleted",{icon:"🗑️"}); };
+  const complete = (id) => { setPunchList(punchList.map(p=>p.id===id?{...p,status:"Complete"}:p)); toast.success("Item complete ✓"); };
+  const reopen = (id) => setPunchList(punchList.map(p=>p.id===id?{...p,status:"Open"}:p));
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      {delId&&<Confirm msg="Delete this punch item?" onOk={del} onCancel={()=>setDelId(null)}/>}
+      {!projectId&&<PageHead eyebrow="Closeout" title="Punch List" action={<Btn onClick={()=>setForm({projectId:projects[0]?.id||"",location:"",description:"",assignedTo:"",priority:"Normal",dueDate:"",notes:""})}><Ic d={I.plus} s={14}/> Add Item</Btn>}/>}
+      {items.length>0&&(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14}}>
+          <Stat label="Total Items" value={items.length} color={C.blue} icon="logs"/>
+          <Stat label="Open" value={items.filter(p=>p.status==="Open").length} color={C.amber} icon="alert"/>
+          <Stat label="Complete" value={items.filter(p=>p.status==="Complete").length} color={C.green} icon="punch"/>
+          <Stat label="Completion" value={`${pct}%`} color={pct===100?C.purple:C.accent} icon="trend"/>
+        </div>
+      )}
+      {items.length>0&&(
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:C.textSub,marginBottom:5}}><span>Punch list completion</span><span style={{fontWeight:600,color:pct===100?C.purple:C.accent}}>{pct}%</span></div>
+          <Progress pct={pct} color={pct===100?C.purple:C.accent} h={8}/>
+        </div>
+      )}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          {["All","Open","In Progress","Complete"].map(s=>(
+            <button key={s} onClick={()=>setFilter(s)} style={{background:filter===s?C.accent:C.surface,color:filter===s?"#fff":C.textMid,border:`1px solid ${filter===s?C.accent:C.border}`,borderRadius:7,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>
+              {s} ({s==="All"?items.length:items.filter(p=>p.status===s).length})
+            </button>
+          ))}
+        </div>
+        <Btn sm onClick={()=>setForm({projectId:projectId||projects[0]?.id||"",location:"",description:"",assignedTo:"",priority:"Normal",dueDate:"",notes:""})}><Ic d={I.plus} s={13}/> Add Item</Btn>
+      </div>
+      {form!==null&&(
+        <Card style={{border:`1px solid ${C.accentB}`}}>
+          <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:16}}>{form.id?"Edit":"New"} Punch Item</div>
+          <Grid cols="1fr 1fr" gap={12}>
+            {!projectId&&<Sel label="Project" value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} options={projects.map(p=>({v:p.id,l:p.name}))}/>}
+            <Inp label="Location / Area" value={form.location} onChange={e=>setForm({...form,location:e.target.value})} placeholder="e.g. Master Bath, Kitchen, Unit 3B"/>
+            <Sel label="Priority" value={form.priority} onChange={e=>setForm({...form,priority:e.target.value})} options={PRIORITIES}/>
+            <Inp label="Assigned To" value={form.assignedTo} onChange={e=>setForm({...form,assignedTo:e.target.value})} placeholder="Trade or sub responsible"/>
+            <Inp label="Due Date" type="date" value={form.dueDate} onChange={e=>setForm({...form,dueDate:e.target.value})}/>
+            <Span2><TA label="Deficiency Description" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} rows={3} placeholder="Describe the issue clearly and specifically..."/></Span2>
+            <Span2><Inp label="Resolution Notes" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="How was this resolved?"/></Span2>
+          </Grid>
+          <div style={{display:"flex",gap:10,marginTop:14}}><Btn onClick={save}>{form.id?"Save Changes":"Add to List"}</Btn><Btn v="secondary" onClick={()=>setForm(null)}>Cancel</Btn></div>
+        </Card>
+      )}
+      {filtered.length===0&&form===null&&<Card><EmptyState msg="No punch list items." action={<Btn sm onClick={()=>setForm({projectId:projectId||projects[0]?.id||"",location:"",description:"",assignedTo:"",priority:"Normal",dueDate:"",notes:""})}>+ Add First Item</Btn>}/></Card>}
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {filtered.map(item=>{
+          const pc = PRIORITY_COLOR[item.priority]||C.textSub;
+          const isComplete = item.status==="Complete";
+          const isOverdue = item.dueDate&&item.dueDate<today()&&!isComplete;
+          return (
+            <div key={item.id} style={{background:C.surface,border:`1px solid ${isComplete?C.greenB:isOverdue?C.redB:C.border}`,borderRadius:10,padding:"14px 18px",opacity:isComplete?0.72:1,transition:"all 0.15s"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,flexWrap:"wrap"}}>
+                    <span style={{fontSize:11,fontWeight:700,color:C.accent}}>{item.number}</span>
+                    <span style={{fontSize:13,fontWeight:600,color:C.text,textDecoration:isComplete?"line-through":"none"}}>{item.description}</span>
+                    <Badge s={item.status}/>
+                    <span style={{fontSize:11,fontWeight:600,color:pc,background:pc+"18",padding:"2px 8px",borderRadius:10}}>{item.priority}</span>
+                    {isOverdue&&<span style={{fontSize:11,fontWeight:700,color:C.red}}>⚠ Overdue</span>}
+                  </div>
+                  <div style={{fontSize:12,color:C.textSub}}>
+                    {item.location&&<span style={{fontWeight:600,color:C.textMid}}>{item.location} · </span>}
+                    {item.assignedTo&&<span>Assigned: <strong>{item.assignedTo}</strong></span>}
+                    {item.dueDate&&<span> · Due: <span style={{color:isOverdue?C.red:C.textMid,fontWeight:500}}>{fmtDate(item.dueDate)}</span></span>}
+                  </div>
+                  {item.notes&&<div style={{fontSize:12,color:C.textMuted,marginTop:4,fontStyle:"italic"}}>{item.notes}</div>}
+                </div>
+                <div style={{display:"flex",gap:6,marginLeft:12,alignItems:"center",flexShrink:0}}>
+                  {!isComplete&&<button onClick={()=>complete(item.id)} style={{background:C.greenL,color:C.green,border:`1px solid ${C.greenB}`,borderRadius:6,padding:"5px 12px",fontSize:11,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}><Ic d={I.check} s={12}/> Done</button>}
+                  {isComplete&&<button onClick={()=>reopen(item.id)} style={{background:C.bg,color:C.textSub,border:`1px solid ${C.border}`,borderRadius:6,padding:"5px 10px",fontSize:11,cursor:"pointer"}}>Reopen</button>}
+                  <EditBtn onClick={()=>setForm({...item})}/>
+                  <DeleteBtn onClick={()=>setDelId(item.id)}/>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ─── PURCHASE ORDERS ──────────────────────────────────────────────────────────
+const PurchaseOrders = ({projectId,pos,setPOs,projects}) => {
+  const [form,setForm] = useState(null);
+  const [delId,setDelId] = useState(null);
+  const [filter,setFilter] = useState("All");
+  const CATS = ["Demo & Site Prep","Foundation","Concrete","Framing","Roofing","Windows & Doors","Electrical","Plumbing","HVAC","Insulation","Drywall","Flooring","Cabinets & Millwork","Countertops","Tile","Painting","Exterior & Landscaping","Permits & Fees","Equipment Rental","General Conditions","Contingency","Other"];
+  const items = projectId ? pos.filter(p=>p.projectId===projectId) : pos;
+  const filtered = filter==="All" ? items : items.filter(p=>p.status===filter);
+  const totalCommitted = items.reduce((s,p)=>s+p.amount,0);
+  const totalReceived = items.filter(p=>["Received","Complete"].includes(p.status)).reduce((s,p)=>s+p.amount,0);
+
+  const save = () => {
+    if(!form.vendor||!form.amount) return;
+    const projId = form.projectId||projectId;
+    const maxNum = pos.filter(p=>p.projectId===projId).reduce((m,p)=>{const n=parseInt(p.number?.split("-")[1]||0);return Math.max(m,n);},0);
+    const number = form.id ? form.number : `PO-${String(maxNum+1).padStart(3,"0")}`;
+    if(form.id){setPOs(pos.map(p=>p.id===form.id?{...form,amount:parseFloat(form.amount)||0}:p));}
+    else{setPOs([...pos,{...form,id:uid(),number,projectId:projId,status:"Draft",date:today(),amount:parseFloat(form.amount)||0}]);}
+    setForm(null);
+    toast.success(form.id?"PO updated":"Purchase order created");
+  };
+  const del = () => { setPOs(pos.filter(p=>p.id!==delId)); setDelId(null); toast("PO deleted",{icon:"🗑️"}); };
+  const setStatus = (id,s) => { setPOs(pos.map(p=>p.id===id?{...p,status:s}:p)); toast.success(`PO ${s.toLowerCase()}`); };
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      {delId&&<Confirm msg="Delete this purchase order?" onOk={del} onCancel={()=>setDelId(null)}/>}
+      {!projectId&&<PageHead eyebrow="Procurement" title="Purchase Orders" action={<Btn onClick={()=>setForm({projectId:projects[0]?.id||"",vendor:"",description:"",amount:"",budgetCategory:"",deliveryDate:"",notes:""})}><Ic d={I.plus} s={14}/> New PO</Btn>}/>}
+      {items.length>0&&(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14}}>
+          <Stat label="Total Committed" value={fmt(totalCommitted)} sub={`${items.length} orders`} color={C.blue} icon="budget"/>
+          <Stat label="Received" value={fmt(totalReceived)} sub={`${items.filter(p=>["Received","Complete"].includes(p.status)).length} orders`} color={C.green} icon="check"/>
+          <Stat label="Outstanding" value={fmt(totalCommitted-totalReceived)} sub={`${items.filter(p=>p.status==="Sent").length} in transit`} color={C.amber} icon="send"/>
+        </div>
+      )}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          {["All","Draft","Sent","Received","Complete"].map(s=>(
+            <button key={s} onClick={()=>setFilter(s)} style={{background:filter===s?C.accent:C.surface,color:filter===s?"#fff":C.textMid,border:`1px solid ${filter===s?C.accent:C.border}`,borderRadius:7,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>
+              {s} ({s==="All"?items.length:items.filter(p=>p.status===s).length})
+            </button>
+          ))}
+        </div>
+        <Btn sm onClick={()=>setForm({projectId:projectId||projects[0]?.id||"",vendor:"",description:"",amount:"",budgetCategory:"",deliveryDate:"",notes:""})}><Ic d={I.plus} s={13}/> New PO</Btn>
+      </div>
+      {form!==null&&(
+        <Card style={{border:`1px solid ${C.accentB}`}}>
+          <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:16}}>{form.id?"Edit":"New"} Purchase Order</div>
+          <Grid cols="1fr 1fr" gap={12}>
+            {!projectId&&<Sel label="Project" value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} options={projects.map(p=>({v:p.id,l:p.name}))}/>}
+            <Inp label="Vendor / Supplier" value={form.vendor} onChange={e=>setForm({...form,vendor:e.target.value})} placeholder="Vendor company name"/>
+            <Inp label="Amount ($)" type="number" value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})}/>
+            <Sel label="Cost Category" value={form.budgetCategory||""} onChange={e=>setForm({...form,budgetCategory:e.target.value})} options={["Select category...", ...CATS]}/>
+            <Inp label="Expected Delivery" type="date" value={form.deliveryDate} onChange={e=>setForm({...form,deliveryDate:e.target.value})}/>
+            <Span2><Inp label="Description / Materials" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="What materials or services are being ordered?"/></Span2>
+            <Span2><Inp label="Notes" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></Span2>
+          </Grid>
+          <div style={{display:"flex",gap:10,marginTop:14}}><Btn onClick={save}>{form.id?"Save Changes":"Create PO"}</Btn><Btn v="secondary" onClick={()=>setForm(null)}>Cancel</Btn></div>
+        </Card>
+      )}
+      {filtered.length===0&&form===null&&<Card><EmptyState msg="No purchase orders." action={<Btn sm onClick={()=>setForm({projectId:projectId||projects[0]?.id||"",vendor:"",description:"",amount:"",budgetCategory:"",deliveryDate:"",notes:""})}>+ Create First PO</Btn>}/></Card>}
+      <Table heads={[{l:"PO #"},{l:"Vendor"},{l:"Description"},{l:"Category"},{l:"Amount",r:true},{l:"Delivery"},{l:"Status"},{l:"Actions"}]}>
+        {filtered.map(po=>{
+          const isLate = po.deliveryDate&&po.deliveryDate<today()&&po.status==="Sent";
+          return (
+            <TR key={po.id}>
+              <td style={{padding:"12px 14px",fontWeight:700,color:C.accent,fontSize:13}}>{po.number}</td>
+              <TD bold>{po.vendor}</TD>
+              <TD muted>{po.description?.substring(0,28)||"—"}</TD>
+              <TD muted>{po.budgetCategory||"—"}</TD>
+              <TD right bold>{fmt(po.amount)}</TD>
+              <td style={{padding:"12px 14px",fontSize:13,color:isLate?C.red:C.textSub}}>{po.deliveryDate?fmtDate(po.deliveryDate):"—"}{isLate&&" ⚠"}</td>
+              <td style={{padding:"12px 14px"}}><Badge s={po.status}/></td>
+              <td style={{padding:"12px 14px"}}>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {po.status==="Draft"&&<button onClick={()=>setStatus(po.id,"Sent")} style={{background:C.blueL,color:C.blue,border:`1px solid ${C.blueB}`,borderRadius:5,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>Send</button>}
+                  {po.status==="Sent"&&<button onClick={()=>setStatus(po.id,"Received")} style={{background:C.greenL,color:C.green,border:`1px solid ${C.greenB}`,borderRadius:5,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>Received</button>}
+                  {po.status==="Received"&&<button onClick={()=>setStatus(po.id,"Complete")} style={{background:C.purpleL,color:C.purple,border:`1px solid ${C.purpleB}`,borderRadius:5,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>Complete</button>}
+                  <EditBtn onClick={()=>setForm({...po})}/>
+                  <DeleteBtn onClick={()=>setDelId(po.id)}/>
+                </div>
+              </td>
+            </TR>
+          );
+        })}
+      </Table>
+    </div>
+  );
+};
+
+// ─── MEETING MINUTES ──────────────────────────────────────────────────────────
+const MeetingMinutes = ({projectId,meetings,setMeetings,projects}) => {
+  const [form,setForm] = useState(null);
+  const [delId,setDelId] = useState(null);
+  const items = projectId ? meetings.filter(m=>m.projectId===projectId) : meetings;
+
+  const save = () => {
+    if(!form.title) return;
+    if(form.id){setMeetings(meetings.map(m=>m.id===form.id?{...form}:m));}
+    else{setMeetings([...meetings,{...form,id:uid(),projectId:form.projectId||projectId}]);}
+    setForm(null);
+    toast.success(form.id?"Meeting updated":"Meeting minutes saved");
+  };
+  const del = () => { setMeetings(meetings.filter(m=>m.id!==delId)); setDelId(null); toast("Meeting deleted",{icon:"🗑️"}); };
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+      {delId&&<Confirm msg="Delete this meeting record?" onOk={del} onCancel={()=>setDelId(null)}/>}
+      {!projectId&&<PageHead eyebrow="Field Management" title="Meeting Minutes" action={<Btn onClick={()=>setForm({projectId:projects[0]?.id||"",date:today(),title:"",location:"",attendees:"",agenda:"",notes:"",actionItems:""})}><Ic d={I.plus} s={14}/> New Meeting</Btn>}/>}
+      {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{fontSize:13,fontWeight:600,color:C.text}}>Meeting Minutes</div>
+        <Btn sm onClick={()=>setForm({projectId,date:today(),title:"",location:"",attendees:"",agenda:"",notes:"",actionItems:""})}><Ic d={I.plus} s={13}/> New Meeting</Btn>
+      </div>}
+      {form!==null&&(
+        <Card style={{border:`1px solid ${C.accentB}`}}>
+          <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:16}}>{form.id?"Edit":"New"} Meeting</div>
+          <Grid cols="1fr 1fr" gap={12}>
+            {!projectId&&<Sel label="Project" value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} options={projects.map(p=>({v:p.id,l:p.name}))}/>}
+            <Inp label="Meeting Title" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="e.g. Weekly OAC, Pre-Con Meeting"/>
+            <Inp label="Date" type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/>
+            <Inp label="Location" value={form.location} onChange={e=>setForm({...form,location:e.target.value})} placeholder="Jobsite / Office / Video Call"/>
+            <Span2><Inp label="Attendees" value={form.attendees} onChange={e=>setForm({...form,attendees:e.target.value})} placeholder="Names and companies, e.g. John Smith (Owner), Jane Lee (Architect)"/></Span2>
+            <Span2><TA label="Agenda / Discussion Topics" value={form.agenda} onChange={e=>setForm({...form,agenda:e.target.value})} rows={3}/></Span2>
+            <Span2><TA label="Meeting Notes / Decisions" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} rows={4}/></Span2>
+            <Span2><TA label="Action Items (who, what, by when)" value={form.actionItems} onChange={e=>setForm({...form,actionItems:e.target.value})} rows={3} placeholder="• John to submit RFI response by Friday&#10;• Jane to review revised plans&#10;• GC to order windows by end of week"/></Span2>
+          </Grid>
+          <div style={{display:"flex",gap:10,marginTop:14}}><Btn onClick={save}>{form.id?"Save Changes":"Save Minutes"}</Btn><Btn v="secondary" onClick={()=>setForm(null)}>Cancel</Btn></div>
+        </Card>
+      )}
+      {items.length===0&&form===null&&<Card><EmptyState msg="No meeting minutes recorded." action={<Btn sm onClick={()=>setForm({projectId:projectId||projects[0]?.id||"",date:today(),title:"",location:"",attendees:"",agenda:"",notes:"",actionItems:""})}>+ Record Meeting</Btn>}/></Card>}
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        {items.map(m=>{
+          const p = projects.find(x=>x.id===m.projectId);
+          return (
+            <Card key={m.id}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+                <div>
+                  {!projectId&&<div style={{fontSize:11,color:C.accent,fontWeight:700,letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:3}}>{p?.name}</div>}
+                  <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:3}}>{m.title}</div>
+                  <div style={{fontSize:12,color:C.textSub}}>{fmtDate(m.date)}{m.location&&` · ${m.location}`}</div>
+                  {m.attendees&&<div style={{fontSize:12,color:C.textMuted,marginTop:3}}>👥 {m.attendees}</div>}
+                </div>
+                <div style={{display:"flex",gap:6}}><EditBtn onClick={()=>setForm({...m})}/><DeleteBtn onClick={()=>setDelId(m.id)}/></div>
+              </div>
+              {m.agenda&&<div style={{marginBottom:12}}><div style={{fontSize:10,fontWeight:700,color:C.textSub,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4}}>Agenda</div><div style={{fontSize:13,color:C.textMid,lineHeight:1.65}}>{m.agenda}</div></div>}
+              {m.notes&&<div style={{fontSize:13,color:C.textMid,lineHeight:1.7,borderLeft:`3px solid ${C.accentB}`,paddingLeft:14,marginBottom:m.actionItems?12:0}}>{m.notes}</div>}
+              {m.actionItems&&(
+                <div style={{background:C.amberL,border:`1px solid ${C.amberB}`,borderRadius:8,padding:"10px 14px"}}>
+                  <div style={{fontSize:10,fontWeight:700,color:C.amber,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:5}}>Action Items</div>
+                  <div style={{fontSize:13,color:C.textMid,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{m.actionItems}</div>
+                </div>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ─── REPORTS ──────────────────────────────────────────────────────────────────
+const Reports = ({projects,invoices,estimates,cos,budgetItems,pos}) => {
+  const isMobile = useMobile();
+  const plData = projects.filter(p=>["Active","Complete"].includes(p.status)).map(p=>{
+    const approvedCOs = cos.filter(c=>c.projectId===p.id&&c.status==="Approved").reduce((s,c)=>s+c.amount,0);
+    const revisedContract = p.value+approvedCOs;
+    const grossProfit = revisedContract-p.spent;
+    const margin = revisedContract>0?Math.round((grossProfit/revisedContract)*100):0;
+    const invoiced = invoices.filter(i=>i.projectId===p.id).reduce((s,i)=>s+i.amount,0);
+    const collected = invoices.filter(i=>i.projectId===p.id&&i.status==="Paid").reduce((s,i)=>s+i.amount,0);
+    const committed = (pos||[]).filter(o=>o.projectId===p.id).reduce((s,o)=>s+o.amount,0);
+    return {p,revisedContract,spent:p.spent,grossProfit,margin,invoiced,collected,committed};
+  });
+  const calcEstTotal = e => e.lineItems.reduce((s,l)=>s+l.qty*l.cost*(1+l.markup/100),0);
+  const totalEsts = estimates.length;
+  const approvedEsts = estimates.filter(e=>e.status==="Approved").length;
+  const winRate = totalEsts>0?Math.round((approvedEsts/totalEsts)*100):0;
+  const wonValue = estimates.filter(e=>e.status==="Approved").reduce((s,e)=>s+calcEstTotal(e),0);
+  const totalContract = plData.reduce((s,d)=>s+d.revisedContract,0);
+  const totalSpent = plData.reduce((s,d)=>s+d.spent,0);
+  const totalGP = plData.reduce((s,d)=>s+d.grossProfit,0);
+  const overallMargin = totalContract>0?Math.round((totalGP/totalContract)*100):0;
+  const totalCollected = invoices.filter(i=>i.status==="Paid").reduce((s,i)=>s+i.amount,0);
+  const totalBilled = invoices.reduce((s,i)=>s+i.amount,0);
+  const collectionRate = totalBilled>0?Math.round((totalCollected/totalBilled)*100):0;
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:isMobile?16:24}}>
+      <PageHead eyebrow="Business Intelligence" title="Reports & Analytics"/>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:isMobile?10:14}}>
+        <Stat label="Gross Profit" value={fmt(totalGP)} sub={`${overallMargin}% avg margin`} color={totalGP>=0?C.green:C.red} icon="trend"/>
+        <Stat label="Revenue" value={fmt(totalContract)} sub={`${plData.length} jobs`} color={C.accent} icon="dollar"/>
+        <Stat label="Collection Rate" value={`${collectionRate}%`} sub={`${fmt(totalCollected)} collected`} color={collectionRate>=80?C.green:C.amber} icon="check"/>
+        <Stat label="Win Rate" value={`${winRate}%`} sub={`${approvedEsts}/${totalEsts} bids`} color={winRate>=50?C.green:C.amber} icon="award"/>
+      </div>
+
+      <Card>
+        <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:4}}>Project P&L Summary</div>
+        <div style={{fontSize:12,color:C.textSub,marginBottom:18}}>Active and complete projects only</div>
+        {plData.length===0?<EmptyState msg="No active or complete projects to report on."/>:(
+          <Table heads={[{l:"Project"},{l:"Revised Contract",r:true},{l:"Spent",r:true},{l:"Gross Profit",r:true},{l:"Margin",r:true},{l:"Invoiced",r:true},{l:"Collected",r:true}]}>
+            {plData.map(({p,revisedContract,spent,grossProfit,margin,invoiced,collected})=>(
+              <TR key={p.id}>
+                <td style={{padding:"12px 14px"}}>
+                  <div style={{fontSize:13,fontWeight:600,color:C.text}}>{p.name}</div>
+                  <div style={{fontSize:11,color:C.textSub,marginTop:2}}>{p.client} · <Badge s={p.status}/></div>
+                </td>
+                <TD right bold>{fmt(revisedContract)}</TD>
+                <TD right>{fmt(spent)}</TD>
+                <td style={{padding:"12px 14px",textAlign:"right",fontSize:13,fontWeight:700,color:grossProfit>=0?C.green:C.red}}>{grossProfit>=0?"+":""}{fmt(grossProfit)}</td>
+                <td style={{padding:"12px 14px",textAlign:"right"}}>
+                  <span style={{fontSize:13,fontWeight:700,color:margin>=20?C.green:margin>=10?C.amber:C.red}}>{margin}%</span>
+                </td>
+                <TD right>{fmt(invoiced)}</TD>
+                <td style={{padding:"12px 14px",textAlign:"right",fontWeight:600,color:C.green,fontSize:13}}>{fmt(collected)}</td>
+              </TR>
+            ))}
+            <tr style={{background:C.accentL,borderTop:`2px solid ${C.accentB}`}}>
+              <td style={{padding:"12px 14px",fontWeight:700,fontSize:13,color:C.accent}}>TOTALS</td>
+              <td style={{padding:"12px 14px",textAlign:"right",fontWeight:700,fontSize:13}}>{fmt(totalContract)}</td>
+              <td style={{padding:"12px 14px",textAlign:"right",fontWeight:700,fontSize:13}}>{fmt(totalSpent)}</td>
+              <td style={{padding:"12px 14px",textAlign:"right",fontWeight:700,fontSize:13,color:totalGP>=0?C.green:C.red}}>{totalGP>=0?"+":""}{fmt(totalGP)}</td>
+              <td style={{padding:"12px 14px",textAlign:"right",fontWeight:700,fontSize:13,color:overallMargin>=20?C.green:overallMargin>=10?C.amber:C.red}}>{overallMargin}%</td>
+              <td style={{padding:"12px 14px",textAlign:"right",fontWeight:700,fontSize:13}}>{fmt(totalBilled)}</td>
+              <td style={{padding:"12px 14px",textAlign:"right",fontWeight:700,fontSize:13,color:C.green}}>{fmt(totalCollected)}</td>
+            </tr>
+          </Table>
+        )}
+      </Card>
+
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16}}>
+        <Card>
+          <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:14}}>Estimate Win Rate</div>
+          <div style={{marginBottom:14}}>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:C.textSub,marginBottom:5}}>
+              <span>Approved estimates</span><span style={{fontWeight:600,color:winRate>=50?C.green:C.amber}}>{approvedEsts} of {totalEsts}</span>
+            </div>
+            <Progress pct={winRate} color={winRate>=50?C.green:C.amber} h={8}/>
+            <div style={{fontSize:11,color:C.textMuted,marginTop:4}}>{fmt(wonValue)} in awarded contract value</div>
+          </div>
+          {["Approved","Sent","Draft","Rejected"].filter(s=>estimates.some(e=>e.status===s)).map(s=>{
+            const cnt=estimates.filter(e=>e.status===s).length;
+            const val=estimates.filter(e=>e.status===s).reduce((a,e)=>a+calcEstTotal(e),0);
+            const sc=STATUS_MAP[s]||{};
+            return <div key={s} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`,fontSize:13}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{width:6,height:6,borderRadius:"50%",background:sc.text,display:"inline-block"}}/>{s}</div>
+              <div style={{display:"flex",gap:16}}><span style={{color:C.textMuted}}>{cnt} bids</span><span style={{fontWeight:600}}>{fmt(val)}</span></div>
+            </div>;
+          })}
+        </Card>
+        <Card>
+          <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:14}}>Collections Summary</div>
+          <div style={{marginBottom:14}}>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:C.textSub,marginBottom:5}}>
+              <span>Collection rate</span><span style={{fontWeight:600,color:collectionRate>=80?C.green:C.amber}}>{collectionRate}%</span>
+            </div>
+            <Progress pct={collectionRate} color={collectionRate>=80?C.green:C.amber} h={8}/>
+            <div style={{fontSize:11,color:C.textMuted,marginTop:4}}>{fmt(totalCollected)} of {fmt(totalBilled)} billed</div>
+          </div>
+          {["Paid","Pending","Overdue"].map(s=>{
+            const cnt=invoices.filter(i=>i.status===s).length;
+            const val=invoices.filter(i=>i.status===s).reduce((a,i)=>a+i.amount,0);
+            const sc=STATUS_MAP[s]||{};
+            return <div key={s} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${C.border}`,fontSize:13}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{width:6,height:6,borderRadius:"50%",background:sc.text,display:"inline-block"}}/>{s}</div>
+              <div style={{display:"flex",gap:16}}><span style={{color:C.textMuted}}>{cnt} inv</span><span style={{fontWeight:600,color:s==="Overdue"?C.red:s==="Paid"?C.green:C.text}}>{fmt(val)}</span></div>
+            </div>;
+          })}
+        </Card>
+      </div>
+    </div>
+  );
+};
+
 // ─── DB HELPERS ───────────────────────────────────────────────────────────────
 const fromDb = {
   project: r => ({ id:r.id, name:r.name, client:r.client||"", status:r.status||"Lead", phase:r.phase||"Pre-Construction", type:r.type||"Residential", value:parseFloat(r.value)||0, spent:parseFloat(r.spent)||0, progress:parseInt(r.progress)||0, address:r.address||"", start:r.start_date||"", end:r.end_date||"", notes:r.notes||"" }),
@@ -1846,8 +2477,12 @@ const fromDb = {
   co: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", title:r.title||"", category:r.category||"", description:r.description||"", amount:parseFloat(r.amount)||0, status:r.status||"Pending", requestedBy:r.requested_by||"Owner", date:r.date||"" }),
   log: r => ({ id:r.id, projectId:r.project_id, date:r.date||"", author:r.author||"", weather:r.weather||"", crew:parseInt(r.crew)||0, notes:r.notes||"" }),
   bidPkg: (r, bids) => ({ id:r.id, projectId:r.project_id, trade:r.trade||"", scope:r.scope||"", dueDate:r.due_date||"", status:r.status||"Open", bids:(bids||[]).map(b=>({ subId:b.id, subName:b.sub_name||"", amount:parseFloat(b.amount)||0, notes:b.notes||"", submitted:b.submitted||"", awarded:b.awarded||false })) }),
-  doc: r => ({ id:r.id, projectId:r.project_id, name:r.name||"", type:r.type||"Contract", date:r.date||"", notes:r.notes||"", uploader:r.uploader||"" }),
-  photo: r => ({ id:r.id, projectId:r.project_id, caption:r.caption||"", tag:r.tag||"Progress", date:r.date||"", author:r.author||"", emoji:r.emoji||"📷", color:r.color||"#F4F5F7" }),
+  doc: r => ({ id:r.id, projectId:r.project_id, name:r.name||"", type:r.type||"Contract", date:r.date||"", notes:r.notes||"", uploader:r.uploader||"", fileUrl:r.file_url||"" }),
+  photo: r => ({ id:r.id, projectId:r.project_id, caption:r.caption||"", tag:r.tag||"Progress", date:r.date||"", author:r.author||"", emoji:r.emoji||"📷", color:r.color||"#F4F5F7", fileUrl:r.file_url||"" }),
+  rfi: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", subject:r.subject||"", toParty:r.to_party||"Architect", fromParty:r.from_party||"GC", dateSubmitted:r.date_submitted||"", dateNeeded:r.date_needed||"", priority:r.priority||"Normal", status:r.status||"Open", description:r.description||"", response:r.response||"" }),
+  punchItem: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", location:r.location||"", description:r.description||"", assignedTo:r.assigned_to||"", priority:r.priority||"Normal", status:r.status||"Open", dueDate:r.due_date||"", notes:r.notes||"" }),
+  po: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", vendor:r.vendor||"", description:r.description||"", amount:parseFloat(r.amount)||0, status:r.status||"Draft", date:r.date||"", budgetCategory:r.budget_category||"", deliveryDate:r.delivery_date||"", notes:r.notes||"" }),
+  meeting: r => ({ id:r.id, projectId:r.project_id, date:r.date||"", title:r.title||"", location:r.location||"", attendees:r.attendees||"", agenda:r.agenda||"", notes:r.notes||"", actionItems:r.action_items||"" }),
 };
 
 // Direct DB operations — no diffing, just straight insert/update/delete
@@ -1881,11 +2516,23 @@ const db = {
   async saveBid(b,pkgId) { const {error} = await sb.from("bids").upsert({id:b.subId,package_id:pkgId,sub_name:b.subName,amount:b.amount||0,notes:b.notes,submitted:b.submitted||null,awarded:b.awarded||false}); if(error) console.error("saveBid",error); return !error; },
   async deleteBid(id) { await sb.from("bids").delete().eq("id",id); },
   // Documents
-  async saveDoc(d) { const {error} = await sb.from("documents").upsert({id:d.id,project_id:d.projectId,name:d.name,type:d.type,date:d.date||null,notes:d.notes,uploader:d.uploader}); if(error) console.error("saveDoc",error); return !error; },
+  async saveDoc(d) { const {error} = await sb.from("documents").upsert({id:d.id,project_id:d.projectId,name:d.name,type:d.type,date:d.date||null,notes:d.notes,uploader:d.uploader,file_url:d.fileUrl||null}); if(error) console.error("saveDoc",error); return !error; },
   async deleteDoc(id) { await sb.from("documents").delete().eq("id",id); },
   // Photos
-  async savePhoto(p) { const {error} = await sb.from("photos").upsert({id:p.id,project_id:p.projectId,caption:p.caption,tag:p.tag,date:p.date||null,author:p.author,emoji:p.emoji,color:p.color}); if(error) console.error("savePhoto",error); return !error; },
+  async savePhoto(p) { const {error} = await sb.from("photos").upsert({id:p.id,project_id:p.projectId,caption:p.caption,tag:p.tag,date:p.date||null,author:p.author,emoji:p.emoji,color:p.color,file_url:p.fileUrl||null}); if(error) console.error("savePhoto",error); return !error; },
   async deletePhoto(id) { await sb.from("photos").delete().eq("id",id); },
+  // RFIs
+  async saveRFI(r) { const {error} = await sb.from("rfis").upsert({id:r.id,project_id:r.projectId,number:r.number,subject:r.subject,to_party:r.toParty,from_party:r.fromParty,date_submitted:r.dateSubmitted||null,date_needed:r.dateNeeded||null,priority:r.priority,status:r.status,description:r.description,response:r.response}); if(error) console.error("saveRFI",error); return !error; },
+  async deleteRFI(id) { await sb.from("rfis").delete().eq("id",id); },
+  // Punch List
+  async savePunchItem(p) { const {error} = await sb.from("punch_list").upsert({id:p.id,project_id:p.projectId,number:p.number,location:p.location,description:p.description,assigned_to:p.assignedTo,priority:p.priority,status:p.status,due_date:p.dueDate||null,notes:p.notes}); if(error) console.error("savePunchItem",error); return !error; },
+  async deletePunchItem(id) { await sb.from("punch_list").delete().eq("id",id); },
+  // Purchase Orders
+  async savePO(p) { const {error} = await sb.from("purchase_orders").upsert({id:p.id,project_id:p.projectId,number:p.number,vendor:p.vendor,description:p.description,amount:p.amount||0,status:p.status,date:p.date||null,budget_category:p.budgetCategory,delivery_date:p.deliveryDate||null,notes:p.notes}); if(error) console.error("savePO",error); return !error; },
+  async deletePO(id) { await sb.from("purchase_orders").delete().eq("id",id); },
+  // Meetings
+  async saveMeeting(m) { const {error} = await sb.from("meetings").upsert({id:m.id,project_id:m.projectId,date:m.date||null,title:m.title,location:m.location,attendees:m.attendees,agenda:m.agenda,notes:m.notes,action_items:m.actionItems}); if(error) console.error("saveMeeting",error); return !error; },
+  async deleteMeeting(id) { await sb.from("meetings").delete().eq("id",id); },
 };
 
 // ─── APP ROOT ────────────────────────────────────────────────────────────────
@@ -1904,6 +2551,10 @@ export default function App() {
   const [bids,setBids] = useState([]);
   const [docs,setDocs] = useState([]);
   const [photos,setPhotos] = useState([]);
+  const [rfis,setRfis] = useState([]);
+  const [punchList,setPunchList] = useState([]);
+  const [pos,setPOs] = useState([]);
+  const [meetings,setMeetings] = useState([]);
 
   // ── Load all data ──
   useEffect(() => {
@@ -1950,6 +2601,20 @@ export default function App() {
         setBids((pkgs||[]).map(p=>fromDb.bidPkg(p,(bdsr||[]).filter(b=>b.package_id===p.id))));
         setDocs((dcsr||[]).map(fromDb.doc));
         setPhotos((phsr||[]).map(fromDb.photo));
+
+        // Load new modules — tables may not exist yet; errors are silenced
+        const [
+          {data:rfisR},{data:punchR},{data:posR},{data:meetR}
+        ] = await Promise.all([
+          sb.from("rfis").select("*").order("created_at",{ascending:false}).catch(()=>({data:[]})),
+          sb.from("punch_list").select("*").catch(()=>({data:[]})),
+          sb.from("purchase_orders").select("*").order("created_at",{ascending:false}).catch(()=>({data:[]})),
+          sb.from("meetings").select("*").order("date",{ascending:false}).catch(()=>({data:[]})),
+        ]);
+        setRfis((rfisR||[]).map(fromDb.rfi));
+        setPunchList((punchR||[]).map(fromDb.punchItem));
+        setPOs((posR||[]).map(fromDb.po));
+        setMeetings((meetR||[]).map(fromDb.meeting));
       } catch(e) { console.error("Load failed:",e); }
       setLoading(false);
     })();
@@ -1978,13 +2643,18 @@ export default function App() {
     {id:"estimates",label:"Estimates",icon:"est"},
     {id:"invoices",label:"Invoices",icon:"inv"},
     {id:"cos",label:"Change Orders",icon:"co"},
+    {id:"rfis",label:"RFIs",icon:"rfi"},
     {id:"budget",label:"Budget Tracker",icon:"budget"},
+    {id:"pos",label:"Purchase Orders",icon:"po"},
     {id:"bids",label:"Sub Bids",icon:"bids"},
+    {id:"punch",label:"Punch List",icon:"punch"},
     {id:"schedule",label:"Schedule",icon:"sched"},
+    {id:"meetings",label:"Meeting Minutes",icon:"meeting"},
     {id:"logs",label:"Daily Logs",icon:"logs"},
     {id:"docs",label:"Documents",icon:"docs"},
     {id:"photos",label:"Photos",icon:"photos"},
     {id:"contacts",label:"Contacts",icon:"contacts"},
+    {id:"reports",label:"Reports",icon:"report"},
   ];
 
   if(loading) return (
@@ -2092,6 +2762,38 @@ export default function App() {
       return next;
     });
   };
+  const setRfisDB = (updater) => {
+    setRfis(prev => {
+      const next = typeof updater==="function" ? updater(prev) : updater;
+      next.forEach(r => db.saveRFI(r));
+      prev.forEach(r => { if(!next.find(x=>x.id===r.id)) db.deleteRFI(r.id); });
+      return next;
+    });
+  };
+  const setPunchListDB = (updater) => {
+    setPunchList(prev => {
+      const next = typeof updater==="function" ? updater(prev) : updater;
+      next.forEach(p => db.savePunchItem(p));
+      prev.forEach(p => { if(!next.find(x=>x.id===p.id)) db.deletePunchItem(p.id); });
+      return next;
+    });
+  };
+  const setPOsDB = (updater) => {
+    setPOs(prev => {
+      const next = typeof updater==="function" ? updater(prev) : updater;
+      next.forEach(p => db.savePO(p));
+      prev.forEach(p => { if(!next.find(x=>x.id===p.id)) db.deletePO(p.id); });
+      return next;
+    });
+  };
+  const setMeetingsDB = (updater) => {
+    setMeetings(prev => {
+      const next = typeof updater==="function" ? updater(prev) : updater;
+      next.forEach(m => db.saveMeeting(m));
+      prev.forEach(m => { if(!next.find(x=>x.id===m.id)) db.deleteMeeting(m.id); });
+      return next;
+    });
+  };
 
   const sharedProps = {
     projects, setProjects:setProjectsDB,
@@ -2103,12 +2805,18 @@ export default function App() {
     bids, setBids:setBidsDB,
     docs, setDocs:setDocsDB,
     photos, setPhotos:setPhotosDB,
+    rfis, setRfis:setRfisDB,
+    punchList, setPunchList:setPunchListDB,
+    pos, setPOs:setPOsDB,
+    meetings, setMeetings:setMeetingsDB,
   };
 
   // Notification badge counts for sidebar
   const pendingCOCount = cos.filter(c=>c.status==="Pending").length;
   const overdueInvCount = invoices.filter(i=>i.status==="Overdue").length;
-  const BADGES = {cos:pendingCOCount, invoices:overdueInvCount};
+  const openRFICount = rfis.filter(r=>r.status==="Open").length;
+  const openPunchCount = punchList.filter(p=>p.status!=="Complete").length;
+  const BADGES = {cos:pendingCOCount, invoices:overdueInvCount, rfis:openRFICount, punch:openPunchCount};
 
   const Sidebar = () => (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
@@ -2117,7 +2825,7 @@ export default function App() {
           <div style={{width:32,height:32,background:C.accent,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic d={I.hard} s={15} stroke="#fff"/></div>
           <div><div style={{fontSize:13,fontWeight:800,color:C.text,letterSpacing:"0.04em"}}>BUILDFLOW</div><div style={{fontSize:9,color:C.textMuted,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase"}}>Pro</div></div>
         </div>
-        <GlobalSearch projects={projects} contacts={contacts} invoices={invoices} cos={cos} estimates={estimates} onNav={navigate}/>
+        <GlobalSearch projects={projects} contacts={contacts} invoices={invoices} cos={cos} estimates={estimates} rfis={rfis} onNav={navigate}/>
       </div>
       <nav style={{flex:1,padding:"10px 8px",display:"flex",flexDirection:"column",gap:1,overflowY:"auto"}}>
         {NAV.map(item=>{
@@ -2235,7 +2943,7 @@ export default function App() {
           <div style={{display:tab==="projects"?"block":"none"}}>
             <Projects {...sharedProps} contacts={contacts} initialId={navPayload}/>
           </div>
-          {tab==="dashboard"&&<Dashboard projects={projects} invoices={invoices} cos={cos} onNav={navigate}/>}
+          {tab==="dashboard"&&<Dashboard projects={projects} invoices={invoices} cos={cos} rfis={rfis} punchList={punchList} onNav={navigate}/>}
           {tab==="estimates"&&<GlobalEstimates estimates={estimates} setEstimates={setEstimatesDB} projects={projects}/>}
           {tab==="invoices"&&<GlobalInvoices invoices={invoices} setInvoices={setInvoicesDB} projects={projects}/>}
           {tab==="cos"&&<ChangeOrders cos={cos} setCos={setCosDB} projects={projects}/>}
@@ -2250,11 +2958,16 @@ export default function App() {
             ))}
           </div>}
           {tab==="bids"&&<SubBids bids={bids} setBids={setBidsDB} projects={projects}/>}
+          {tab==="rfis"&&<RFIs rfis={rfis} setRfis={setRfisDB} projects={projects}/>}
+          {tab==="pos"&&<PurchaseOrders pos={pos} setPOs={setPOsDB} projects={projects}/>}
+          {tab==="punch"&&<PunchList punchList={punchList} setPunchList={setPunchListDB} projects={projects}/>}
+          {tab==="meetings"&&<MeetingMinutes meetings={meetings} setMeetings={setMeetingsDB} projects={projects}/>}
           {tab==="schedule"&&<Schedule projects={projects} setProjects={setProjectsDB}/>}
           {tab==="logs"&&<DailyLogs logs={logs} setLogs={setLogsDB} projects={projects}/>}
           {tab==="docs"&&<Documents docs={docs} setDocs={setDocsDB} projects={projects}/>}
           {tab==="photos"&&<Photos photos={photos} setPhotos={setPhotosDB} projects={projects}/>}
           {tab==="contacts"&&<Contacts contacts={contacts} setContacts={setContactsDB}/>}
+          {tab==="reports"&&<Reports projects={projects} invoices={invoices} estimates={estimates} cos={cos} budgetItems={budgetItems} pos={pos}/>}
         </div>
       </div>
     </div>
