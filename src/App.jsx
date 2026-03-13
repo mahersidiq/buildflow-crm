@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
+import toast, { Toaster } from "react-hot-toast";
 
 const SUPABASE_URL = "https://daxqltkdkfpkhnzttfln.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRheHFsdGtka2Zwa2huenR0ZmxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNTQwMjAsImV4cCI6MjA4ODkzMDAyMH0.2Kx2oGa7ftl9q8XiVCGqqzAiPcP6Q4KSeoz0Mc-LDpo";
@@ -277,6 +278,63 @@ const InfoRow = ({label,value,color}) => (
   </div>
 );
 
+// ─── GLOBAL SEARCH ────────────────────────────────────────────────────────────
+const GlobalSearch = ({projects,contacts,invoices,cos,estimates,onNav}) => {
+  const [q,setQ] = useState("");
+  const [open,setOpen] = useState(false);
+  const inputRef = useRef(null);
+
+  const results = q.length < 2 ? [] : (() => {
+    const ql = q.toLowerCase();
+    const TYPE_ICON = {project:I.proj, contact:I.contacts, invoice:I.inv, "change order":I.co, estimate:I.est};
+    return [
+      ...projects.filter(p=>(p.name+p.client+p.address).toLowerCase().includes(ql))
+        .slice(0,4).map(p=>({type:"project",label:p.name,sub:p.client,nav:["projects",p.id]})),
+      ...contacts.filter(c=>(c.name+c.company+c.email).toLowerCase().includes(ql))
+        .slice(0,3).map(c=>({type:"contact",label:c.name,sub:c.company||c.email,nav:["contacts"]})),
+      ...invoices.filter(i=>(i.number+i.description).toLowerCase().includes(ql))
+        .slice(0,3).map(i=>({type:"invoice",label:i.number,sub:i.description,nav:["invoices"]})),
+      ...cos.filter(c=>(c.number+c.title).toLowerCase().includes(ql))
+        .slice(0,2).map(c=>({type:"change order",label:`${c.number} – ${c.title}`,sub:"Change Order",nav:["cos"]})),
+      ...estimates.filter(e=>e.name.toLowerCase().includes(ql))
+        .slice(0,2).map(e=>({type:"estimate",label:e.name,sub:"Estimate",nav:["estimates"]})),
+    ];
+  })();
+
+  const go = (nav) => { onNav(...nav); setQ(""); setOpen(false); };
+
+  return (
+    <div style={{position:"relative",margin:"0 8px 8px"}}>
+      <div style={{position:"relative",display:"flex",alignItems:"center"}}>
+        <div style={{position:"absolute",left:9,pointerEvents:"none",color:C.textMuted,display:"flex"}}><Ic d={I.search} s={13}/></div>
+        <input ref={inputRef} className="global-search-input" value={q} onChange={e=>{setQ(e.target.value);setOpen(true);}} onFocus={()=>setOpen(true)}
+          onBlur={()=>setTimeout(()=>setOpen(false),200)} placeholder="Search… (⌘K)"
+          style={{...inputStyle,paddingLeft:30,fontSize:12,background:C.bg,borderColor:C.border,height:32}}/>
+      </div>
+      {open&&(results.length>0||(q.length>=2))&&(
+        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:C.surface,border:`1px solid ${C.border}`,borderRadius:9,boxShadow:"0 8px 28px rgba(0,0,0,0.14)",zIndex:9999,overflow:"hidden"}}>
+          {results.length===0&&<div style={{padding:"14px 12px",fontSize:12,color:C.textMuted,textAlign:"center"}}>No results for "{q}"</div>}
+          {results.map((r,i)=>(
+            <div key={i} onMouseDown={()=>go(r.nav)}
+              style={{padding:"9px 12px",cursor:"pointer",borderBottom:i<results.length-1?`1px solid ${C.border}`:"none",display:"flex",alignItems:"center",gap:10}}
+              onMouseEnter={e=>e.currentTarget.style.background=C.bg}
+              onMouseLeave={e=>e.currentTarget.style.background=""}>
+              <div style={{width:28,height:28,borderRadius:7,background:C.accentL,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <Ic d={Array.isArray({project:I.proj,contact:I.contacts,invoice:I.inv,"change order":I.co,estimate:I.est}[r.type])?{project:I.proj,contact:I.contacts,invoice:I.inv,"change order":I.co,estimate:I.est}[r.type][0]:{project:I.proj,contact:I.contacts,invoice:I.inv,"change order":I.co,estimate:I.est}[r.type]||I.search} s={13} stroke={C.accent}/>
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:12,fontWeight:600,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.label}</div>
+                <div style={{fontSize:10,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.04em"}}>{r.type}{r.sub?` · ${r.sub.substring(0,22)}`:""}</div>
+              </div>
+            </div>
+          ))}
+          {results.length>0&&<div style={{padding:"6px 12px",fontSize:10,color:C.textMuted,background:C.bg,borderTop:`1px solid ${C.border}`}}>{results.length} result{results.length!==1?"s":""} — press Enter or click</div>}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 const Dashboard = ({projects,invoices,cos,onNav}) => {
   const active = projects.filter(p=>p.status==="Active");
@@ -285,6 +343,13 @@ const Dashboard = ({projects,invoices,cos,onNav}) => {
   const pendingInv = invoices.filter(i=>i.status==="Pending");
   const receivables = [...overdue,...pendingInv].reduce((s,i)=>s+i.amount,0);
   const pendingCOs = cos.filter(c=>c.status==="Pending");
+  const totalPaid = invoices.filter(i=>i.status==="Paid").reduce((s,i)=>s+i.amount,0);
+  const totalBilled = invoices.reduce((s,i)=>s+i.amount,0);
+  const collectionRate = totalBilled>0?Math.round((totalPaid/totalBilled)*100):0;
+
+  // Projects nearing deadline (within 14 days)
+  const todayStr = today();
+  const nearingDeadline = active.filter(p=>p.end&&p.end>todayStr&&Math.ceil((new Date(p.end+"T12:00:00")-new Date(todayStr+"T12:00:00"))/86400000)<=14);
 
   const isMobile = useMobile();
 
@@ -292,18 +357,54 @@ const Dashboard = ({projects,invoices,cos,onNav}) => {
     <div style={{display:"flex",flexDirection:"column",gap:isMobile?16:24}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",paddingBottom:isMobile?14:22,borderBottom:`1px solid ${C.border}`}}>
         <div>
-          <div style={{fontSize:isMobile?17:22,fontWeight:800,color:C.text,letterSpacing:"-0.03em"}}>BuildFlow Pro 👷</div>
+          <div style={{fontSize:isMobile?17:22,fontWeight:800,color:C.text,letterSpacing:"-0.03em"}}>BuildFlow Pro</div>
           <div style={{fontSize:12,color:C.textSub,marginTop:4}}>{new Date().toLocaleDateString("en-US",{weekday:isMobile?"short":"long",year:"numeric",month:isMobile?"short":"long",day:"numeric"})}</div>
         </div>
-        <Btn sm={isMobile} onClick={()=>onNav("projects")}><Ic d={I.plus} s={14}/> {isMobile?"New":"New Project"}</Btn>
+        <div style={{display:"flex",gap:8}}>
+          <Btn v="secondary" sm={isMobile} onClick={()=>onNav("logs")}><Ic d={I.logs} s={14}/> {isMobile?"Log":"Field Log"}</Btn>
+          <Btn sm={isMobile} onClick={()=>onNav("projects")}><Ic d={I.plus} s={14}/> {isMobile?"New":"New Project"}</Btn>
+        </div>
       </div>
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:isMobile?10:14}}>
-        <Stat label="Active" value={active.length} sub={`${projects.length} total`} color={C.accent} icon="proj"/>
-        <Stat label="Pipeline" value={fmt(pipeline)} color={C.green} icon="trend"/>
-        <Stat label="Receivables" value={fmt(receivables)} sub={`${overdue.length} overdue`} color={overdue.length>0?C.red:C.amber} icon="inv"/>
-        <Stat label="Pending COs" value={pendingCOs.length} sub={fmt(pendingCOs.reduce((s,c)=>s+c.amount,0))} color={C.purple} icon="co"/>
+        <Stat label="Active Jobs" value={active.length} sub={`${projects.length} total projects`} color={C.accent} icon="proj"/>
+        <Stat label="Pipeline Value" value={fmt(pipeline)} sub={`${projects.filter(p=>p.status==="Lead"||p.status==="Estimate").length} in pre-sales`} color={C.green} icon="trend"/>
+        <Stat label="Receivables" value={fmt(receivables)} sub={overdue.length>0?`${overdue.length} overdue`:"All current"} color={overdue.length>0?C.red:C.amber} icon="inv"/>
+        <Stat label="Collection Rate" value={`${collectionRate}%`} sub={`${fmt(totalPaid)} collected`} color={collectionRate>=80?C.green:C.amber} icon="check"/>
       </div>
+
+      {(nearingDeadline.length>0||pendingCOs.length>0)&&(
+        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":nearingDeadline.length>0&&pendingCOs.length>0?"1fr 1fr":"1fr",gap:14}}>
+          {nearingDeadline.length>0&&(
+            <div style={{background:C.redL,border:`1px solid ${C.redB}`,borderRadius:10,padding:"12px 16px"}}>
+              <div style={{fontSize:12,fontWeight:700,color:C.red,marginBottom:8,display:"flex",alignItems:"center",gap:6}}><Ic d={I.alert} s={13} stroke={C.red}/> {nearingDeadline.length} project{nearingDeadline.length!==1?"s":""} due within 14 days</div>
+              <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                {nearingDeadline.map(p=>{
+                  const daysLeft=Math.ceil((new Date(p.end+"T12:00:00")-new Date(todayStr+"T12:00:00"))/86400000);
+                  return <div key={p.id} style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
+                    <span style={{color:C.text,fontWeight:500,cursor:"pointer"}} onClick={()=>onNav("projects",p.id)}>{p.name}</span>
+                    <span style={{color:C.red,fontWeight:700}}>{daysLeft}d left</span>
+                  </div>;
+                })}
+              </div>
+            </div>
+          )}
+          {pendingCOs.length>0&&(
+            <div style={{background:C.amberL,border:`1px solid ${C.amberB}`,borderRadius:10,padding:"12px 16px"}}>
+              <div style={{fontSize:12,fontWeight:700,color:C.amber,marginBottom:8,display:"flex",alignItems:"center",gap:6}}><Ic d={I.alert} s={13} stroke={C.amber}/> {pendingCOs.length} change order{pendingCOs.length!==1?"s":""} awaiting approval</div>
+              <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                {pendingCOs.slice(0,3).map(co=>{
+                  const p=projects.find(x=>x.id===co.projectId);
+                  return <div key={co.id} style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
+                    <span style={{color:C.text,fontWeight:500}}>{co.number} – {co.title.substring(0,24)}</span>
+                    <span style={{color:C.amber,fontWeight:700}}>+{fmt(co.amount)}</span>
+                  </div>;
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 300px",gap:isMobile?16:20}}>
         <div>
@@ -362,18 +463,23 @@ const Dashboard = ({projects,invoices,cos,onNav}) => {
             })}
           </Card>
 
-          {pendingCOs.length>0&&(
-            <Card style={{background:C.amberL,border:`1px solid ${C.amberB}`}}>
-              <div style={{fontSize:13,fontWeight:600,color:C.amber,marginBottom:12,display:"flex",alignItems:"center",gap:8}}><Ic d={I.alert} s={14} stroke={C.amber}/>{pendingCOs.length} COs Awaiting Approval</div>
-              {pendingCOs.map(co=>{
-                const p=projects.find(x=>x.id===co.projectId);
-                return <div key={co.id} style={{padding:"7px 0",borderBottom:`1px solid ${C.amberB}`,fontSize:12}}>
-                  <div style={{fontWeight:600,color:C.text,marginBottom:2}}>{co.number} – {co.title.substring(0,28)}</div>
-                  <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:C.textSub}}>{p?.name?.substring(0,18)}</span><span style={{color:C.amber,fontWeight:700}}>+{fmt(co.amount)}</span></div>
-                </div>;
-              })}
-            </Card>
-          )}
+          <Card style={{cursor:"pointer"}} onClick={()=>onNav("invoices")}>
+            <div style={{fontSize:13,fontWeight:600,color:C.text,marginBottom:12}}>Quick Actions</div>
+            {[
+              {label:"New Invoice",icon:"inv",nav:"invoices",color:C.accent},
+              {label:"Log Field Report",icon:"logs",nav:"logs",color:C.green},
+              {label:"New Change Order",icon:"co",nav:"cos",color:C.amber},
+              {label:"View Schedule",icon:"sched",nav:"schedule",color:C.blue},
+            ].map(a=>(
+              <button key={a.label} onClick={e=>{e.stopPropagation();onNav(a.nav);}}
+                style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",background:"none",border:"none",borderBottom:`1px solid ${C.border}`,cursor:"pointer",width:"100%",textAlign:"left"}}
+                onMouseEnter={e=>e.currentTarget.style.paddingLeft="6px"}
+                onMouseLeave={e=>e.currentTarget.style.paddingLeft="0"}>
+                <div style={{width:26,height:26,borderRadius:7,background:a.color+"15",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic d={I[a.icon]} s={13} stroke={a.color}/></div>
+                <span style={{fontSize:13,color:C.textMid,fontWeight:500}}>{a.label}</span>
+              </button>
+            ))}
+          </Card>
         </div>
       </div>
     </div>
@@ -406,6 +512,7 @@ const Budget = ({projectId,budgetItems,setBudgetItems,projects,setProjects}) => 
     setBudgetItems(next);
     syncSpent(next);
     setForm(null);
+    toast.success(form.id?"Budget line updated":"Budget line added");
   };
 
   const del = () => {
@@ -688,7 +795,7 @@ const ProjInvoices = ({projectId,invoices,setInvoices,project}) => {
 
   const save = () => {
     if(!form.description||!form.amount) return;
-    const num=`INV-${new Date().getFullYear()}-${String(invoices.length+1).padStart(3,"0")}`;
+    const yr=new Date().getFullYear(); const maxSeq=invoices.filter(i=>i.number.startsWith(`INV-${yr}`)).reduce((m,i)=>{const n=parseInt(i.number.split("-")[2]||0);return Math.max(m,n);},0); const num=`INV-${yr}-${String(maxSeq+1).padStart(3,"0")}`;
     if(form.id) {
       setInvoices(invoices.map(i=>i.id===form.id?{...form,amount:parseFloat(form.amount)}:i));
     } else {
@@ -697,8 +804,8 @@ const ProjInvoices = ({projectId,invoices,setInvoices,project}) => {
     setForm(null);
   };
 
-  const del = () => { setInvoices(invoices.filter(i=>i.id!==delId)); setDelId(null); };
-  const setStatus = (id,s) => setInvoices(invoices.map(i=>i.id===id?{...i,status:s}:i));
+  const del = () => { setInvoices(invoices.filter(i=>i.id!==delId)); setDelId(null); toast("Invoice deleted",{icon:"🗑️"}); };
+  const setStatus = (id,s) => { setInvoices(invoices.map(i=>i.id===id?{...i,status:s}:i)); if(s==="Paid") toast.success("Invoice marked as paid ✓"); };
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -778,7 +885,7 @@ const ChangeOrders = ({projectId,cos,setCos,projects}) => {
   };
 
   const del = () => { setCos(cos.filter(c=>c.id!==delId)); setDelId(null); };
-  const setStatus = (id,s) => setCos(cos.map(c=>c.id===id?{...c,status:s}:c));
+  const setStatus = (id,s) => { setCos(cos.map(c=>c.id===id?{...c,status:s}:c)); toast.success(`CO ${s.toLowerCase()}`); };
   const CAT_COLOR = {"Scope Addition":C.blue,"Unforeseen Condition":C.red,"Owner Upgrade":C.purple,"Owner Directive":C.green,"Design Change":C.amber,"Credit/Deduct":C.red,"Other":C.textSub};
 
   return (
@@ -869,6 +976,7 @@ const DailyLogs = ({projectId,logs,setLogs,projects}) => {
       setLogs([{...form,id:uid(),projectId:form.projectId,crew:parseInt(form.crew)||0,photos:0},...logs]);
     }
     setForm(null);
+    toast.success(form.id?"Log updated":"Field log saved");
   };
 
   const del = () => { setLogs(logs.filter(l=>l.id!==delId)); setDelId(null); };
@@ -877,8 +985,8 @@ const DailyLogs = ({projectId,logs,setLogs,projects}) => {
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
       {delId&&<Confirm msg="Delete this log entry?" onOk={del} onCancel={()=>setDelId(null)}/>}
 
-      {!projectId&&<PageHead eyebrow="Field Reports" title="Daily Logs" action={<Btn onClick={()=>setForm({projectId:projects[0]?.id||"",date:today(),author:"Jake Moreno",weather:"",crew:"",notes:""})}><Ic d={I.plus} s={14}/> New Log</Btn>}/>}
-      {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:13,fontWeight:600,color:C.text}}>Field Logs</div><Btn sm onClick={()=>setForm({projectId,date:today(),author:"Jake Moreno",weather:"",crew:"",notes:""})}><Ic d={I.plus} s={13}/> New Log</Btn></div>}
+      {!projectId&&<PageHead eyebrow="Field Reports" title="Daily Logs" action={<Btn onClick={()=>setForm({projectId:projects[0]?.id||"",date:today(),author:"",weather:"",crew:"",notes:""})}><Ic d={I.plus} s={14}/> New Log</Btn>}/>}
+      {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:13,fontWeight:600,color:C.text}}>Field Logs</div><Btn sm onClick={()=>setForm({projectId,date:today(),author:"",weather:"",crew:"",notes:""})}><Ic d={I.plus} s={13}/> New Log</Btn></div>}
 
       {!projectId&&(
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -907,7 +1015,7 @@ const DailyLogs = ({projectId,logs,setLogs,projects}) => {
         </Card>
       )}
 
-      {items.length===0&&form===null&&<Card><EmptyState msg="No log entries yet." action={<Btn sm onClick={()=>setForm({projectId:projectId||projects[0]?.id||"",date:today(),author:"Jake Moreno",weather:"",crew:"",notes:""})}>+ New Log</Btn>}/></Card>}
+      {items.length===0&&form===null&&<Card><EmptyState msg="No log entries yet." action={<Btn sm onClick={()=>setForm({projectId:projectId||projects[0]?.id||"",date:today(),author:"",weather:"",crew:"",notes:""})}>+ New Log</Btn>}/></Card>}
       <div style={{display:"flex",flexDirection:"column",gap:12}}>
         {items.map(log=>{
           const p=projects.find(x=>x.id===log.projectId);
@@ -1169,8 +1277,8 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
         </div>
       )}
 
-      {!projectId&&<PageHead eyebrow="Job Site Documentation" title="Photo Gallery" action={<Btn onClick={()=>setForm({projectId:projects[0]?.id||"",caption:"",tag:"Progress",date:today(),author:"Jake Moreno"})}><Ic d={I.plus} s={14}/> Add Photo</Btn>}/>}
-      {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:13,fontWeight:600,color:C.text}}>Photos</div><Btn sm onClick={()=>setForm({caption:"",tag:"Progress",date:today(),author:"Jake Moreno"})}><Ic d={I.plus} s={13}/> Add Photo</Btn></div>}
+      {!projectId&&<PageHead eyebrow="Job Site Documentation" title="Photo Gallery" action={<Btn onClick={()=>setForm({projectId:projects[0]?.id||"",caption:"",tag:"Progress",date:today(),author:""})}><Ic d={I.plus} s={14}/> Add Photo</Btn>}/>}
+      {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:13,fontWeight:600,color:C.text}}>Photos</div><Btn sm onClick={()=>setForm({caption:"",tag:"Progress",date:today(),author:""})}><Ic d={I.plus} s={13}/> Add Photo</Btn></div>}
 
       <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
         {["All",...TAGS].map(t=><button key={t} onClick={()=>setFilterTag(t)} style={{background:filterTag===t?(TAG_BG[t]||C.accentL):C.surface,color:filterTag===t?(TAG_COLOR[t]||C.accent):C.textMid,border:`1px solid ${filterTag===t?(TAG_COLOR[t]||C.accent)+"40":C.border}`,borderRadius:7,padding:"5px 12px",fontSize:12,fontWeight:filterTag===t?600:400,cursor:"pointer"}}>{t}</button>)}
@@ -1188,7 +1296,7 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
         <div style={{display:"flex",gap:10,marginTop:14}}><Btn onClick={save}>{form.id?"Save":"Add Photo"}</Btn><Btn v="secondary" onClick={()=>setForm(null)}>Cancel</Btn></div>
       </Card>}
 
-      {filtered.length===0&&!form&&<Card><EmptyState msg="No photos found." action={<Btn sm onClick={()=>setForm({projectId:projects[0]?.id||"",caption:"",tag:"Progress",date:today(),author:"Jake Moreno"})}>+ Add Photo</Btn>}/></Card>}
+      {filtered.length===0&&!form&&<Card><EmptyState msg="No photos found." action={<Btn sm onClick={()=>setForm({projectId:projects[0]?.id||"",caption:"",tag:"Progress",date:today(),author:""})}>+ Add Photo</Btn>}/></Card>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
         {filtered.map(p=>(
           <div key={p.id} onClick={()=>setLightbox(p.id)} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden",cursor:"pointer",transition:"all 0.15s"}}
@@ -1229,8 +1337,9 @@ const Contacts = ({contacts,setContacts}) => {
     if(form.id){setContacts(contacts.map(c=>c.id===form.id?form:c));}
     else{setContacts([...contacts,{...form,id:uid(),projects:[]}]);}
     setForm(null);
+    toast.success(form.id?"Contact updated":"Contact added");
   };
-  const del = () => { setContacts(contacts.filter(c=>c.id!==delId)); setDelId(null); };
+  const del = () => { setContacts(contacts.filter(c=>c.id!==delId)); setDelId(null); toast("Contact deleted",{icon:"🗑️"}); };
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
@@ -1289,6 +1398,7 @@ const PHASES = ["Pre-Construction","Demo & Site Prep","Foundation","Framing","ME
 
 const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoices,budgetItems,setBudgetItems,cos,setCos,logs,setLogs,bids,setBids,docs,setDocs,photos,setPhotos,initialId}) => {
   const [filter,setFilter] = useState("All");
+  const [search,setSearch] = useState("");
   const [selectedId,setSelectedId] = useState(null);
   const [activeTab,setActiveTab] = useState("overview");
   const [form,setForm] = useState(null);
@@ -1300,7 +1410,9 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
   useEffect(()=>{ if(initialId) setSelectedId(initialId); },[initialId]);
 
   const STATUSES = ["All","Lead","Estimate","Active","On Hold","Complete"];
-  const filtered = filter==="All"?projects:projects.filter(p=>p.status===filter);
+  const filtered = projects
+    .filter(p=>filter==="All"||p.status===filter)
+    .filter(p=>!search||p.name.toLowerCase().includes(search.toLowerCase())||p.client.toLowerCase().includes(search.toLowerCase())||p.address.toLowerCase().includes(search.toLowerCase()));
 
   const createProject = () => {
     if(!form.name||!form.client) return;
@@ -1309,14 +1421,16 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
     setSelectedId(p.id);
     setActiveTab("overview");
     setForm(null);
+    toast.success("Project created");
   };
 
   const saveEdit = () => {
     setProjects(projects.map(p=>p.id===editProj.id?{...editProj,value:parseFloat(editProj.value)||0,progress:parseInt(editProj.progress)||0}:p));
     setEditMode(false);
+    toast.success("Project saved");
   };
 
-  const del = () => { setProjects(projects.filter(p=>p.id!==delId)); setDelId(null); if(selectedId===delId)setSelectedId(null); };
+  const del = () => { setProjects(projects.filter(p=>p.id!==delId)); setDelId(null); if(selectedId===delId)setSelectedId(null); toast("Project deleted",{icon:"🗑️"}); };
 
   // ── Project Detail ──
   if(selectedId){
@@ -1437,6 +1551,15 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
       {delId&&<Confirm msg="Delete this project?" onOk={del} onCancel={()=>setDelId(null)}/>}
       <PageHead eyebrow="All Jobs" title="Projects" action={<Btn onClick={()=>setForm({name:"",client:"",status:"Lead",type:"Residential",value:"",address:"",phase:"Pre-Construction",start:"",end:"",notes:""})}><Ic d={I.plus} s={14}/> New Project</Btn>}/>
 
+      <div style={{position:"relative",display:"flex",alignItems:"center"}}>
+        <div style={{position:"absolute",left:10,pointerEvents:"none",color:C.textMuted,display:"flex"}}><Ic d={I.search} s={14}/></div>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search projects by name, client, or address…"
+          style={{...inputStyle,paddingLeft:34,fontSize:13}}
+          onFocus={e=>{e.target.style.borderColor=C.accent;e.target.style.boxShadow=`0 0 0 3px ${C.accent}18`;}}
+          onBlur={e=>{e.target.style.borderColor=C.border;e.target.style.boxShadow="none";}}/>
+        {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:10,background:"none",border:"none",cursor:"pointer",color:C.textMuted,display:"flex"}}><Ic d={I.x} s={14}/></button>}
+      </div>
+
       {form!==null&&<Card style={{border:`1px solid ${C.accentB}`}}>
         <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:18}}>New Project</div>
         <Grid cols="1fr 1fr" gap={14}>
@@ -1509,7 +1632,7 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
 const Schedule = ({projects,setProjects}) => {
   const [editId,setEditId] = useState(null);
   const [ep,setEp] = useState(null);
-  const TODAY="2026-03-12";
+  const TODAY=today();
 
   const save = () => {
     setProjects(projects.map(p=>p.id===editId?{...ep,progress:parseInt(ep.progress)||0}:p));
@@ -1587,12 +1710,13 @@ const GlobalInvoices = ({invoices,setInvoices,projects}) => {
 
   const save = () => {
     if(!form.description||!form.amount||!form.projectId) return;
-    const num=`INV-${new Date().getFullYear()}-${String(invoices.length+1).padStart(3,"0")}`;
+    const yr=new Date().getFullYear(); const maxSeq=invoices.filter(i=>i.number.startsWith(`INV-${yr}`)).reduce((m,i)=>{const n=parseInt(i.number.split("-")[2]||0);return Math.max(m,n);},0); const num=`INV-${yr}-${String(maxSeq+1).padStart(3,"0")}`;
     setInvoices([...invoices,{...form,id:uid(),number:num,status:"Pending",issued:today(),projectId:form.projectId,amount:parseFloat(form.amount)}]);
     setForm(null);
+    toast.success("Invoice created");
   };
-  const del = () => { setInvoices(invoices.filter(i=>i.id!==delId)); setDelId(null); };
-  const setStatus=(id,s)=>setInvoices(invoices.map(i=>i.id===id?{...i,status:s}:i));
+  const del = () => { setInvoices(invoices.filter(i=>i.id!==delId)); setDelId(null); toast("Invoice deleted",{icon:"🗑️"}); };
+  const setStatus=(id,s)=>{ setInvoices(invoices.map(i=>i.id===id?{...i,status:s}:i)); if(s==="Paid") toast.success("Invoice marked as paid ✓"); };
 
   const paid=invoices.filter(i=>i.status==="Paid").reduce((s,i)=>s+i.amount,0);
   const pending=invoices.filter(i=>i.status==="Pending").reduce((s,i)=>s+i.amount,0);
@@ -1810,7 +1934,17 @@ export default function App() {
         setContacts((cont||[]).map(fromDb.contact));
         setBudgetItems((budg||[]).map(fromDb.budget));
         setEstimates((ests||[]).map(e=>fromDb.estimate(e,(lines||[]).filter(l=>l.estimate_id===e.id))));
-        setInvoices((invs||[]).map(fromDb.invoice));
+        const todayStr = today();
+        const autoOverdue = (invs) => invs.map(i =>
+          i.status === "Pending" && i.due && i.due < todayStr ? {...i, status:"Overdue"} : i
+        );
+        const loadedInvoices = autoOverdue((invs||[]).map(fromDb.invoice));
+        // Persist any status changes back to DB
+        loadedInvoices.forEach(i => {
+          const orig = (invs||[]).find(r => r.id === i.id);
+          if(orig && orig.status !== i.status) db.saveInvoice(i);
+        });
+        setInvoices(loadedInvoices);
         setCos((cosr||[]).map(fromDb.co));
         setLogs((lgsr||[]).map(fromDb.log));
         setBids((pkgs||[]).map(p=>fromDb.bidPkg(p,(bdsr||[]).filter(b=>b.package_id===p.id))));
@@ -1822,6 +1956,21 @@ export default function App() {
   }, []);
 
   const navigate = (t,payload=null) => { setTab(t); setNavPayload(payload); setMenuOpen(false); };
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handler = (e) => {
+      // Escape closes mobile menu
+      if(e.key==="Escape") setMenuOpen(false);
+      // Ctrl/Cmd+K focuses sidebar search
+      if((e.ctrlKey||e.metaKey)&&e.key==="k") {
+        e.preventDefault();
+        document.querySelector(".global-search-input")?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const NAV = [
     {id:"dashboard",label:"Dashboard",icon:"home"},
@@ -1956,22 +2105,31 @@ export default function App() {
     photos, setPhotos:setPhotosDB,
   };
 
+  // Notification badge counts for sidebar
+  const pendingCOCount = cos.filter(c=>c.status==="Pending").length;
+  const overdueInvCount = invoices.filter(i=>i.status==="Overdue").length;
+  const BADGES = {cos:pendingCOCount, invoices:overdueInvCount};
+
   const Sidebar = () => (
     <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
-      <div style={{padding:"18px 14px 14px",borderBottom:`1px solid ${C.border}`}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
+      <div style={{padding:"16px 14px 12px",borderBottom:`1px solid ${C.border}`}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
           <div style={{width:32,height:32,background:C.accent,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic d={I.hard} s={15} stroke="#fff"/></div>
-          <div><div style={{fontSize:13,fontWeight:800,color:C.text,letterSpacing:"0.04em"}}>BUILDFLOW</div><div style={{fontSize:9,color:C.textMuted,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase"}}>Pro · Dallas TX</div></div>
+          <div><div style={{fontSize:13,fontWeight:800,color:C.text,letterSpacing:"0.04em"}}>BUILDFLOW</div><div style={{fontSize:9,color:C.textMuted,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase"}}>Pro</div></div>
         </div>
+        <GlobalSearch projects={projects} contacts={contacts} invoices={invoices} cos={cos} estimates={estimates} onNav={navigate}/>
       </div>
       <nav style={{flex:1,padding:"10px 8px",display:"flex",flexDirection:"column",gap:1,overflowY:"auto"}}>
         {NAV.map(item=>{
           const active=tab===item.id;
+          const badge=BADGES[item.id]||0;
           return <button key={item.id} onClick={()=>navigate(item.id)}
             style={{display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:7,border:"none",background:active?"#FEF3EC":"transparent",color:active?"#C85A1E":C.textSub,cursor:"pointer",fontSize:13,fontWeight:active?600:400,textAlign:"left",width:"100%",fontFamily:"inherit",transition:"all 0.1s"}}
             onMouseEnter={e=>{if(!active){e.currentTarget.style.background=C.bg;e.currentTarget.style.color=C.textMid;}}}
             onMouseLeave={e=>{if(!active){e.currentTarget.style.background="transparent";e.currentTarget.style.color=C.textSub;}}}>
-            <Ic d={I[item.icon]||I.home} s={14}/>{item.label}
+            <Ic d={I[item.icon]||I.home} s={14}/>
+            <span style={{flex:1}}>{item.label}</span>
+            {badge>0&&<span style={{background:item.id==="invoices"?C.red:C.amber,color:"#fff",borderRadius:10,padding:"1px 6px",fontSize:10,fontWeight:700,minWidth:18,textAlign:"center"}}>{badge}</span>}
           </button>;
         })}
       </nav>
@@ -1986,6 +2144,7 @@ export default function App() {
 
   return (
     <div style={{display:"flex",height:"100vh",background:C.bg,fontFamily:"'Inter','DM Sans',system-ui,sans-serif",overflow:"hidden"}}>
+      <Toaster position="bottom-right" toastOptions={{duration:2500,style:{fontFamily:"'Inter',system-ui,sans-serif",fontSize:13,fontWeight:500,borderRadius:9,boxShadow:"0 4px 20px rgba(0,0,0,0.12)"}}}/>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;}
