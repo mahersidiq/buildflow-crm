@@ -6,6 +6,16 @@ const SUPABASE_URL = "https://daxqltkdkfpkhnzttfln.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRheHFsdGtka2Zwa2huenR0ZmxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNTQwMjAsImV4cCI6MjA4ODkzMDAyMH0.2Kx2oGa7ftl9q8XiVCGqqzAiPcP6Q4KSeoz0Mc-LDpo";
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ─── FILE UPLOAD ──────────────────────────────────────────────────────────────
+const uploadFile = async (file, bucket, path) => {
+  try {
+    const { error } = await sb.storage.from(bucket).upload(path, file, { upsert: true });
+    if (error) { console.error("upload error", error); return null; }
+    const { data } = sb.storage.from(bucket).getPublicUrl(path);
+    return data?.publicUrl || null;
+  } catch (e) { console.error("upload exception", e); return null; }
+};
+
 // ─── TOKENS ───────────────────────────────────────────────────────────────────
 const C = {
   bg:"#F4F5F7",surface:"#FFFFFF",border:"#E8EAED",borderStrong:"#D0D4DA",
@@ -1215,26 +1225,49 @@ const Documents = ({projectId,docs,setDocs,projects}) => {
   const [form,setForm] = useState(null);
   const [delId,setDelId] = useState(null);
   const [filterType,setFilterType] = useState("All");
+  const [uploading,setUploading] = useState(false);
+  const fileRef = useRef(null);
   const items = projectId ? docs.filter(d=>d.projectId===projectId) : docs;
   const filtered = filterType==="All"?items:items.filter(d=>d.type===filterType);
   const TYPES = ["Contract","Plans","Permit","Engineering","Scope","Submittal","Inspection","RFI","Proposal","Other"];
   const TYPE_COLOR = {Contract:C.accent,Plans:C.purple,Permit:C.green,Engineering:C.blue,Scope:C.amber,Submittal:C.blue,Inspection:C.green,RFI:C.red,Proposal:C.amber,Other:C.textSub};
   const TYPE_BG = {Contract:C.accentL,Plans:C.purpleL,Permit:C.greenL,Engineering:C.blueL,Scope:C.amberL,Submittal:C.blueL,Inspection:C.greenL,RFI:C.redL,Proposal:C.amberL,Other:C.bg};
 
-  const save = () => {
+  const save = async () => {
     if(!form.name) return;
-    if(form.id){setDocs(docs.map(d=>d.id===form.id?form:d));}
-    else{setDocs([...docs,{...form,id:uid(),projectId:form.projectId||projectId,uploader:"Jake Moreno",date:form.date||today()}]);}
+    setUploading(true);
+    let fileUrl = form.fileUrl || "";
+    if(form._file) {
+      const id = form.id || uid();
+      const ext = form._file.name.split(".").pop();
+      const path = `documents/${id}.${ext}`;
+      const url = await uploadFile(form._file, "documents", path);
+      if(url) { fileUrl = url; toast.success("File uploaded"); }
+      else { toast.error("File upload failed — saving metadata only"); }
+      const rec = {...form, id: form.id || id, fileUrl, projectId: form.projectId||projectId, uploader: form.uploader || "", date: form.date||today()};
+      delete rec._file; delete rec._fileName;
+      if(form.id){setDocs(docs.map(d=>d.id===form.id?rec:d));}
+      else{setDocs([...docs,rec]);}
+    } else {
+      if(form.id){setDocs(docs.map(d=>d.id===form.id?form:d));}
+      else{setDocs([...docs,{...form,id:uid(),projectId:form.projectId||projectId,uploader:"",date:form.date||today()}]);}
+    }
+    setUploading(false);
     setForm(null);
   };
   const del = () => { setDocs(docs.filter(d=>d.id!==delId)); setDelId(null); };
+  const onFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if(!file) return;
+    setForm(f => ({...f, _file: file, _fileName: file.name, name: f.name || file.name}));
+  };
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
       {delId&&<Confirm msg="Delete this document record?" onOk={del} onCancel={()=>setDelId(null)}/>}
-      {!projectId&&<PageHead eyebrow="Files & Plans" title="Documents" action={<Btn onClick={()=>setForm({projectId:projects[0]?.id||"",name:"",type:"Contract",date:today(),notes:""})}><Ic d={I.plus} s={14}/> Add Document</Btn>}/>}
-      {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:13,fontWeight:600,color:C.text}}>Documents</div><Btn sm onClick={()=>setForm({name:"",type:"Contract",date:today(),notes:""})}><Ic d={I.plus} s={13}/> Add</Btn></div>}
-      
+      {!projectId&&<PageHead eyebrow="Files & Plans" title="Documents" action={<Btn onClick={()=>setForm({projectId:projects[0]?.id||"",name:"",type:"Contract",date:today(),notes:"",fileUrl:""})}><Ic d={I.plus} s={14}/> Add Document</Btn>}/>}
+      {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:13,fontWeight:600,color:C.text}}>Documents</div><Btn sm onClick={()=>setForm({name:"",type:"Contract",date:today(),notes:"",fileUrl:""})}><Ic d={I.plus} s={13}/> Add</Btn></div>}
+
       <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
         {["All",...TYPES].map(t=><button key={t} onClick={()=>setFilterType(t)} style={{background:filterType===t?(TYPE_BG[t]||C.accentL):C.surface,color:filterType===t?(TYPE_COLOR[t]||C.accent):C.textMid,border:`1px solid ${filterType===t?(TYPE_COLOR[t]||C.accent)+"40":C.border}`,borderRadius:7,padding:"5px 12px",fontSize:12,fontWeight:filterType===t?600:400,cursor:"pointer"}}>{t}</button>)}
       </div>
@@ -1242,16 +1275,29 @@ const Documents = ({projectId,docs,setDocs,projects}) => {
       {form!==null&&<Card style={{border:`1px solid ${C.accentB}`}}>
         <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:14}}>{form.id?"Edit":"Add"} Document</div>
         <Grid cols="1fr 1fr" gap={12}>
+          <Span2>
+            <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:4}}>Upload File</div>
+            <input ref={fileRef} type="file" onChange={onFileSelect} style={{display:"none"}}/>
+            <div onClick={()=>fileRef.current?.click()} style={{border:`2px dashed ${form._fileName||form.fileUrl?C.green+"60":C.border}`,borderRadius:8,padding:"14px 16px",cursor:"pointer",background:form._fileName||form.fileUrl?C.greenL:C.bg,display:"flex",alignItems:"center",gap:10,transition:"all 0.15s"}}>
+              <div style={{width:32,height:32,borderRadius:8,background:form._fileName||form.fileUrl?C.greenL:C.surface,display:"flex",alignItems:"center",justifyContent:"center",color:form._fileName||form.fileUrl?C.green:C.textMuted}}>
+                <Ic d={form._fileName||form.fileUrl?I.check:I.plus} s={14}/>
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:form._fileName||form.fileUrl?C.green:C.textMid}}>{form._fileName||form.fileUrl?"File selected":"Click to choose a file"}</div>
+                <div style={{fontSize:10,color:C.textMuted,marginTop:1}}>{form._fileName||(form.fileUrl?"Existing file attached":"PDF, Word, Excel, images, CAD files, etc.")}</div>
+              </div>
+            </div>
+          </Span2>
           <Span2><Inp label="Document / File Name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="e.g. Webb – Executed Contract.pdf"/></Span2>
           {!projectId&&<Sel label="Project" value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} options={projects.map(p=>({v:p.id,l:p.name}))}/>}
           <Sel label="Document Type" value={form.type} onChange={e=>setForm({...form,type:e.target.value})} options={TYPES}/>
           <Inp label="Date" type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/>
           <Span2><Inp label="Notes" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></Span2>
         </Grid>
-        <div style={{display:"flex",gap:10,marginTop:14}}><Btn onClick={save}>{form.id?"Save Changes":"Add Document"}</Btn><Btn v="secondary" onClick={()=>setForm(null)}>Cancel</Btn></div>
+        <div style={{display:"flex",gap:10,marginTop:14}}><Btn onClick={save} style={{opacity:uploading?0.6:1}}>{uploading?"Uploading...":(form.id?"Save Changes":"Add Document")}</Btn><Btn v="secondary" onClick={()=>setForm(null)}>Cancel</Btn></div>
       </Card>}
 
-      {filtered.length===0&&!form&&<Card><EmptyState msg="No documents found." action={<Btn sm onClick={()=>setForm({projectId:projects[0]?.id||"",name:"",type:"Contract",date:today(),notes:""})}>+ Add Document</Btn>}/></Card>}
+      {filtered.length===0&&!form&&<Card><EmptyState msg="No documents found." action={<Btn sm onClick={()=>setForm({projectId:projects[0]?.id||"",name:"",type:"Contract",date:today(),notes:"",fileUrl:""})}>+ Add Document</Btn>}/></Card>}
       <Table heads={[{l:"Document"},{l:"Type"},...(!projectId?[{l:"Project"}]:[]),{l:"Date"},{l:"Uploaded By"},{l:""}]}>
         {filtered.map(doc=>{
           const p=projects.find(x=>x.id===doc.projectId);
@@ -1260,14 +1306,21 @@ const Documents = ({projectId,docs,setDocs,projects}) => {
             <td style={{padding:"12px 14px"}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{width:30,height:30,background:tb,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",color:tc,flexShrink:0}}><Ic d={I.docs} s={13}/></div>
-                <div><div style={{fontSize:13,fontWeight:600,color:C.text}}>{doc.name}</div>{doc.notes&&<div style={{fontSize:11,color:C.textMuted,marginTop:1}}>{doc.notes}</div>}</div>
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,color:C.text}}>{doc.fileUrl?<a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" style={{color:C.text,textDecoration:"none",borderBottom:`1px solid ${C.accent}40`}}>{doc.name}</a>:doc.name}</div>
+                  {doc.notes&&<div style={{fontSize:11,color:C.textMuted,marginTop:1}}>{doc.notes}</div>}
+                  {doc.fileUrl&&<div style={{fontSize:10,color:C.green,marginTop:2,display:"flex",alignItems:"center",gap:3}}><Ic d={I.check} s={9}/> File attached</div>}
+                </div>
               </div>
             </td>
             <td style={{padding:"12px 14px"}}><span style={{fontSize:11,fontWeight:600,color:tc,background:tb,padding:"3px 9px",borderRadius:5}}>{doc.type}</span></td>
             {!projectId&&<TD muted>{p?.name?.substring(0,20)||"—"}</TD>}
             <TD muted>{fmtDate(doc.date)}</TD>
             <TD muted>{doc.uploader}</TD>
-            <td style={{padding:"12px 14px"}}><div style={{display:"flex",gap:6}}><EditBtn onClick={()=>setForm({...doc})}/><DeleteBtn onClick={()=>setDelId(doc.id)}/></div></td>
+            <td style={{padding:"12px 14px"}}><div style={{display:"flex",gap:6}}>
+              {doc.fileUrl&&<a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" style={{width:26,height:26,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",background:C.greenL,color:C.green,border:"none",cursor:"pointer"}} title="Download"><Ic d={I.docs} s={12}/></a>}
+              <EditBtn onClick={()=>setForm({...doc})}/><DeleteBtn onClick={()=>setDelId(doc.id)}/>
+            </div></td>
           </TR>;
         })}
       </Table>
@@ -1281,6 +1334,8 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
   const [lightbox,setLightbox] = useState(null);
   const [delId,setDelId] = useState(null);
   const [filterTag,setFilterTag] = useState("All");
+  const [uploading,setUploading] = useState(false);
+  const photoRef = useRef(null);
   const items = projectId ? photos.filter(p=>p.projectId===projectId) : photos;
   const filtered = filterTag==="All"?items:items.filter(p=>p.tag===filterTag);
   const TAGS = ["Progress","Milestone","Issue","Before","After","Inspection","Material","Complete"];
@@ -1289,14 +1344,36 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
   const EMOJIS = {Progress:"🏗️",Milestone:"✅",Issue:"⚠️",Before:"📸",After:"🏡",Inspection:"📋",Material:"📦",Complete:"🎉"};
   const COLORS = ["#E8F4F8","#F0F8E8","#FEF3EC","#F4F0FD","#F0FBF5","#FDF8EE","#FEF2F2","#EEF3FD"];
 
-  const save = () => {
+  const save = async () => {
     if(!form.caption) return;
-    if(form.id){setPhotos(photos.map(p=>p.id===form.id?form:p));}
-    else{setPhotos([{...form,id:uid(),projectId:form.projectId||projectId,emoji:EMOJIS[form.tag]||"📷",color:COLORS[Math.floor(Math.random()*COLORS.length)]},...photos]);}
+    setUploading(true);
+    let fileUrl = form.fileUrl || "";
+    if(form._file) {
+      const id = form.id || uid();
+      const ext = form._file.name.split(".").pop();
+      const path = `photos/${id}.${ext}`;
+      const url = await uploadFile(form._file, "photos", path);
+      if(url) { fileUrl = url; toast.success("Photo uploaded"); }
+      else { toast.error("Photo upload failed — saving metadata only"); }
+      const rec = {...form, id: form.id || id, fileUrl, projectId: form.projectId||projectId, emoji:EMOJIS[form.tag]||"📷", color:COLORS[Math.floor(Math.random()*COLORS.length)]};
+      delete rec._file; delete rec._preview;
+      if(form.id){setPhotos(photos.map(p=>p.id===form.id?rec:p));}
+      else{setPhotos([rec,...photos]);}
+    } else {
+      if(form.id){const rec={...form}; delete rec._file; delete rec._preview; setPhotos(photos.map(p=>p.id===form.id?rec:p));}
+      else{setPhotos([{...form,id:uid(),projectId:form.projectId||projectId,emoji:EMOJIS[form.tag]||"📷",color:COLORS[Math.floor(Math.random()*COLORS.length)]},...photos]);}
+    }
+    setUploading(false);
     setForm(null);
   };
   const del = () => { setPhotos(photos.filter(p=>p.id!==delId)); setDelId(null); setLightbox(null); };
   const lbPhoto = lightbox ? photos.find(p=>p.id===lightbox) : null;
+  const onPhotoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if(!file) return;
+    const preview = URL.createObjectURL(file);
+    setForm(f => ({...f, _file: file, _preview: preview}));
+  };
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -1304,21 +1381,26 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
       {lbPhoto&&(
         <div onClick={()=>setLightbox(null)} style={{position:"fixed",inset:0,background:"rgba(15,17,23,0.85)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:12,overflow:"hidden",maxWidth:540,width:"100%"}}>
-            <div style={{background:lbPhoto.color,height:260,display:"flex",alignItems:"center",justifyContent:"center",fontSize:64}}>{lbPhoto.emoji}</div>
+            {lbPhoto.fileUrl
+              ? <img src={lbPhoto.fileUrl} alt={lbPhoto.caption} style={{width:"100%",height:320,objectFit:"cover",display:"block"}}/>
+              : <div style={{background:lbPhoto.color,height:260,display:"flex",alignItems:"center",justifyContent:"center",fontSize:64}}>{lbPhoto.emoji}</div>}
             <div style={{padding:22}}>
               <div style={{fontSize:16,fontWeight:700,color:C.text,marginBottom:6}}>{lbPhoto.caption}</div>
               <div style={{fontSize:13,color:C.textSub,marginBottom:16}}>{projects.find(p=>p.id===lbPhoto.projectId)?.name} · {fmtDate(lbPhoto.date)} · {lbPhoto.author}</div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <span style={{fontSize:11,fontWeight:600,color:TAG_COLOR[lbPhoto.tag]||C.textSub,background:TAG_BG[lbPhoto.tag]||C.bg,padding:"3px 12px",borderRadius:20}}>{lbPhoto.tag}</span>
-                <div style={{display:"flex",gap:8}}><Btn danger sm onClick={()=>setDelId(lbPhoto.id)}><Ic d={I.trash} s={13}/> Delete</Btn><Btn v="secondary" sm onClick={()=>setLightbox(null)}>Close</Btn></div>
+                <div style={{display:"flex",gap:8}}>
+                  {lbPhoto.fileUrl&&<a href={lbPhoto.fileUrl} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none"}}><Btn v="secondary" sm>View Full Size</Btn></a>}
+                  <Btn danger sm onClick={()=>setDelId(lbPhoto.id)}><Ic d={I.trash} s={13}/> Delete</Btn><Btn v="secondary" sm onClick={()=>setLightbox(null)}>Close</Btn>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {!projectId&&<PageHead eyebrow="Job Site Documentation" title="Photo Gallery" action={<Btn onClick={()=>setForm({projectId:projects[0]?.id||"",caption:"",tag:"Progress",date:today(),author:""})}><Ic d={I.plus} s={14}/> Add Photo</Btn>}/>}
-      {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:13,fontWeight:600,color:C.text}}>Photos</div><Btn sm onClick={()=>setForm({caption:"",tag:"Progress",date:today(),author:""})}><Ic d={I.plus} s={13}/> Add Photo</Btn></div>}
+      {!projectId&&<PageHead eyebrow="Job Site Documentation" title="Photo Gallery" action={<Btn onClick={()=>setForm({projectId:projects[0]?.id||"",caption:"",tag:"Progress",date:today(),author:"",fileUrl:""})}><Ic d={I.plus} s={14}/> Add Photo</Btn>}/>}
+      {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:13,fontWeight:600,color:C.text}}>Photos</div><Btn sm onClick={()=>setForm({caption:"",tag:"Progress",date:today(),author:"",fileUrl:""})}><Ic d={I.plus} s={13}/> Add Photo</Btn></div>}
 
       <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
         {["All",...TAGS].map(t=><button key={t} onClick={()=>setFilterTag(t)} style={{background:filterTag===t?(TAG_BG[t]||C.accentL):C.surface,color:filterTag===t?(TAG_COLOR[t]||C.accent):C.textMid,border:`1px solid ${filterTag===t?(TAG_COLOR[t]||C.accent)+"40":C.border}`,borderRadius:7,padding:"5px 12px",fontSize:12,fontWeight:filterTag===t?600:400,cursor:"pointer"}}>{t}</button>)}
@@ -1327,22 +1409,37 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
       {form!==null&&<Card style={{border:`1px solid ${C.accentB}`}}>
         <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:14}}>{form.id?"Edit":"Add"} Photo</div>
         <Grid cols="1fr 1fr" gap={12}>
+          <Span2>
+            <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:4}}>Upload Photo</div>
+            <input ref={photoRef} type="file" accept="image/*" onChange={onPhotoSelect} style={{display:"none"}}/>
+            <div onClick={()=>photoRef.current?.click()} style={{border:`2px dashed ${form._preview||form.fileUrl?C.green+"60":C.border}`,borderRadius:8,cursor:"pointer",overflow:"hidden",transition:"all 0.15s"}}>
+              {(form._preview||form.fileUrl)
+                ? <img src={form._preview||form.fileUrl} alt="Preview" style={{width:"100%",height:160,objectFit:"cover",display:"block"}}/>
+                : <div style={{padding:"24px 16px",textAlign:"center",background:C.bg}}>
+                    <div style={{fontSize:24,marginBottom:6}}>📷</div>
+                    <div style={{fontSize:12,fontWeight:600,color:C.textMid}}>Click to upload a photo</div>
+                    <div style={{fontSize:10,color:C.textMuted,marginTop:2}}>JPG, PNG, HEIC, WebP</div>
+                  </div>}
+            </div>
+          </Span2>
           {!projectId&&<Sel label="Project" value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} options={projects.map(p=>({v:p.id,l:p.name}))}/>}
           <Sel label="Tag" value={form.tag} onChange={e=>setForm({...form,tag:e.target.value})} options={TAGS}/>
           <Inp label="Caption" value={form.caption} onChange={e=>setForm({...form,caption:e.target.value})} placeholder="Describe what this shows"/>
           <Inp label="Photographer" value={form.author} onChange={e=>setForm({...form,author:e.target.value})}/>
           <Inp label="Date" type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})}/>
         </Grid>
-        <div style={{display:"flex",gap:10,marginTop:14}}><Btn onClick={save}>{form.id?"Save":"Add Photo"}</Btn><Btn v="secondary" onClick={()=>setForm(null)}>Cancel</Btn></div>
+        <div style={{display:"flex",gap:10,marginTop:14}}><Btn onClick={save} style={{opacity:uploading?0.6:1}}>{uploading?"Uploading...":(form.id?"Save":"Add Photo")}</Btn><Btn v="secondary" onClick={()=>setForm(null)}>Cancel</Btn></div>
       </Card>}
 
-      {filtered.length===0&&!form&&<Card><EmptyState msg="No photos found." action={<Btn sm onClick={()=>setForm({projectId:projects[0]?.id||"",caption:"",tag:"Progress",date:today(),author:""})}>+ Add Photo</Btn>}/></Card>}
+      {filtered.length===0&&!form&&<Card><EmptyState msg="No photos found." action={<Btn sm onClick={()=>setForm({projectId:projects[0]?.id||"",caption:"",tag:"Progress",date:today(),author:"",fileUrl:""})}>+ Add Photo</Btn>}/></Card>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
         {filtered.map(p=>(
           <div key={p.id} onClick={()=>setLightbox(p.id)} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden",cursor:"pointer",transition:"all 0.15s"}}
             onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.02)";e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,0.1)";}}
             onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.boxShadow="none";}}>
-            <div style={{background:p.color,height:130,display:"flex",alignItems:"center",justifyContent:"center",fontSize:36}}>{p.emoji}</div>
+            {p.fileUrl
+              ? <img src={p.fileUrl} alt={p.caption} style={{width:"100%",height:130,objectFit:"cover",display:"block"}}/>
+              : <div style={{background:p.color,height:130,display:"flex",alignItems:"center",justifyContent:"center",fontSize:36}}>{p.emoji}</div>}
             <div style={{padding:"10px 12px"}}>
               <div style={{fontSize:12,fontWeight:600,color:C.text,marginBottom:4,lineHeight:1.3}}>{p.caption}</div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -2380,8 +2477,8 @@ const fromDb = {
   co: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", title:r.title||"", category:r.category||"", description:r.description||"", amount:parseFloat(r.amount)||0, status:r.status||"Pending", requestedBy:r.requested_by||"Owner", date:r.date||"" }),
   log: r => ({ id:r.id, projectId:r.project_id, date:r.date||"", author:r.author||"", weather:r.weather||"", crew:parseInt(r.crew)||0, notes:r.notes||"" }),
   bidPkg: (r, bids) => ({ id:r.id, projectId:r.project_id, trade:r.trade||"", scope:r.scope||"", dueDate:r.due_date||"", status:r.status||"Open", bids:(bids||[]).map(b=>({ subId:b.id, subName:b.sub_name||"", amount:parseFloat(b.amount)||0, notes:b.notes||"", submitted:b.submitted||"", awarded:b.awarded||false })) }),
-  doc: r => ({ id:r.id, projectId:r.project_id, name:r.name||"", type:r.type||"Contract", date:r.date||"", notes:r.notes||"", uploader:r.uploader||"" }),
-  photo: r => ({ id:r.id, projectId:r.project_id, caption:r.caption||"", tag:r.tag||"Progress", date:r.date||"", author:r.author||"", emoji:r.emoji||"📷", color:r.color||"#F4F5F7" }),
+  doc: r => ({ id:r.id, projectId:r.project_id, name:r.name||"", type:r.type||"Contract", date:r.date||"", notes:r.notes||"", uploader:r.uploader||"", fileUrl:r.file_url||"" }),
+  photo: r => ({ id:r.id, projectId:r.project_id, caption:r.caption||"", tag:r.tag||"Progress", date:r.date||"", author:r.author||"", emoji:r.emoji||"📷", color:r.color||"#F4F5F7", fileUrl:r.file_url||"" }),
   rfi: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", subject:r.subject||"", toParty:r.to_party||"Architect", fromParty:r.from_party||"GC", dateSubmitted:r.date_submitted||"", dateNeeded:r.date_needed||"", priority:r.priority||"Normal", status:r.status||"Open", description:r.description||"", response:r.response||"" }),
   punchItem: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", location:r.location||"", description:r.description||"", assignedTo:r.assigned_to||"", priority:r.priority||"Normal", status:r.status||"Open", dueDate:r.due_date||"", notes:r.notes||"" }),
   po: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", vendor:r.vendor||"", description:r.description||"", amount:parseFloat(r.amount)||0, status:r.status||"Draft", date:r.date||"", budgetCategory:r.budget_category||"", deliveryDate:r.delivery_date||"", notes:r.notes||"" }),
@@ -2419,10 +2516,10 @@ const db = {
   async saveBid(b,pkgId) { const {error} = await sb.from("bids").upsert({id:b.subId,package_id:pkgId,sub_name:b.subName,amount:b.amount||0,notes:b.notes,submitted:b.submitted||null,awarded:b.awarded||false}); if(error) console.error("saveBid",error); return !error; },
   async deleteBid(id) { await sb.from("bids").delete().eq("id",id); },
   // Documents
-  async saveDoc(d) { const {error} = await sb.from("documents").upsert({id:d.id,project_id:d.projectId,name:d.name,type:d.type,date:d.date||null,notes:d.notes,uploader:d.uploader}); if(error) console.error("saveDoc",error); return !error; },
+  async saveDoc(d) { const {error} = await sb.from("documents").upsert({id:d.id,project_id:d.projectId,name:d.name,type:d.type,date:d.date||null,notes:d.notes,uploader:d.uploader,file_url:d.fileUrl||null}); if(error) console.error("saveDoc",error); return !error; },
   async deleteDoc(id) { await sb.from("documents").delete().eq("id",id); },
   // Photos
-  async savePhoto(p) { const {error} = await sb.from("photos").upsert({id:p.id,project_id:p.projectId,caption:p.caption,tag:p.tag,date:p.date||null,author:p.author,emoji:p.emoji,color:p.color}); if(error) console.error("savePhoto",error); return !error; },
+  async savePhoto(p) { const {error} = await sb.from("photos").upsert({id:p.id,project_id:p.projectId,caption:p.caption,tag:p.tag,date:p.date||null,author:p.author,emoji:p.emoji,color:p.color,file_url:p.fileUrl||null}); if(error) console.error("savePhoto",error); return !error; },
   async deletePhoto(id) { await sb.from("photos").delete().eq("id",id); },
   // RFIs
   async saveRFI(r) { const {error} = await sb.from("rfis").upsert({id:r.id,project_id:r.projectId,number:r.number,subject:r.subject,to_party:r.toParty,from_party:r.fromParty,date_submitted:r.dateSubmitted||null,date_needed:r.dateNeeded||null,priority:r.priority,status:r.status,description:r.description,response:r.response}); if(error) console.error("saveRFI",error); return !error; },
