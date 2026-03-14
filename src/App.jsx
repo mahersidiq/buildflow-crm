@@ -715,7 +715,249 @@ const Budget = ({projectId,budgetItems,setBudgetItems,projects,setProjects}) => 
 };
 
 // ─── ESTIMATES (used inside project detail) ───────────────────────────────────
-const printEstimate = (est, project, company) => {
+// ─── ESTIMATE TEMPLATES ───────────────────────────────────────────────────────
+const ESTIMATE_TEMPLATES = {
+  "New Home Construction":{
+    desc:"Single-family residential new build",
+    hint:"Builder-grade: ~$75–100/sqft  ·  Custom: ~$125–175/sqft",
+    defaultCpsf:85,
+    phases:[
+      {category:"Permits & Fees",  description:"Building permits, plan check, and city fees",         pct:2 },
+      {category:"Demo",            description:"Site clearing and preparation",                        pct:2 },
+      {category:"Site Work",       description:"Excavation, grading, drainage, and utilities",         pct:3 },
+      {category:"Foundation",      description:"Concrete slab, footings, and stem walls",              pct:12},
+      {category:"Framing",         description:"Structural lumber, sheathing, and hardware",           pct:14},
+      {category:"Roofing",         description:"Roof system, underlayment, and gutters",               pct:5 },
+      {category:"Windows & Doors", description:"Windows, exterior doors, and weatherstripping",        pct:4 },
+      {category:"Plumbing",        description:"Rough and finish plumbing",                            pct:8 },
+      {category:"Electrical",      description:"Rough and finish electrical, panel",                   pct:7 },
+      {category:"HVAC",            description:"Mechanical systems, ductwork, and equipment",          pct:7 },
+      {category:"Insulation",      description:"Wall, ceiling, and floor insulation",                  pct:3 },
+      {category:"Drywall",         description:"Hang, tape, texture, and finish",                      pct:5 },
+      {category:"Flooring",        description:"Flooring materials and installation",                  pct:7 },
+      {category:"Cabinets",        description:"Kitchen and bath cabinetry",                           pct:5 },
+      {category:"Countertops",     description:"Kitchen and bath countertops",                         pct:3 },
+      {category:"Tile",            description:"Tile work for bathrooms and kitchen",                  pct:2 },
+      {category:"Painting",        description:"Interior and exterior paint",                          pct:4 },
+      {category:"Exterior",        description:"Siding, trim, and exterior finishes",                  pct:4 },
+      {category:"Landscaping",     description:"Final grade, sod, and landscaping",                    pct:2 },
+      {category:"GC Overhead",     description:"General conditions and project management",            pct:1 },
+    ]
+  },
+  "Apartment Construction":{
+    desc:"Multi-family residential new build",
+    hint:"Market-rate: ~$110–145/sqft  ·  Luxury: ~$160–220/sqft",
+    defaultCpsf:130,
+    phases:[
+      {category:"Permits & Fees",  description:"Building permits, plan check, and impact fees",       pct:4 },
+      {category:"Demo",            description:"Site demolition and preparation",                      pct:2 },
+      {category:"Site Work",       description:"Excavation, grading, and site utilities",              pct:4 },
+      {category:"Foundation",      description:"Concrete slab, mat foundation, or podium deck",        pct:10},
+      {category:"Framing",         description:"Structural framing, sheathing, and hardware",          pct:13},
+      {category:"Roofing",         description:"Roof membrane, insulation, and drainage",              pct:4 },
+      {category:"Windows & Doors", description:"Windows, unit entry doors, and corridors",             pct:3 },
+      {category:"Plumbing",        description:"Rough and finish plumbing (multi-unit)",               pct:9 },
+      {category:"Electrical",      description:"Rough and finish electrical, meters, panels",          pct:8 },
+      {category:"HVAC",            description:"Mechanical systems per unit and common areas",         pct:7 },
+      {category:"Insulation",      description:"Insulation and sound attenuation between units",       pct:3 },
+      {category:"Drywall",         description:"Hang, tape, and finish (units and corridors)",         pct:6 },
+      {category:"Flooring",        description:"Unit flooring and common area finishes",               pct:5 },
+      {category:"Cabinets",        description:"Kitchen and bath cabinetry per unit",                  pct:4 },
+      {category:"Countertops",     description:"Kitchen and bath countertops",                         pct:2 },
+      {category:"Tile",            description:"Bath and kitchen tile per unit",                       pct:3 },
+      {category:"Painting",        description:"Interior and exterior paint",                          pct:4 },
+      {category:"Exterior",        description:"Siding, stucco, and exterior envelope",                pct:5 },
+      {category:"GC Overhead",     description:"Common areas, amenities, and GC management",           pct:4 },
+    ]
+  },
+  "Tenant Improvements (TI)":{
+    desc:"Commercial interior build-out",
+    hint:"Basic: ~$40–65/sqft  ·  Mid-grade: ~$70–120/sqft  ·  High-end: ~$130+/sqft",
+    defaultCpsf:75,
+    phases:[
+      {category:"Demo",            description:"Demolition of existing interior finishes",             pct:7 },
+      {category:"Foundation",      description:"Structural patching and concrete work",                pct:4 },
+      {category:"Site Work",       description:"Concrete flooring prep, leveling, and patching",       pct:3 },
+      {category:"Framing",         description:"Metal stud framing and blocking",                      pct:10},
+      {category:"Plumbing",        description:"Rough and finish plumbing",                            pct:7 },
+      {category:"Electrical",      description:"Rough and finish electrical, panels, lighting",        pct:12},
+      {category:"HVAC",            description:"Mechanical, ductwork, VAV boxes, and controls",        pct:12},
+      {category:"Insulation",      description:"Insulation and acoustical treatments",                 pct:3 },
+      {category:"Drywall",         description:"Hang, tape, texture, and finish",                      pct:10},
+      {category:"Flooring",        description:"Flooring materials and installation",                  pct:8 },
+      {category:"Cabinets",        description:"Ceiling grid, tile, and specialty ceilings",           pct:5 },
+      {category:"Windows & Doors", description:"Interior doors, frames, and hardware",                 pct:4 },
+      {category:"Painting",        description:"Interior paint and wall coverings",                    pct:6 },
+      {category:"Countertops",     description:"Millwork, casework, and built-ins",                    pct:4 },
+      {category:"Permits & Fees",  description:"Building permits and city fees",                       pct:3 },
+      {category:"GC Overhead",     description:"General conditions and project management",            pct:2 },
+    ]
+  }
+};
+
+const EstimateTemplateWizard = ({projectId,estimates,setEstimates,companySettings,onClose,onCreated}) => {
+  const [step,setStep] = useState(1);
+  const [tKey,setTKey] = useState(null);
+  const [estName,setEstName] = useState("");
+  const [sqft,setSqft] = useState("");
+  const [cpsf,setCpsf] = useState("");
+  const [profit,setProfit] = useState(15);
+  const [phases,setPhases] = useState([]);
+  const co = companySettings||DEFAULT_COMPANY;
+  const sqftN = parseFloat(sqft)||0;
+  const cpsfN = parseFloat(cpsf)||0;
+  const hardCpsfN = cpsfN/(1+profit/100);
+  const pctSum = phases.reduce((s,p)=>s+parseFloat(p.pct||0),0);
+  const contractTotal = sqftN*cpsfN;
+  const hardCostTotal = sqftN*hardCpsfN;
+  const profitAmt = contractTotal-hardCostTotal;
+
+  const pickTemplate = key => {
+    const t = ESTIMATE_TEMPLATES[key];
+    setTKey(key); setEstName(key+" Estimate"); setCpsf(String(t.defaultCpsf));
+    setPhases(t.phases.map(p=>({...p}))); setStep(2);
+  };
+  const updatePct = (i,val) => setPhases(ph=>ph.map((p,idx)=>idx===i?{...p,pct:parseFloat(val)||0}:p));
+
+  const create = () => {
+    if(!estName||sqftN<=0||cpsfN<=0){toast.error("Please fill in name, square footage, and $/sqft");return;}
+    if(Math.abs(pctSum-100)>0.01){toast.error(`Percentages must sum to 100% (currently ${pctSum.toFixed(1)}%)`);return;}
+    const lineItems = phases.map(p=>({
+      id:uid(), category:p.category, description:p.description,
+      qty:sqftN, unit:"SF",
+      cost:Math.round((p.pct/100)*hardCpsfN*100)/100,
+      markup:profit
+    }));
+    const est = {id:uid(),projectId,name:estName,
+      notes:`${tKey} · ${sqftN.toLocaleString()} SF · $${cpsfN}/sqft · ${profit}% profit`,
+      status:"Draft",date:today(),lineItems};
+    setEstimates(prev=>[...prev,est]);
+    toast.success("Estimate created from template");
+    onCreated(est.id);
+  };
+
+  const ICONS = {"New Home Construction":"🏠","Apartment Construction":"🏢","Tenant Improvements (TI)":"🏗️"};
+
+  return (
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(15,17,23,0.6)",zIndex:600,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:14,maxWidth:step===1?600:940,width:"100%",maxHeight:"92vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 24px 80px rgba(0,0,0,0.35)"}}>
+        {/* Header */}
+        <div style={{padding:"18px 24px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+          <div>
+            <div style={{fontSize:16,fontWeight:700,color:C.text}}>New Estimate from Template</div>
+            <div style={{fontSize:12,color:C.textSub,marginTop:2}}>{step===1?"Choose a project type to get started":"Configure your estimate — adjust percentages as needed"}</div>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",color:C.textMuted,fontSize:22,lineHeight:1,padding:4}}>×</button>
+        </div>
+
+        {/* Step 1 — Pick Template */}
+        {step===1&&(
+          <div style={{padding:24,display:"flex",flexDirection:"column",gap:12}}>
+            {Object.entries(ESTIMATE_TEMPLATES).map(([key,t])=>(
+              <div key={key} onClick={()=>pickTemplate(key)}
+                style={{padding:"16px 20px",border:`2px solid ${C.border}`,borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",gap:16,transition:"all 0.15s"}}
+                onMouseEnter={el=>{el.currentTarget.style.borderColor=C.accent;el.currentTarget.style.background=C.accentL;}}
+                onMouseLeave={el=>{el.currentTarget.style.borderColor=C.border;el.currentTarget.style.background="transparent";}}>
+                <div style={{width:44,height:44,borderRadius:10,background:C.accentL,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{ICONS[key]}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14,fontWeight:700,color:C.text}}>{key}</div>
+                  <div style={{fontSize:12,color:C.textSub,marginTop:2}}>{t.desc}</div>
+                  <div style={{fontSize:11,color:C.textMuted,marginTop:3}}>{t.hint}</div>
+                </div>
+                <div style={{fontSize:12,color:C.textMuted,flexShrink:0}}>{t.phases.length} phases →</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Step 2 — Configure */}
+        {step===2&&(
+          <>
+            <div style={{overflowY:"auto",flex:1,padding:24,display:"flex",flexDirection:"column",gap:20}}>
+              {/* Inputs */}
+              <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",gap:12}}>
+                {[
+                  {label:"Estimate Name",v:estName,set:setEstName,type:"text",ph:"e.g. Base Bid"},
+                  {label:"Total Sq Ft",v:sqft,set:setSqft,type:"number",ph:"e.g. 2,400"},
+                  {label:"Total $/Sqft (client price)",v:cpsf,set:setCpsf,type:"number",ph:"e.g. 85"},
+                  {label:"Profit %",v:profit,set:v=>setProfit(parseFloat(v)||0),type:"number",ph:"15"},
+                ].map(f=>(
+                  <div key={f.label}>
+                    <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:5}}>{f.label}</div>
+                    <input type={f.type} value={f.v} onChange={e=>f.set(e.target.value)} placeholder={f.ph}
+                      style={{width:"100%",padding:"8px 11px",borderRadius:7,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
+                  </div>
+                ))}
+              </div>
+
+              {/* Summary cards */}
+              {sqftN>0&&cpsfN>0&&(
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+                  {[
+                    {l:"Contract Total",v:fmt(contractTotal),c:C.accent},
+                    {l:"Hard Cost Total",v:fmt(hardCostTotal),c:C.blue},
+                    {l:"Profit Amount",v:fmt(profitAmt),c:"#22c55e"},
+                    {l:"Hard Cost $/Sqft",v:`$${hardCpsfN.toFixed(2)}/sf`,c:C.purple},
+                  ].map(s=>(
+                    <div key={s.l} style={{padding:"11px 14px",background:C.bg,borderRadius:8,border:`1px solid ${C.border}`}}>
+                      <div style={{fontSize:10,color:C.textMuted,marginBottom:3}}>{s.l}</div>
+                      <div style={{fontSize:15,fontWeight:700,color:s.c}}>{s.v}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Phases table */}
+              <div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <div style={{fontSize:13,fontWeight:700,color:C.text}}>Phase Breakdown</div>
+                  <div style={{fontSize:12,fontWeight:600,color:Math.abs(pctSum-100)<0.01?"#22c55e":C.amber}}>
+                    Total: {pctSum.toFixed(1)}%{Math.abs(pctSum-100)<0.01?" ✓":`  (${(100-pctSum).toFixed(1)}% remaining)`}
+                  </div>
+                </div>
+                <div style={{border:`1px solid ${C.border}`,borderRadius:8,overflow:"hidden"}}>
+                  <div style={{display:"grid",gridTemplateColumns:"140px 1fr 90px 90px 100px",padding:"7px 14px",background:C.bg,borderBottom:`1px solid ${C.border}`}}>
+                    {[["Category","left"],["Description","left"],["% of Total","right"],["$/Sqft (hard)","right"],["Line Total","right"]].map(([h,a])=>(
+                      <div key={h} style={{fontSize:10,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.04em",textAlign:a}}>{h}</div>
+                    ))}
+                  </div>
+                  <div style={{maxHeight:300,overflowY:"auto"}}>
+                    {phases.map((p,i)=>{
+                      const dpcsf = (p.pct/100)*hardCpsfN;
+                      const lineT = dpcsf*sqftN;
+                      return (
+                        <div key={i} style={{display:"grid",gridTemplateColumns:"140px 1fr 90px 90px 100px",padding:"8px 14px",borderBottom:i<phases.length-1?`1px solid ${C.border}`:"none",alignItems:"center",background:i%2===0?"transparent":C.bg+"66"}}>
+                          <span style={{fontSize:11,color:C.accent,background:C.accentL,padding:"2px 7px",borderRadius:4,fontWeight:600,display:"inline-block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:130}}>{p.category}</span>
+                          <div style={{fontSize:11,color:C.textSub,paddingRight:8,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.description}</div>
+                          <div style={{textAlign:"right",display:"flex",alignItems:"center",justifyContent:"flex-end",gap:3}}>
+                            <input type="number" value={p.pct} onChange={e=>updatePct(i,e.target.value)} min={0} max={100} step={0.5}
+                              style={{width:52,padding:"3px 6px",borderRadius:5,border:`1px solid ${C.border}`,background:C.surface,color:C.text,fontSize:12,fontFamily:"inherit",textAlign:"right"}}/>
+                            <span style={{fontSize:11,color:C.textMuted}}>%</span>
+                          </div>
+                          <div style={{fontSize:12,color:C.textMuted,textAlign:"right"}}>{cpsfN>0?`$${dpcsf.toFixed(2)}/sf`:"—"}</div>
+                          <div style={{fontSize:12,fontWeight:600,color:C.text,textAlign:"right"}}>{sqftN>0&&cpsfN>0?fmt(lineT):"—"}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{padding:"14px 24px",borderTop:`1px solid ${C.border}`,display:"flex",gap:10,alignItems:"center",flexShrink:0}}>
+              <Btn onClick={create}>Generate Estimate</Btn>
+              <Btn v="secondary" onClick={()=>setStep(1)}>← Change Template</Btn>
+              <Btn v="ghost" onClick={onClose} style={{marginLeft:"auto"}}>Cancel</Btn>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const printEstimate = (est, project, company, hideProfit=false) => {
   const lineTotal = i => i.qty*i.cost*(1+i.markup/100);
   const subtotal = est.lineItems.reduce((s,i)=>s+i.qty*i.cost,0);
   const total = est.lineItems.reduce((s,i)=>s+lineTotal(i),0);
@@ -793,16 +1035,16 @@ const printEstimate = (est, project, company) => {
   </div>
 
   <table>
-    <thead><tr><th>Description</th><th class="r">Qty</th><th>Unit</th><th class="r">Unit Cost</th><th class="r">Markup</th><th class="r">Total</th></tr></thead>
+    <thead><tr><th>Description</th><th class="r">Qty</th><th>Unit</th><th class="r">Unit Cost</th>${hideProfit?"":` <th class="r">Markup</th>`}<th class="r">Total</th></tr></thead>
     <tbody>
       ${Object.entries(groupedItems).map(([cat,items])=>`
-        <tr class="cat-header"><td colspan="6">${cat}</td></tr>
+        <tr class="cat-header"><td colspan="${hideProfit?5:6}">${cat}</td></tr>
         ${items.map(i=>`<tr>
           <td>${i.description}</td>
           <td class="r muted">${i.qty}</td>
           <td class="muted">${i.unit}</td>
           <td class="r muted">${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(i.cost)}</td>
-          <td class="r muted">${i.markup}%</td>
+          ${hideProfit?"":` <td class="r muted">${i.markup}%</td>`}
           <td class="r" style="font-weight:600;">${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(i.qty*i.cost*(1+i.markup/100))}</td>
         </tr>`).join("")}
       `).join("")}
@@ -810,8 +1052,8 @@ const printEstimate = (est, project, company) => {
   </table>
 
   <div class="totals-block">
-    <div class="totals-line"><span>Cost Subtotal</span><span>${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(subtotal)}</span></div>
-    <div class="totals-line"><span>Markup / Overhead & Profit</span><span>${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(markupAmt)}</span></div>
+    ${hideProfit?"":` <div class="totals-line"><span>Cost Subtotal</span><span>${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(subtotal)}</span></div>`}
+    ${hideProfit?"":` <div class="totals-line"><span>Markup / Overhead &amp; Profit</span><span>${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(markupAmt)}</span></div>`}
     <div class="totals-line big"><span>CONTRACT TOTAL</span><span>${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(total)}</span></div>
   </div>
 
@@ -838,6 +1080,7 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
   const [delItemId,setDelItemId] = useState(null);
   const [showBudgetImport,setShowBudgetImport] = useState(false);
   const [budgetSel,setBudgetSel] = useState({});
+  const [showProfit,setShowProfit] = useState(true);
   const CATS = ["Demo","Foundation","Framing","Electrical","Plumbing","HVAC","Insulation","Drywall","Flooring","Cabinets","Countertops","Tile","Painting","Roofing","Windows & Doors","Exterior","Landscaping","Permits","Equipment","GC Overhead","Profit","Other"];
   const UNITS = ["LS","SF","LF","EA","HR","SY","CY","TN","GAL","BD","SQ"];
   const co = companySettings || DEFAULT_COMPANY;
@@ -923,14 +1166,15 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
           {est.status==="Sent"&&<Btn sm onClick={()=>setStatus("Approved")}><Ic d={I.check} s={12}/> Mark Approved</Btn>}
           {est.status!=="Draft"&&<Btn v="secondary" sm onClick={()=>setStatus("Draft")}>Revert to Draft</Btn>}
           {projBudget.length>0&&<Btn v="secondary" sm onClick={()=>setShowBudgetImport(true)}><Ic d={I.budget} s={12}/> Import Budget</Btn>}
-          <Btn v="secondary" sm onClick={()=>printEstimate(est,project,co)}><Ic d={I.docs} s={12}/> Print PDF</Btn>
+          <Btn v="secondary" sm onClick={()=>printEstimate(est,project,co,!showProfit)}><Ic d={I.docs} s={12}/> Print PDF</Btn>
+          <Btn v={showProfit?"secondary":"ghost"} sm onClick={()=>setShowProfit(v=>!v)}>{showProfit?"Hide Profit":"Show Profit"}</Btn>
           <Btn sm onClick={()=>setForm({category:"",description:"",qty:1,unit:"LS",cost:"",markup:co.defaultMarkup||20})}><Ic d={I.plus} s={13}/> Add Line</Btn>
         </div>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14}}>
-        <Stat label="Cost Subtotal" value={fmt(subtotal)} color={C.blue} icon="dollar"/>
-        <Stat label="Markup / O&P" value={fmt(markupAmt)} sub={subtotal?`${Math.round((markupAmt/subtotal)*100)}%`:""} color={C.amber} icon="trend"/>
+      <div style={{display:"grid",gridTemplateColumns:showProfit?"repeat(4,1fr)":"repeat(3,1fr)",gap:14}}>
+        {showProfit&&<Stat label="Cost Subtotal" value={fmt(subtotal)} color={C.blue} icon="dollar"/>}
+        {showProfit&&<Stat label="Markup / O&P" value={fmt(markupAmt)} sub={subtotal?`${Math.round((markupAmt/subtotal)*100)}%`:""} color={C.amber} icon="trend"/>}
         <Stat label="Contract Total" value={fmt(total)} color={C.accent} icon="dollar"/>
         <Stat label="Line Items" value={est.lineItems.length} color={C.purple} icon="est"/>
       </div>
@@ -969,7 +1213,7 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
         </Card>
       )}
 
-      <Table heads={[{l:"Category"},{l:"Description"},{l:"Qty",r:true},{l:"Unit",r:true},{l:"Unit Cost",r:true},{l:"Markup",r:true},{l:"Line Total",r:true},{l:""}]}>
+      <Table heads={[{l:"Category"},{l:"Description"},{l:"Qty",r:true},{l:"Unit",r:true},{l:"Unit Cost",r:true},...(showProfit?[{l:"Markup",r:true}]:[]),{l:"Line Total",r:true},{l:""}]}>
         {est.lineItems.map(item=>(
           <TR key={item.id}>
             <td style={{padding:"11px 14px"}}><span style={{fontSize:11,color:C.accent,background:C.accentL,padding:"2px 8px",borderRadius:5,fontWeight:600}}>{item.category}</span></td>
@@ -977,25 +1221,25 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
             <TD right muted>{item.qty}</TD>
             <TD right muted>{item.unit}</TD>
             <TD right muted>{fmt(item.cost)}</TD>
-            <td style={{padding:"11px 14px",textAlign:"right",fontSize:13,color:C.amber,fontWeight:500}}>{item.markup}%</td>
+            {showProfit&&<td style={{padding:"11px 14px",textAlign:"right",fontSize:13,color:C.amber,fontWeight:500}}>{item.markup}%</td>}
             <TD right bold color={C.accent}>{fmt(lineTotal(item))}</TD>
             <td style={{padding:"11px 14px"}}><div style={{display:"flex",gap:6}}><EditBtn onClick={()=>setForm({...item})}/><DeleteBtn onClick={()=>setDelItemId(item.id)}/></div></td>
           </TR>
         ))}
-        {est.lineItems.length===0&&<tr><td colSpan={8}><EmptyState msg="No line items yet. Click 'Add Line' or 'Import Budget' above."/></td></tr>}
+        {est.lineItems.length===0&&<tr><td colSpan={showProfit?8:7}><EmptyState msg="No line items yet. Click 'Add Line' or 'Import Budget' above."/></td></tr>}
         {est.lineItems.length>0&&(<>
-          <tr style={{background:C.bg,borderTop:`1px solid ${C.border}`}}>
+          {showProfit&&<tr style={{background:C.bg,borderTop:`1px solid ${C.border}`}}>
             <td colSpan={6} style={{padding:"10px 14px",fontSize:12,color:C.textSub,textAlign:"right",fontWeight:600}}>COST SUBTOTAL</td>
             <td style={{padding:"10px 14px",fontSize:13,fontWeight:700,textAlign:"right"}}>{fmt(subtotal)}</td>
             <td/>
-          </tr>
-          <tr style={{background:C.bg}}>
+          </tr>}
+          {showProfit&&<tr style={{background:C.bg}}>
             <td colSpan={6} style={{padding:"8px 14px",fontSize:11,color:C.textSub,textAlign:"right"}}>Markup / Overhead & Profit</td>
             <td style={{padding:"8px 14px",fontSize:12,textAlign:"right",color:C.amber,fontWeight:600}}>{fmt(markupAmt)}</td>
             <td/>
-          </tr>
+          </tr>}
           <tr style={{background:C.accentL,borderTop:`2px solid ${C.accentB}`}}>
-            <td colSpan={6} style={{padding:"12px 14px",fontSize:13,fontWeight:700,color:C.accent,textAlign:"right"}}>CONTRACT TOTAL</td>
+            <td colSpan={showProfit?6:5} style={{padding:"12px 14px",fontSize:13,fontWeight:700,color:C.accent,textAlign:"right"}}>CONTRACT TOTAL</td>
             <td style={{padding:"12px 14px",fontSize:16,fontWeight:800,textAlign:"right",color:C.accent}}>{fmt(total)}</td>
             <td/>
           </tr>
@@ -1008,6 +1252,7 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
 const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,companySettings}) => {
   const [selectedId,setSelectedId] = useState(null);
   const [showForm,setShowForm] = useState(false);
+  const [showWizard,setShowWizard] = useState(false);
   const [delId,setDelId] = useState(null);
   const [form,setForm] = useState({name:"",notes:""});
   const items = estimates.filter(e=>e.projectId===projectId);
@@ -1032,14 +1277,18 @@ const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,company
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      {showWizard&&<EstimateTemplateWizard projectId={projectId} estimates={estimates} setEstimates={setEstimates} companySettings={companySettings} onClose={()=>setShowWizard(false)} onCreated={id=>{setShowWizard(false);setSelectedId(id);}}/>}
       {delId&&<Confirm msg="Delete this estimate and all its line items?" onOk={del} onCancel={()=>setDelId(null)}/>}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontSize:13,fontWeight:600,color:C.text}}>Estimates</div>
-        <Btn sm onClick={()=>setShowForm(true)}><Ic d={I.plus} s={13}/> New Estimate</Btn>
+        <div style={{display:"flex",gap:8}}>
+          <Btn sm v="secondary" onClick={()=>setShowWizard(true)}>⚡ From Template</Btn>
+          <Btn sm onClick={()=>setShowForm(true)}><Ic d={I.plus} s={13}/> Blank Estimate</Btn>
+        </div>
       </div>
       {showForm&&(
         <Card style={{border:`1px solid ${C.accentB}`}}>
-          <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:14}}>New Estimate</div>
+          <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:14}}>New Blank Estimate</div>
           <Grid cols="1fr 1fr" gap={12}>
             <Inp label="Estimate Name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="e.g. Base Bid, Revised Scope, Alternate 1"/>
             <div/>
@@ -1051,7 +1300,7 @@ const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,company
           </div>
         </Card>
       )}
-      {items.length===0&&!showForm&&<Card><EmptyState msg="No estimates yet. Create one to start building your bid." action={<Btn sm onClick={()=>setShowForm(true)}>+ Create First Estimate</Btn>}/></Card>}
+      {items.length===0&&!showForm&&<Card><EmptyState msg="No estimates yet. Use a template to auto-populate line items, or start blank." action={<div style={{display:"flex",gap:8}}><Btn sm onClick={()=>setShowWizard(true)}>⚡ From Template</Btn><Btn sm v="secondary" onClick={()=>setShowForm(true)}>+ Blank</Btn></div>}/></Card>}
       {items.map(e=>{
         const total=calcTotal(e.lineItems);
         return (
