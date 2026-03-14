@@ -1430,6 +1430,8 @@ const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,company
   const [delId,setDelId] = useState(null);
   const [form,setForm] = useState({name:"",notes:""});
   const items = estimates.filter(e=>e.projectId===projectId);
+  // Clear selectedId if the referenced estimate no longer exists (safe: runs after render)
+  React.useEffect(()=>{ if(selectedId&&!estimates.find(e=>e.id===selectedId)) setSelectedId(null); },[selectedId,estimates]);
   const calcTotal = items => items.reduce((s,i)=>s+i.qty*i.cost*(1+i.markup/100),0);
 
   const create = () => {
@@ -1445,7 +1447,7 @@ const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,company
 
   if(selectedId) {
     const est = estimates.find(e=>e.id===selectedId);
-    if(!est){setSelectedId(null);return null;}
+    if(!est) return null;
     return <EstimateDetail est={est} estimates={estimates} setEstimates={setEstimates} onBack={()=>setSelectedId(null)} budgetItems={budgetItems} project={project} companySettings={companySettings}/>;
   }
 
@@ -2664,10 +2666,12 @@ const GlobalEstimates = ({estimates,setEstimates,projects,budgetItems,companySet
   const [form,setForm] = useState({projectId:projects[0]?.id||"",name:"",notes:""});
   const [navTo,setNavTo] = useState(null);
   const calcTotal=items=>items.reduce((s,i)=>s+i.qty*i.cost*(1+i.markup/100),0);
+  // Clear navTo if referenced estimate no longer exists (safe: runs after render)
+  React.useEffect(()=>{ if(navTo&&!estimates.find(e=>e.id===navTo)) setNavTo(null); },[navTo,estimates]);
 
   if(navTo){
     const est=estimates.find(e=>e.id===navTo);
-    if(!est){setNavTo(null);return null;}
+    if(!est) return null;
     const project=projects.find(p=>p.id===est.projectId);
     return <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <Btn v="secondary" sm onClick={()=>setNavTo(null)}><Ic d={I.back} s={13}/> All Estimates</Btn>
