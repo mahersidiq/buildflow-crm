@@ -795,8 +795,9 @@ const ESTIMATE_TEMPLATES = {
   }
 };
 
-const EstimateTemplateWizard = ({projectId,estimates,setEstimates,companySettings,onClose,onCreated}) => {
+const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,setEstimates,companySettings,onClose,onCreated}) => {
   const [step,setStep] = useState(1);
+  const [selectedProjectId,setSelectedProjectId] = useState(initialProjectId||null);
   const [tKey,setTKey] = useState(null);
   const [estName,setEstName] = useState("");
   const [sqft,setSqft] = useState("");
@@ -804,6 +805,7 @@ const EstimateTemplateWizard = ({projectId,estimates,setEstimates,companySetting
   const [profit,setProfit] = useState(15);
   const [phases,setPhases] = useState([]);
   const co = companySettings||DEFAULT_COMPANY;
+  const projectId = selectedProjectId;
   const sqftN = parseFloat(sqft)||0;
   const cpsfN = parseFloat(cpsf)||0;
   const hardCpsfN = cpsfN/(1+profit/100);
@@ -813,6 +815,7 @@ const EstimateTemplateWizard = ({projectId,estimates,setEstimates,companySetting
   const profitAmt = contractTotal-hardCostTotal;
 
   const pickTemplate = key => {
+    if(projects&&!initialProjectId&&!selectedProjectId){toast.error("Please select a project first");return;}
     const t = ESTIMATE_TEMPLATES[key];
     setTKey(key); setEstName(key+" Estimate"); setCpsf(String(t.defaultCpsf));
     setPhases(t.phases.map(p=>({...p}))); setStep(2);
@@ -852,7 +855,19 @@ const EstimateTemplateWizard = ({projectId,estimates,setEstimates,companySetting
 
         {/* Step 1 — Pick Template */}
         {step===1&&(
-          <div style={{padding:24,display:"flex",flexDirection:"column",gap:12}}>
+          <div style={{padding:24,display:"flex",flexDirection:"column",gap:16}}>
+            {/* Project picker — only shown in global context */}
+            {projects&&!initialProjectId&&(
+              <div>
+                <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:6}}>Project</div>
+                <select value={selectedProjectId||""} onChange={e=>setSelectedProjectId(e.target.value)}
+                  style={{width:"100%",padding:"8px 12px",borderRadius:7,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"inherit"}}>
+                  <option value="">— Select a project —</option>
+                  {projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+            )}
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
             {Object.entries(ESTIMATE_TEMPLATES).map(([key,t])=>(
               <div key={key} onClick={()=>pickTemplate(key)}
                 style={{padding:"16px 20px",border:`2px solid ${C.border}`,borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",gap:16,transition:"all 0.15s"}}
@@ -867,6 +882,7 @@ const EstimateTemplateWizard = ({projectId,estimates,setEstimates,companySetting
                 <div style={{fontSize:12,color:C.textMuted,flexShrink:0}}>{t.phases.length} phases →</div>
               </div>
             ))}
+            </div>
           </div>
         )}
 
@@ -1277,7 +1293,7 @@ const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,company
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
-      {showWizard&&<EstimateTemplateWizard projectId={projectId} estimates={estimates} setEstimates={setEstimates} companySettings={companySettings} onClose={()=>setShowWizard(false)} onCreated={id=>{setShowWizard(false);setSelectedId(id);}}/>}
+      {showWizard&&<EstimateTemplateWizard projectId={projectId} estimates={estimates} setEstimates={setEstimates} companySettings={companySettings} onClose={()=>setShowWizard(false)} onCreated={id=>{setShowWizard(false);setSelectedId(id);}} />}
       {delId&&<Confirm msg="Delete this estimate and all its line items?" onOk={del} onCancel={()=>setDelId(null)}/>}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontSize:13,fontWeight:600,color:C.text}}>Estimates</div>
@@ -2485,6 +2501,8 @@ const GlobalInvoices = ({invoices,setInvoices,projects}) => {
 // ─── GLOBAL ESTIMATES ────────────────────────────────────────────────────────
 const GlobalEstimates = ({estimates,setEstimates,projects,budgetItems,companySettings}) => {
   const [showForm,setShowForm] = useState(false);
+  const [showWizard,setShowWizard] = useState(false);
+  const [wizardProjectId,setWizardProjectId] = useState(null);
   const [form,setForm] = useState({projectId:projects[0]?.id||"",name:"",notes:""});
   const [navTo,setNavTo] = useState(null);
   const calcTotal=items=>items.reduce((s,i)=>s+i.qty*i.cost*(1+i.markup/100),0);
@@ -2509,9 +2527,13 @@ const GlobalEstimates = ({estimates,setEstimates,projects,budgetItems,companySet
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
-      <PageHead eyebrow="Bids & Proposals" title="Estimates" action={<Btn onClick={()=>setShowForm(true)}><Ic d={I.plus} s={14}/> New Estimate</Btn>}/>
+      {showWizard&&<EstimateTemplateWizard projectId={wizardProjectId} projects={projects} estimates={estimates} setEstimates={setEstimates} companySettings={companySettings} onClose={()=>setShowWizard(false)} onCreated={id=>{setShowWizard(false);setNavTo(id);}}/>}
+      <PageHead eyebrow="Bids & Proposals" title="Estimates" action={<div style={{display:"flex",gap:8}}>
+        <Btn v="secondary" onClick={()=>{setWizardProjectId(projects[0]?.id||null);setShowWizard(true);}}>⚡ From Template</Btn>
+        <Btn onClick={()=>setShowForm(true)}><Ic d={I.plus} s={14}/> Blank Estimate</Btn>
+      </div>}/>
       {showForm&&<Card style={{border:`1px solid ${C.accentB}`}}>
-        <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:14}}>New Estimate</div>
+        <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:14}}>New Blank Estimate</div>
         <Grid cols="1fr 1fr" gap={12}>
           <Sel label="Project" value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} options={projects.map(p=>({v:p.id,l:p.name}))}/>
           <Inp label="Estimate Name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="e.g. Base Bid, Revised Scope"/>
