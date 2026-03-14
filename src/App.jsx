@@ -803,12 +803,15 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
   const [sqft,setSqft] = useState("");
   const [cpsf,setCpsf] = useState("");
   const [profit,setProfit] = useState(15);
+  const [margin,setMargin] = useState(13.04);
   const [phases,setPhases] = useState([]);
   const co = companySettings||DEFAULT_COMPANY;
   const projectId = selectedProjectId;
   const sqftN = parseFloat(sqft)||0;
   const cpsfN = parseFloat(cpsf)||0;
   const hardCpsfN = cpsfN/(1+profit/100);
+  const mu2mg = mu => { const v=parseFloat(mu)||0; return Math.round(v/(100+v)*10000)/100; };
+  const mg2mu = mg => { const v=parseFloat(mg)||0; return v>=100?99.99:Math.round(v/(100-v)*10000)/100; };
   const pctSum = phases.reduce((s,p)=>s+parseFloat(p.pct||0),0);
   const contractTotal = sqftN*cpsfN;
   const hardCostTotal = sqftN*hardCpsfN;
@@ -896,7 +899,6 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
                   {label:"Estimate Name",v:estName,set:setEstName,type:"text",ph:"e.g. Base Bid"},
                   {label:"Total Sq Ft",v:sqft,set:setSqft,type:"number",ph:"e.g. 2,400"},
                   {label:"Total $/Sqft (client price)",v:cpsf,set:setCpsf,type:"number",ph:"e.g. 85"},
-                  {label:"Profit %",v:profit,set:v=>setProfit(parseFloat(v)||0),type:"number",ph:"15"},
                 ].map(f=>(
                   <div key={f.label}>
                     <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:5}}>{f.label}</div>
@@ -904,6 +906,34 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
                       style={{width:"100%",padding:"8px 11px",borderRadius:7,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
                   </div>
                 ))}
+              </div>
+
+              {/* Markup ↔ Margin */}
+              <div style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,padding:"14px 16px"}}>
+                <div style={{fontSize:11,fontWeight:700,color:C.textSub,marginBottom:10}}>PROFIT / MARKUP</div>
+                <div style={{display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap"}}>
+                  <div style={{flex:1,minWidth:120}}>
+                    <div style={{fontSize:9,color:C.textMuted,marginBottom:4}}>MARKUP % (on cost)</div>
+                    <input type="number" min={0} value={profit}
+                      onChange={e=>{const mu=parseFloat(e.target.value)||0;setProfit(mu);setMargin(mu2mg(mu));}}
+                      style={{width:"100%",padding:"8px 10px",borderRadius:7,border:`1px solid ${C.accentB}`,background:C.surface,color:C.amber,fontSize:15,fontWeight:700,fontFamily:"inherit",textAlign:"center"}}/>
+                  </div>
+                  <div style={{fontSize:18,color:C.textMuted,paddingBottom:8}}>↔</div>
+                  <div style={{flex:1,minWidth:120}}>
+                    <div style={{fontSize:9,color:C.textMuted,marginBottom:4}}>MARGIN % (on revenue)</div>
+                    <input type="number" min={0} max={99.99} value={margin}
+                      onChange={e=>{const mg=parseFloat(e.target.value)||0;setMargin(mg);setProfit(mg2mu(mg));}}
+                      style={{width:"100%",padding:"8px 10px",borderRadius:7,border:`1px solid ${C.accentB}`,background:C.surface,color:C.amber,fontSize:15,fontWeight:700,fontFamily:"inherit",textAlign:"center"}}/>
+                  </div>
+                  <div style={{display:"flex",gap:5,flexWrap:"wrap",paddingBottom:2}}>
+                    {[[10,9.09],[15,13.04],[20,16.67],[25,20],[30,23.08]].map(([mu,mg])=>(
+                      <button key={mu} onClick={()=>{setProfit(mu);setMargin(mg);}}
+                        style={{padding:"5px 9px",borderRadius:5,border:`1px solid ${profit===mu?C.accent:C.border}`,background:profit===mu?C.accentL:"transparent",color:profit===mu?C.accent:C.textMid,fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit",lineHeight:1.3}}>
+                        {mu}%<br/><span style={{fontSize:9,opacity:0.8}}>{mg}% mgn</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Summary cards */}
