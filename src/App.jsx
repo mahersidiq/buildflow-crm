@@ -1854,7 +1854,7 @@ const Contacts = ({contacts,setContacts}) => {
 // ─── PROJECTS (with full detail + tabs) ──────────────────────────────────────
 const PHASES = ["Pre-Construction","Demo & Site Prep","Foundation","Framing","MEP Rough-In","Insulation","Drywall","Finishes","Punch List","Closeout"];
 
-const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoices,budgetItems,setBudgetItems,cos,setCos,logs,setLogs,bids,setBids,docs,setDocs,photos,setPhotos,rfis,setRfis,punchList,setPunchList,pos,setPOs,meetings,setMeetings,initialId}) => {
+const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoices,budgetItems,setBudgetItems,cos,setCos,logs,setLogs,bids,setBids,docs,setDocs,photos,setPhotos,rfis,setRfis,punchList,setPunchList,pos,setPOs,meetings,setMeetings,companySettings,initialId}) => {
   const [filter,setFilter] = useState("All");
   const [search,setSearch] = useState("");
   const [selectedId,setSelectedId] = useState(null);
