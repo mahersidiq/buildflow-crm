@@ -176,7 +176,7 @@ const Stat = ({label,value,sub,color=C.accent,icon}) => {
         <span style={{fontSize:isMobile?10:11,color:C.textMuted,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase"}}>{label}</span>
         {icon&&!isMobile&&<div style={{width:28,height:28,borderRadius:7,background:color+"15",display:"flex",alignItems:"center",justifyContent:"center",color}}><Ic d={I[icon]} s={13}/></div>}
       </div>
-      <div style={{fontSize:isMobile?18:24,fontWeight:700,color:C.text,letterSpacing:"-0.03em",lineHeight:1}}>{value}</div>
+      <div style={{fontSize:isMobile?18:24,fontWeight:700,color:C.text,letterSpacing:"-0.03em",lineHeight:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>{value}</div>
       {sub&&<div style={{fontSize:11,color:C.textMuted,marginTop:4}}>{sub}</div>}
     </div>
   );
@@ -196,7 +196,7 @@ const PageHead = ({eyebrow,title,action}) => {
 };
 
 const TH = ({children,right}) => <th style={{padding:"11px 14px",textAlign:right?"right":"left",fontSize:11,color:C.textSub,fontWeight:600,letterSpacing:"0.05em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{children}</th>;
-const TD = ({children,right,bold,muted,color}) => <td style={{padding:"12px 14px",fontSize:13,textAlign:right?"right":"left",color:color||(muted?C.textSub:C.text),fontWeight:bold?700:400}}>{children}</td>;
+const TD = ({children,right,bold,muted,color}) => <td style={{padding:"12px 14px",fontSize:13,textAlign:right?"right":"left",color:color||(muted?C.textSub:C.text),fontWeight:bold?700:400,maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{children}</td>;
 
 const Table = ({heads,children,empty}) => (
   <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
@@ -2869,6 +2869,8 @@ export default function App() {
           .mobileMenu{display:none!important;}
           .bottomNav{display:none!important;}
         }
+
+        .mainPad{-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;}
 
         @media(max-width:768px){
           .sidebar{display:none!important;}
