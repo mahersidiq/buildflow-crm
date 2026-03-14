@@ -1003,14 +1003,16 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
   );
 };
 
-const printEstimate = (est, project, company, hideProfit=false) => {
+const printEstimate = (est, project, company, colVis={qty:true,unit:true,cost:true,markup:true}) => {
   const lineTotal = i => i.qty*i.cost*(1+i.markup/100);
-  const subtotal = est.lineItems.reduce((s,i)=>s+i.qty*i.cost,0);
-  const total = est.lineItems.reduce((s,i)=>s+lineTotal(i),0);
+  const visItems = est.lineItems.filter(i=>!i.hidden);
+  const subtotal = visItems.reduce((s,i)=>s+i.qty*i.cost,0);
+  const total = visItems.reduce((s,i)=>s+lineTotal(i),0);
   const markupAmt = total-subtotal;
   const addr = [company.address,company.city,company.state,company.zip].filter(Boolean).join(", ");
   const groupedItems = {};
-  est.lineItems.forEach(i=>{ if(!groupedItems[i.category]) groupedItems[i.category]=[]; groupedItems[i.category].push(i); });
+  visItems.forEach(i=>{ if(!groupedItems[i.category]) groupedItems[i.category]=[]; groupedItems[i.category].push(i); });
+  const numCols = 2 + (colVis.qty?1:0) + (colVis.unit?1:0) + (colVis.cost?1:0) + (colVis.markup?1:0);
 
   const html = `<!DOCTYPE html><html><head><title>${est.name} — ${company.name}</title>
   <style>
@@ -1081,16 +1083,16 @@ const printEstimate = (est, project, company, hideProfit=false) => {
   </div>
 
   <table>
-    <thead><tr><th>Description</th><th class="r">Qty</th><th>Unit</th><th class="r">Unit Cost</th>${hideProfit?"":` <th class="r">Markup</th>`}<th class="r">Total</th></tr></thead>
+    <thead><tr><th>Description</th>${colVis.qty?`<th class="r">Qty</th>`:""} ${colVis.unit?`<th>Unit</th>`:""} ${colVis.cost?`<th class="r">Unit Cost</th>`:""} ${colVis.markup?`<th class="r">Markup</th>`:""}<th class="r">Total</th></tr></thead>
     <tbody>
       ${Object.entries(groupedItems).map(([cat,items])=>`
-        <tr class="cat-header"><td colspan="${hideProfit?5:6}">${cat}</td></tr>
+        <tr class="cat-header"><td colspan="${numCols}">${cat}</td></tr>
         ${items.map(i=>`<tr>
           <td>${i.description}</td>
-          <td class="r muted">${i.qty}</td>
-          <td class="muted">${i.unit}</td>
-          <td class="r muted">${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(i.cost)}</td>
-          ${hideProfit?"":` <td class="r muted">${i.markup}%</td>`}
+          ${colVis.qty?`<td class="r muted">${i.qty}</td>`:""}
+          ${colVis.unit?`<td class="muted">${i.unit}</td>`:""}
+          ${colVis.cost?`<td class="r muted">${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(i.cost)}</td>`:""}
+          ${colVis.markup?`<td class="r muted">${i.markup}%</td>`:""}
           <td class="r" style="font-weight:600;">${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(i.qty*i.cost*(1+i.markup/100))}</td>
         </tr>`).join("")}
       `).join("")}
@@ -1098,8 +1100,8 @@ const printEstimate = (est, project, company, hideProfit=false) => {
   </table>
 
   <div class="totals-block">
-    ${hideProfit?"":` <div class="totals-line"><span>Cost Subtotal</span><span>${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(subtotal)}</span></div>`}
-    ${hideProfit?"":` <div class="totals-line"><span>Markup / Overhead &amp; Profit</span><span>${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(markupAmt)}</span></div>`}
+    ${colVis.markup?`<div class="totals-line"><span>Cost Subtotal</span><span>${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(subtotal)}</span></div>`:""}
+    ${colVis.markup?`<div class="totals-line"><span>Markup / Overhead &amp; Profit</span><span>${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(markupAmt)}</span></div>`:""}
     <div class="totals-line big"><span>CONTRACT TOTAL</span><span>${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(total)}</span></div>
   </div>
 
@@ -1292,7 +1294,7 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
           {est.status==="Sent"&&<Btn sm onClick={()=>setStatus("Approved")}><Ic d={I.check} s={12}/> Mark Approved</Btn>}
           {est.status!=="Draft"&&<Btn v="secondary" sm onClick={()=>setStatus("Draft")}>Revert to Draft</Btn>}
           {projBudget.length>0&&<Btn v="secondary" sm onClick={()=>setShowBudgetImport(true)}><Ic d={I.budget} s={12}/> Import Budget</Btn>}
-          <Btn v="secondary" sm onClick={()=>printEstimate(est,project,co,!colVis.markup)}><Ic d={I.docs} s={12}/> Print PDF</Btn>
+          <Btn v="secondary" sm onClick={()=>printEstimate(est,project,co,colVis)}><Ic d={I.docs} s={12}/> Print PDF</Btn>
           {/* Columns dropdown */}
           <div style={{position:"relative"}}>
             <Btn v="secondary" sm onClick={e=>{e.stopPropagation();setShowColMenu(v=>!v);}}>Columns ▾</Btn>
