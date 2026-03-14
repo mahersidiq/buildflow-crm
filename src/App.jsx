@@ -569,9 +569,10 @@ const Dashboard = ({projects,invoices,cos,rfis,punchList,onNav}) => {
 
 // ─── BUDGET (used inside project detail) ─────────────────────────────────────
 const Budget = ({projectId,budgetItems,setBudgetItems,projects,setProjects}) => {
-  const [form,setForm] = useState(null); // null=hidden, {}=add, {id}=edit
+  const [form,setForm] = useState(null);
   const [delId,setDelId] = useState(null);
-  const CATS = ["Demo & Site Prep","Foundation","Concrete","Framing","Roofing","Windows & Doors","Electrical","Plumbing","HVAC","Insulation","Drywall","Flooring","Cabinets & Millwork","Countertops","Tile","Painting","Exterior & Landscaping","Permits & Fees","Equipment Rental","General Conditions","Contingency","Other"];
+  const [codeSearch,setCodeSearch] = useState("");
+  const [showCodePicker,setShowCodePicker] = useState(false);
   const items = budgetItems.filter(b=>b.projectId===projectId);
   const tot = (k) => items.reduce((s,b)=>s+(parseFloat(b[k])||0),0);
   const totalB=tot("budgeted"), totalA=tot("actual"), totalC=tot("committed");
@@ -585,25 +586,22 @@ const Budget = ({projectId,budgetItems,setBudgetItems,projects,setProjects}) => 
     if(!form.category) return;
     const item = {...form,projectId,budgeted:parseFloat(form.budgeted)||0,actual:parseFloat(form.actual)||0,committed:parseFloat(form.committed)||0};
     let next;
-    if(form.id) {
-      next = budgetItems.map(b=>b.id===form.id?item:b);
-    } else {
-      next = [...budgetItems,{...item,id:uid()}];
-    }
-    setBudgetItems(next);
-    syncSpent(next);
-    setForm(null);
+    if(form.id) { next = budgetItems.map(b=>b.id===form.id?item:b); }
+    else { next = [...budgetItems,{...item,id:uid()}]; }
+    setBudgetItems(next); syncSpent(next); setForm(null);
     toast.success(form.id?"Budget line updated":"Budget line added");
   };
 
-  const del = () => {
-    const next = budgetItems.filter(b=>b.id!==delId);
-    setBudgetItems(next);
-    syncSpent(next);
-    setDelId(null);
-  };
-
+  const del = () => { const next=budgetItems.filter(b=>b.id!==delId); setBudgetItems(next); syncSpent(next); setDelId(null); };
   const pct = totalB ? Math.round((totalA/totalB)*100) : 0;
+
+  const filteredCodes = codeSearch
+    ? BUDGET_CAT_FLAT.filter(c=>c.full.toLowerCase().includes(codeSearch.toLowerCase())||c.label.toLowerCase().includes(codeSearch.toLowerCase()))
+    : BUDGET_CAT_FLAT;
+
+  // Group items by division for display
+  const grouped = BUDGET_CODES.map(d=>({...d,rows:items.filter(b=>b.division===d.label)})).filter(d=>d.rows.length>0);
+  const ungrouped = items.filter(b=>!b.division);
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -618,18 +616,57 @@ const Budget = ({projectId,budgetItems,setBudgetItems,projects,setProjects}) => 
 
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontSize:13,fontWeight:600,color:C.text}}>Cost Breakdown</div>
-        <Btn sm onClick={()=>setForm({category:"",budgeted:"",actual:"",committed:"",notes:""})}><Ic d={I.plus} s={13}/> Add Line Item</Btn>
+        <Btn sm onClick={()=>{setForm({category:"",division:"",code:"",budgeted:"",actual:"",committed:"",notes:""});setShowCodePicker(true);setCodeSearch("");}}><Ic d={I.plus} s={13}/> Add Line Item</Btn>
       </div>
 
       {form!==null&&(
         <Card style={{border:`1px solid ${C.accentB}`}}>
-          <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:16}}>{form.id?"Edit":"Add"} Budget Line</div>
+          <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:14}}>{form.id?"Edit":"Add"} Budget Line</div>
+
+          {!form.id&&showCodePicker&&(
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:6}}>Select Cost Code</div>
+              <input
+                value={codeSearch}
+                onChange={e=>setCodeSearch(e.target.value)}
+                placeholder="Search cost codes (e.g. 'roofing', 'electrical', '07')..."
+                style={{width:"100%",padding:"8px 12px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:13,fontFamily:"inherit",marginBottom:8,outline:"none"}}
+              />
+              <div style={{maxHeight:200,overflowY:"auto",border:`1px solid ${C.border}`,borderRadius:8,background:C.bg}}>
+                {BUDGET_CODES.filter(d=>!codeSearch||d.label.toLowerCase().includes(codeSearch.toLowerCase())||d.items.some(i=>i.toLowerCase().includes(codeSearch.toLowerCase()))).map(d=>(
+                  <div key={d.div}>
+                    <div style={{padding:"6px 12px",fontSize:11,fontWeight:700,color:C.textSub,background:C.surface,borderBottom:`1px solid ${C.border}`,letterSpacing:"0.05em",textTransform:"uppercase"}}>{d.div} · {d.label}</div>
+                    {d.items.filter(i=>!codeSearch||i.toLowerCase().includes(codeSearch.toLowerCase())||d.label.toLowerCase().includes(codeSearch.toLowerCase())).map(item=>(
+                      <div key={item} onClick={()=>{setForm(f=>({...f,category:item,division:d.label,code:d.div}));setShowCodePicker(false);}}
+                        style={{padding:"7px 16px",fontSize:12,color:C.textMid,cursor:"pointer",borderBottom:`1px solid ${C.border}`}}
+                        onMouseEnter={e=>e.currentTarget.style.background=C.accentL}
+                        onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+              <button onClick={()=>setShowCodePicker(false)} style={{marginTop:6,fontSize:11,color:C.textMuted,background:"none",border:"none",cursor:"pointer",padding:0}}>Enter manually instead</button>
+            </div>
+          )}
+
           <Grid cols="2fr 1fr 1fr 1fr" gap={12}>
-            <Sel label="Cost Category" value={form.category} onChange={e=>setForm({...form,category:e.target.value})} options={["Select category...",...CATS]}/>
+            {form.category
+              ? <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                  <div style={{fontSize:11,fontWeight:600,color:C.textSub}}>Cost Category</div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:C.accentL,borderRadius:7,border:`1px solid ${C.accentB}`}}>
+                    {form.code&&<span style={{fontSize:10,fontWeight:700,color:C.accent,background:C.surface,padding:"1px 6px",borderRadius:4,flexShrink:0}}>{form.code}</span>}
+                    <span style={{fontSize:13,fontWeight:600,color:C.text,flex:1}}>{form.category}</span>
+                    {!form.id&&<button onClick={()=>setShowCodePicker(true)} style={{fontSize:10,color:C.accent,background:"none",border:"none",cursor:"pointer",padding:0,whiteSpace:"nowrap"}}>Change</button>}
+                  </div>
+                  {form.division&&<div style={{fontSize:10,color:C.textMuted}}>Division: {form.division}</div>}
+                </div>
+              : <Inp label="Cost Category" value={form.category} onChange={e=>setForm({...form,category:e.target.value})} placeholder="e.g. Roofing"/>}
             <Inp label="Budgeted ($)" type="number" value={form.budgeted} onChange={e=>setForm({...form,budgeted:e.target.value})} placeholder="0"/>
             <Inp label="Actual ($)" type="number" value={form.actual} onChange={e=>setForm({...form,actual:e.target.value})} placeholder="0"/>
             <Inp label="Committed ($)" type="number" value={form.committed} onChange={e=>setForm({...form,committed:e.target.value})} placeholder="0"/>
-            <div style={{gridColumn:"span 4"}}><Inp label="Notes" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Subcontractor, vendor, notes..."/></div>
+            <div style={{gridColumn:"span 4"}}><Inp label="Notes (vendor, sub, PO#)" value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Subcontractor, vendor, notes..."/></div>
           </Grid>
           <div style={{display:"flex",gap:10,marginTop:14}}>
             <Btn onClick={save}>{form.id?"Save Changes":"Add Item"}</Btn>
@@ -639,40 +676,36 @@ const Budget = ({projectId,budgetItems,setBudgetItems,projects,setProjects}) => 
       )}
 
       {items.length===0&&form===null?(
-        <Card><EmptyState msg="No budget items yet. Add cost categories to track your job costs." action={<Btn sm onClick={()=>setForm({category:"",budgeted:"",actual:"",committed:"",notes:""})}>+ Add First Item</Btn>}/></Card>
+        <Card><EmptyState msg="No budget items yet. Add cost categories to track your job costs." action={<Btn sm onClick={()=>{setForm({category:"",division:"",code:"",budgeted:"",actual:"",committed:"",notes:""});setShowCodePicker(true);setCodeSearch("");}}>+ Add First Item</Btn>}/></Card>
       ):(
-        <Table heads={[{l:"Category"},{l:"Notes"},{l:"Budgeted",r:true},{l:"Actual",r:true},{l:"Committed",r:true},{l:"Variance",r:true},{l:"% Used",r:true},{l:""}]}>
+        <Table heads={[{l:"Code"},{l:"Category"},{l:"Notes"},{l:"Budgeted",r:true},{l:"Actual",r:true},{l:"Committed",r:true},{l:"Variance",r:true},{l:"% Used",r:true},{l:""}]}>
           {items.map(b=>{
             const v=b.budgeted-b.actual; const p=b.budgeted?Math.round((b.actual/b.budgeted)*100):0;
             return <TR key={b.id}>
-              <TD><span style={{fontWeight:600}}>{b.category}</span></TD>
+              <td style={{padding:"11px 14px"}}>{b.code?<span style={{fontSize:10,fontWeight:700,color:C.accent,background:C.accentL,padding:"2px 7px",borderRadius:4}}>{b.code}</span>:<span style={{color:C.textMuted,fontSize:11}}>—</span>}</td>
+              <TD><div style={{fontWeight:600}}>{b.category}</div>{b.division&&<div style={{fontSize:10,color:C.textMuted}}>{b.division}</div>}</TD>
               <TD muted>{b.notes||"—"}</TD>
               <TD right>{fmt(b.budgeted)}</TD>
               <TD right bold>{fmt(b.actual)}</TD>
               <TD right muted>{fmt(b.committed)}</TD>
-              <TD right color={v<0?C.red:C.green}>{v<0?"-":"+  "}{fmt(Math.abs(v))}</TD>
+              <TD right color={v<0?C.red:C.green}>{v<0?"-":"+"}{fmt(Math.abs(v))}</TD>
               <td style={{padding:"12px 14px",minWidth:100}}>
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <div style={{flex:1,height:5,background:C.bg,borderRadius:3}}><div style={{height:"100%",width:`${Math.min(p,100)}%`,background:p>100?C.red:p>80?C.amber:C.green,borderRadius:3}}/></div>
                   <span style={{fontSize:11,fontWeight:600,color:p>100?C.red:C.textMid,minWidth:32}}>{p}%</span>
                 </div>
               </td>
-              <td style={{padding:"12px 14px"}}>
-                <div style={{display:"flex",gap:6}}>
-                  <EditBtn onClick={()=>setForm({...b})}/>
-                  <DeleteBtn onClick={()=>setDelId(b.id)}/>
-                </div>
-              </td>
+              <td style={{padding:"12px 14px"}}><div style={{display:"flex",gap:6}}><EditBtn onClick={()=>setForm({...b})}/><DeleteBtn onClick={()=>setDelId(b.id)}/></div></td>
             </TR>;
           })}
           {items.length>0&&(
             <tr style={{background:C.accentL,borderTop:`2px solid ${C.accentB}`}}>
-              <td colSpan={2} style={{padding:"12px 14px",fontSize:13,fontWeight:700,color:C.accent}}>TOTALS</td>
+              <td colSpan={3} style={{padding:"12px 14px",fontSize:13,fontWeight:700,color:C.accent}}>TOTALS</td>
               <td style={{padding:"12px 14px",fontSize:13,fontWeight:700,textAlign:"right"}}>{fmt(totalB)}</td>
               <td style={{padding:"12px 14px",fontSize:13,fontWeight:700,textAlign:"right",color:totalA>totalB?C.red:C.green}}>{fmt(totalA)}</td>
               <td style={{padding:"12px 14px",fontSize:13,fontWeight:700,textAlign:"right",color:C.textMid}}>{fmt(totalC)}</td>
               <td style={{padding:"12px 14px",fontSize:13,fontWeight:700,textAlign:"right",color:(totalB-totalA)<0?C.red:C.green}}>{(totalB-totalA)<0?"-":"+"}{fmt(Math.abs(totalB-totalA))}</td>
-              <td colSpan={2}/>
+              <td colSpan={3}/>
             </tr>
           )}
         </Table>
@@ -682,11 +715,132 @@ const Budget = ({projectId,budgetItems,setBudgetItems,projects,setProjects}) => 
 };
 
 // ─── ESTIMATES (used inside project detail) ───────────────────────────────────
-const EstimateDetail = ({est,estimates,setEstimates,onBack}) => {
+const printEstimate = (est, project, company) => {
+  const lineTotal = i => i.qty*i.cost*(1+i.markup/100);
+  const subtotal = est.lineItems.reduce((s,i)=>s+i.qty*i.cost,0);
+  const total = est.lineItems.reduce((s,i)=>s+lineTotal(i),0);
+  const markupAmt = total-subtotal;
+  const addr = [company.address,company.city,company.state,company.zip].filter(Boolean).join(", ");
+  const groupedItems = {};
+  est.lineItems.forEach(i=>{ if(!groupedItems[i.category]) groupedItems[i.category]=[]; groupedItems[i.category].push(i); });
+
+  const html = `<!DOCTYPE html><html><head><title>${est.name} — ${company.name}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:#1a1a1a;background:#fff;padding:40px;}
+    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:3px solid #E86C2C;}
+    .logo{max-height:70px;max-width:200px;object-fit:contain;}
+    .logo-placeholder{font-size:22px;font-weight:800;color:#E86C2C;letter-spacing:-0.5px;}
+    .company-info{text-align:right;color:#5C6270;font-size:10px;line-height:1.6;}
+    .company-name{font-size:15px;font-weight:700;color:#0F1117;margin-bottom:2px;}
+    .doc-title{font-size:28px;font-weight:800;color:#E86C2C;letter-spacing:-0.5px;margin-bottom:24px;}
+    .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;}
+    .meta-box{background:#F8F9FA;border-radius:6px;padding:14px 16px;border-left:3px solid #E86C2C;}
+    .meta-label{font-size:9px;font-weight:700;color:#9299A6;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;}
+    .meta-value{font-size:12px;font-weight:600;color:#0F1117;}
+    .meta-sub{font-size:10px;color:#5C6270;margin-top:1px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:24px;}
+    .cat-header td{background:#FEF3EC;color:#C85A1E;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:7px 12px;border-bottom:1px solid #F5B894;}
+    th{background:#F4F5F7;color:#5C6270;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:8px 12px;text-align:left;border-bottom:1px solid #E8EAED;}
+    th.r{text-align:right;}
+    td{padding:8px 12px;border-bottom:1px solid #F0F1F3;font-size:10.5px;color:#2D3340;vertical-align:top;}
+    td.r{text-align:right;}
+    td.muted{color:#9299A6;}
+    tr:last-child td{border-bottom:none;}
+    .subtotal-row td{background:#F8F9FA;font-weight:600;font-size:11px;}
+    .total-row td{background:#E86C2C;color:#fff;font-weight:700;font-size:13px;}
+    .totals-block{margin-left:auto;width:280px;margin-bottom:28px;}
+    .totals-line{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #E8EAED;font-size:11px;color:#5C6270;}
+    .totals-line.big{border-top:2px solid #E86C2C;border-bottom:none;padding:10px 0 0;font-size:16px;font-weight:800;color:#E86C2C;margin-top:4px;}
+    .notes-section{margin-bottom:24px;padding:16px;background:#F8F9FA;border-radius:6px;border-left:3px solid #D0D4DA;}
+    .notes-label{font-size:9px;font-weight:700;color:#9299A6;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;}
+    .terms-section{margin-bottom:32px;font-size:10px;color:#9299A6;line-height:1.6;}
+    .signature-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px;}
+    .sig-line{border-top:1px solid #2D3340;padding-top:6px;font-size:10px;color:#5C6270;}
+    .footer{margin-top:40px;padding-top:16px;border-top:1px solid #E8EAED;font-size:9px;color:#9299A6;text-align:center;}
+    @media print{body{padding:24px;}@page{margin:1cm;}}
+  </style></head><body>
+  <div class="header">
+    <div>${company.logo?`<img src="${company.logo}" class="logo" alt="logo"/>`:`<div class="logo-placeholder">${company.name}</div>`}</div>
+    <div class="company-info">
+      <div class="company-name">${company.name}</div>
+      ${addr?`<div>${addr}</div>`:""}
+      ${company.phone?`<div>${company.phone}</div>`:""}
+      ${company.email?`<div>${company.email}</div>`:""}
+      ${company.website?`<div>${company.website}</div>`:""}
+      ${company.license?`<div>Lic. ${company.license}</div>`:""}
+    </div>
+  </div>
+
+  <div class="doc-title">ESTIMATE / PROPOSAL</div>
+
+  <div class="meta-grid">
+    <div class="meta-box">
+      <div class="meta-label">Prepared For</div>
+      <div class="meta-value">${project?.client||"Client"}</div>
+      ${project?.address?`<div class="meta-sub">${project.address}</div>`:""}
+    </div>
+    <div class="meta-box">
+      <div class="meta-label">Estimate Details</div>
+      <div class="meta-value">${est.name}</div>
+      <div class="meta-sub">Date: ${est.date||new Date().toLocaleDateString()} &nbsp;·&nbsp; Status: ${est.status}</div>
+    </div>
+    ${project?.name?`<div class="meta-box"><div class="meta-label">Project</div><div class="meta-value">${project.name}</div></div>`:""}
+    <div class="meta-box">
+      <div class="meta-label">Contract Total</div>
+      <div class="meta-value" style="font-size:20px;color:#E86C2C;">${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(total)}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Description</th><th class="r">Qty</th><th>Unit</th><th class="r">Unit Cost</th><th class="r">Markup</th><th class="r">Total</th></tr></thead>
+    <tbody>
+      ${Object.entries(groupedItems).map(([cat,items])=>`
+        <tr class="cat-header"><td colspan="6">${cat}</td></tr>
+        ${items.map(i=>`<tr>
+          <td>${i.description}</td>
+          <td class="r muted">${i.qty}</td>
+          <td class="muted">${i.unit}</td>
+          <td class="r muted">${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(i.cost)}</td>
+          <td class="r muted">${i.markup}%</td>
+          <td class="r" style="font-weight:600;">${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(i.qty*i.cost*(1+i.markup/100))}</td>
+        </tr>`).join("")}
+      `).join("")}
+    </tbody>
+  </table>
+
+  <div class="totals-block">
+    <div class="totals-line"><span>Cost Subtotal</span><span>${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(subtotal)}</span></div>
+    <div class="totals-line"><span>Markup / Overhead & Profit</span><span>${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(markupAmt)}</span></div>
+    <div class="totals-line big"><span>CONTRACT TOTAL</span><span>${new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(total)}</span></div>
+  </div>
+
+  ${est.notes?`<div class="notes-section"><div class="notes-label">Scope of Work / Notes</div><div style="font-size:11px;color:#2D3340;white-space:pre-wrap;">${est.notes}</div></div>`:""}
+
+  ${company.terms?`<div class="terms-section"><strong>Terms & Conditions:</strong> ${company.terms}</div>`:""}
+
+  <div class="signature-grid">
+    <div><div class="sig-line">Contractor Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date</div><div style="margin-top:4px;font-size:10px;color:#5C6270;">${company.name}</div></div>
+    <div><div class="sig-line">Client Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date</div><div style="margin-top:4px;font-size:10px;color:#5C6270;">${project?.client||""}</div></div>
+  </div>
+
+  <div class="footer">Generated by BuildFlow Pro · ${new Date().toLocaleDateString()}</div>
+  <script>window.onload=()=>{window.print();}</script>
+  </body></html>`;
+
+  const w = window.open("","_blank");
+  w.document.write(html);
+  w.document.close();
+};
+
+const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,companySettings}) => {
   const [form,setForm] = useState(null);
   const [delItemId,setDelItemId] = useState(null);
+  const [showBudgetImport,setShowBudgetImport] = useState(false);
+  const [budgetSel,setBudgetSel] = useState({});
   const CATS = ["Demo","Foundation","Framing","Electrical","Plumbing","HVAC","Insulation","Drywall","Flooring","Cabinets","Countertops","Tile","Painting","Roofing","Windows & Doors","Exterior","Landscaping","Permits","Equipment","GC Overhead","Profit","Other"];
   const UNITS = ["LS","SF","LF","EA","HR","SY","CY","TN","GAL","BD","SQ"];
+  const co = companySettings || DEFAULT_COMPANY;
   const lineTotal = i => i.qty*i.cost*(1+i.markup/100);
   const subtotal = est.lineItems.reduce((s,i)=>s+i.qty*i.cost,0);
   const total = est.lineItems.reduce((s,i)=>s+lineTotal(i),0);
@@ -697,20 +851,63 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack}) => {
   const saveItem = () => {
     if(!form.category||!form.description||!form.cost) return;
     const item = {...form,qty:parseFloat(form.qty)||1,cost:parseFloat(form.cost)||0,markup:parseFloat(form.markup)||0};
-    if(form.id) {
-      update(e=>({...e,lineItems:e.lineItems.map(i=>i.id===form.id?{...item,id:form.id}:i)}));
-    } else {
-      update(e=>({...e,lineItems:[...e.lineItems,{...item,id:uid()}]}));
-    }
+    if(form.id) { update(e=>({...e,lineItems:e.lineItems.map(i=>i.id===form.id?{...item,id:form.id}:i)})); }
+    else { update(e=>({...e,lineItems:[...e.lineItems,{...item,id:uid()}]})); }
     setForm(null);
   };
 
   const delItem = () => { update(e=>({...e,lineItems:e.lineItems.filter(i=>i.id!==delItemId)})); setDelItemId(null); };
   const setStatus = s => update(e=>({...e,status:s}));
 
+  // Budget import
+  const projBudget = budgetItems ? budgetItems.filter(b=>b.projectId===est.projectId) : [];
+  const importFromBudget = () => {
+    const toImport = projBudget.filter(b=>budgetSel[b.id]);
+    if(toImport.length===0){toast.error("Select at least one budget line to import");return;}
+    const newLines = toImport.map(b=>({
+      id:uid(), category:b.category, description:b.category+(b.notes?` — ${b.notes}`:""),
+      qty:1, unit:"LS", cost:b.budgeted||0, markup:co.defaultMarkup||20
+    }));
+    update(e=>({...e,lineItems:[...e.lineItems,...newLines]}));
+    setShowBudgetImport(false); setBudgetSel({});
+    toast.success(`${newLines.length} line${newLines.length!==1?"s":""} imported from budget`);
+  };
+
   return (
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
       {delItemId&&<Confirm msg="Remove this line item?" onOk={delItem} onCancel={()=>setDelItemId(null)}/>}
+
+      {showBudgetImport&&(
+        <div onClick={()=>setShowBudgetImport(false)} style={{position:"fixed",inset:0,background:"rgba(15,17,23,0.5)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:12,padding:24,maxWidth:560,width:"100%",maxHeight:"80vh",display:"flex",flexDirection:"column",gap:16,boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
+            <div style={{fontSize:15,fontWeight:700,color:C.text}}>Import from Budget</div>
+            {projBudget.length===0
+              ? <div style={{color:C.textMuted,fontSize:13}}>No budget items found for this project. Add budget items first.</div>
+              : <>
+                  <div style={{overflowY:"auto",flex:1,display:"flex",flexDirection:"column",gap:8}}>
+                    {projBudget.map(b=>(
+                      <label key={b.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:budgetSel[b.id]?C.accentL:C.bg,borderRadius:8,border:`1px solid ${budgetSel[b.id]?C.accentB:C.border}`,cursor:"pointer",transition:"all 0.1s"}}>
+                        <input type="checkbox" checked={!!budgetSel[b.id]} onChange={e=>setBudgetSel(s=>({...s,[b.id]:e.target.checked}))} style={{width:14,height:14,accentColor:C.accent}}/>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:13,fontWeight:600,color:C.text}}>{b.category}</div>
+                          {b.notes&&<div style={{fontSize:11,color:C.textMuted}}>{b.notes}</div>}
+                        </div>
+                        <div style={{textAlign:"right"}}>
+                          <div style={{fontSize:13,fontWeight:600,color:C.accent}}>{fmt(b.budgeted)}</div>
+                          <div style={{fontSize:10,color:C.textMuted}}>budgeted</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  <div style={{display:"flex",gap:10}}>
+                    <Btn onClick={importFromBudget}>Import Selected ({Object.values(budgetSel).filter(Boolean).length})</Btn>
+                    <Btn v="secondary" onClick={()=>{setShowBudgetImport(false);setBudgetSel({});}}>Cancel</Btn>
+                    <button onClick={()=>{const all={}; projBudget.forEach(b=>all[b.id]=true); setBudgetSel(all);}} style={{marginLeft:"auto",fontSize:11,color:C.accent,background:"none",border:"none",cursor:"pointer"}}>Select All</button>
+                  </div>
+                </>}
+          </div>
+        </div>
+      )}
 
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -721,17 +918,19 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack}) => {
           </div>
           <Badge s={est.status}/>
         </div>
-        <div style={{display:"flex",gap:8}}>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           {est.status==="Draft"&&<Btn v="ghost" sm onClick={()=>setStatus("Sent")}><Ic d={I.send} s={12}/> Mark Sent</Btn>}
           {est.status==="Sent"&&<Btn sm onClick={()=>setStatus("Approved")}><Ic d={I.check} s={12}/> Mark Approved</Btn>}
           {est.status!=="Draft"&&<Btn v="secondary" sm onClick={()=>setStatus("Draft")}>Revert to Draft</Btn>}
-          <Btn sm onClick={()=>setForm({category:"",description:"",qty:1,unit:"LS",cost:"",markup:20})}><Ic d={I.plus} s={13}/> Add Line</Btn>
+          {projBudget.length>0&&<Btn v="secondary" sm onClick={()=>setShowBudgetImport(true)}><Ic d={I.budget} s={12}/> Import Budget</Btn>}
+          <Btn v="secondary" sm onClick={()=>printEstimate(est,project,co)}><Ic d={I.docs} s={12}/> Print PDF</Btn>
+          <Btn sm onClick={()=>setForm({category:"",description:"",qty:1,unit:"LS",cost:"",markup:co.defaultMarkup||20})}><Ic d={I.plus} s={13}/> Add Line</Btn>
         </div>
       </div>
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14}}>
         <Stat label="Cost Subtotal" value={fmt(subtotal)} color={C.blue} icon="dollar"/>
-        <Stat label="Markup" value={fmt(markupAmt)} sub={subtotal?`${Math.round((markupAmt/subtotal)*100)}%`:""} color={C.amber} icon="trend"/>
+        <Stat label="Markup / O&P" value={fmt(markupAmt)} sub={subtotal?`${Math.round((markupAmt/subtotal)*100)}%`:""} color={C.amber} icon="trend"/>
         <Stat label="Contract Total" value={fmt(total)} color={C.accent} icon="dollar"/>
         <Stat label="Line Items" value={est.lineItems.length} color={C.purple} icon="est"/>
       </div>
@@ -745,7 +944,18 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack}) => {
             <Inp label="Qty" type="number" value={form.qty} onChange={e=>setForm({...form,qty:e.target.value})}/>
             <Sel label="Unit" value={form.unit} onChange={e=>setForm({...form,unit:e.target.value})} options={UNITS}/>
             <Inp label="Unit Cost ($)" type="number" value={form.cost} onChange={e=>setForm({...form,cost:e.target.value})} placeholder="0.00"/>
-            <Inp label="Markup %" type="number" value={form.markup} onChange={e=>setForm({...form,markup:e.target.value})}/>
+            <div>
+              <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:6}}>Markup %</div>
+              <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                {[10,15,20,25,30].map(p=>(
+                  <button key={p} onClick={()=>setForm({...form,markup:p})}
+                    style={{padding:"4px 10px",borderRadius:5,border:`1px solid ${form.markup==p?C.accent:C.border}`,background:form.markup==p?C.accentL:"transparent",color:form.markup==p?C.accent:C.textMid,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                    {p}%
+                  </button>
+                ))}
+                <input type="number" value={form.markup} onChange={e=>setForm({...form,markup:e.target.value})} style={{width:60,padding:"4px 8px",borderRadius:5,border:`1px solid ${C.border}`,fontSize:12,fontFamily:"inherit",textAlign:"center"}}/>
+              </div>
+            </div>
           </Grid>
           {form.cost&&form.qty&&(
             <div style={{marginTop:12,padding:"10px 14px",background:C.accentL,borderRadius:7,fontSize:13}}>
@@ -769,19 +979,19 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack}) => {
             <TD right muted>{fmt(item.cost)}</TD>
             <td style={{padding:"11px 14px",textAlign:"right",fontSize:13,color:C.amber,fontWeight:500}}>{item.markup}%</td>
             <TD right bold color={C.accent}>{fmt(lineTotal(item))}</TD>
-            <td style={{padding:"11px 14px"}}>
-              <div style={{display:"flex",gap:6}}>
-                <EditBtn onClick={()=>setForm({...item})}/>
-                <DeleteBtn onClick={()=>setDelItemId(item.id)}/>
-              </div>
-            </td>
+            <td style={{padding:"11px 14px"}}><div style={{display:"flex",gap:6}}><EditBtn onClick={()=>setForm({...item})}/><DeleteBtn onClick={()=>setDelItemId(item.id)}/></div></td>
           </TR>
         ))}
-        {est.lineItems.length===0&&<tr><td colSpan={8}><EmptyState msg="No line items yet. Click 'Add Line' above."/></td></tr>}
+        {est.lineItems.length===0&&<tr><td colSpan={8}><EmptyState msg="No line items yet. Click 'Add Line' or 'Import Budget' above."/></td></tr>}
         {est.lineItems.length>0&&(<>
           <tr style={{background:C.bg,borderTop:`1px solid ${C.border}`}}>
             <td colSpan={6} style={{padding:"10px 14px",fontSize:12,color:C.textSub,textAlign:"right",fontWeight:600}}>COST SUBTOTAL</td>
             <td style={{padding:"10px 14px",fontSize:13,fontWeight:700,textAlign:"right"}}>{fmt(subtotal)}</td>
+            <td/>
+          </tr>
+          <tr style={{background:C.bg}}>
+            <td colSpan={6} style={{padding:"8px 14px",fontSize:11,color:C.textSub,textAlign:"right"}}>Markup / Overhead & Profit</td>
+            <td style={{padding:"8px 14px",fontSize:12,textAlign:"right",color:C.amber,fontWeight:600}}>{fmt(markupAmt)}</td>
             <td/>
           </tr>
           <tr style={{background:C.accentL,borderTop:`2px solid ${C.accentB}`}}>
@@ -795,7 +1005,7 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack}) => {
   );
 };
 
-const Estimates = ({projectId,estimates,setEstimates,project}) => {
+const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,companySettings}) => {
   const [selectedId,setSelectedId] = useState(null);
   const [showForm,setShowForm] = useState(false);
   const [delId,setDelId] = useState(null);
@@ -817,7 +1027,7 @@ const Estimates = ({projectId,estimates,setEstimates,project}) => {
   if(selectedId) {
     const est = estimates.find(e=>e.id===selectedId);
     if(!est){setSelectedId(null);return null;}
-    return <EstimateDetail est={est} estimates={estimates} setEstimates={setEstimates} onBack={()=>setSelectedId(null)}/>;
+    return <EstimateDetail est={est} estimates={estimates} setEstimates={setEstimates} onBack={()=>setSelectedId(null)} budgetItems={budgetItems} project={project} companySettings={companySettings}/>;
   }
 
   return (
@@ -1485,6 +1695,86 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
   );
 };
 
+// ─── COMPANY SETTINGS ─────────────────────────────────────────────────────────
+const CompanySettings = ({settings,onSave}) => {
+  const [form,setForm] = useState({...settings});
+  const [logoUploading,setLogoUploading] = useState(false);
+  const logoRef = useRef(null);
+
+  const onLogoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if(!file) return;
+    setLogoUploading(true);
+    const reader = new FileReader();
+    reader.onload = (ev) => { setForm(f=>({...f,logo:ev.target.result})); setLogoUploading(false); };
+    reader.readAsDataURL(file);
+  };
+
+  const save = () => { onSave(form); toast.success("Company settings saved"); };
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:20}}>
+      <PageHead eyebrow="Configuration" title="Company Settings"/>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+        {/* Left column */}
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          <Card>
+            <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:16}}>Company Logo</div>
+            <input ref={logoRef} type="file" accept="image/*" onChange={onLogoSelect} style={{display:"none"}}/>
+            <div onClick={()=>logoRef.current?.click()} style={{border:`2px dashed ${form.logo?C.green+"60":C.border}`,borderRadius:10,cursor:"pointer",overflow:"hidden",minHeight:120,display:"flex",alignItems:"center",justifyContent:"center",background:form.logo?C.greenL:C.bg,transition:"all 0.15s"}}>
+              {form.logo
+                ? <img src={form.logo} alt="Logo" style={{maxHeight:100,maxWidth:"100%",objectFit:"contain",padding:8}}/>
+                : <div style={{textAlign:"center",padding:24}}>
+                    <div style={{fontSize:28,marginBottom:6}}>🏗️</div>
+                    <div style={{fontSize:12,fontWeight:600,color:C.textMid}}>Click to upload logo</div>
+                    <div style={{fontSize:10,color:C.textMuted,marginTop:2}}>PNG, JPG, SVG</div>
+                  </div>}
+            </div>
+            {form.logo&&<button onClick={()=>setForm(f=>({...f,logo:""}))} style={{marginTop:8,fontSize:11,color:C.red,background:"none",border:"none",cursor:"pointer",padding:0}}>Remove logo</button>}
+          </Card>
+
+          <Card>
+            <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:16}}>Estimate Defaults</div>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              <Inp label="Default Markup %" type="number" value={form.defaultMarkup} onChange={e=>setForm({...form,defaultMarkup:parseFloat(e.target.value)||0})} placeholder="20"/>
+              <TA label="Default Payment Terms" value={form.terms} onChange={e=>setForm({...form,terms:e.target.value})} rows={3} placeholder="e.g. Net 30. Payment due within 30 days..."/>
+            </div>
+          </Card>
+        </div>
+
+        {/* Right column */}
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          <Card>
+            <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:16}}>Company Information</div>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              <Inp label="Company Name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="My Construction Co."/>
+              <Inp label="License Number" value={form.license} onChange={e=>setForm({...form,license:e.target.value})} placeholder="Contractor License #"/>
+              <Inp label="Phone" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="(555) 000-0000"/>
+              <Inp label="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="info@mycompany.com"/>
+              <Inp label="Website" value={form.website} onChange={e=>setForm({...form,website:e.target.value})} placeholder="www.mycompany.com"/>
+            </div>
+          </Card>
+
+          <Card>
+            <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:16}}>Business Address</div>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              <Inp label="Street Address" value={form.address} onChange={e=>setForm({...form,address:e.target.value})} placeholder="123 Main Street"/>
+              <Grid cols="1fr 1fr" gap={12}>
+                <Inp label="City" value={form.city} onChange={e=>setForm({...form,city:e.target.value})} placeholder="City"/>
+                <Inp label="State" value={form.state} onChange={e=>setForm({...form,state:e.target.value})} placeholder="CA"/>
+                <Inp label="ZIP" value={form.zip} onChange={e=>setForm({...form,zip:e.target.value})} placeholder="90210"/>
+              </Grid>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      <div><Btn onClick={save}>Save Settings</Btn></div>
+    </div>
+  );
+};
+
 // ─── CONTACTS ────────────────────────────────────────────────────────────────
 const Contacts = ({contacts,setContacts}) => {
   const [form,setForm] = useState(null);
@@ -1702,7 +1992,7 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
         ))}
 
         {activeTab==="budget"&&<Budget projectId={p.id} budgetItems={budgetItems} setBudgetItems={setBudgetItems} projects={projects} setProjects={setProjects}/>}
-        {activeTab==="estimates"&&<Estimates projectId={p.id} estimates={estimates} setEstimates={setEstimates} project={p}/>}
+        {activeTab==="estimates"&&<Estimates projectId={p.id} estimates={estimates} setEstimates={setEstimates} project={p} budgetItems={budgetItems} companySettings={companySettings}/>}
         {activeTab==="invoices"&&<ProjInvoices projectId={p.id} invoices={invoices} setInvoices={setInvoices} project={p}/>}
         {activeTab==="change orders"&&<ChangeOrders projectId={p.id} cos={cos} setCos={setCos} projects={projects}/>}
         {activeTab==="sub bids"&&<SubBids projectId={p.id} bids={bids} setBids={setBids} projects={projects}/>}
@@ -1944,7 +2234,7 @@ const GlobalInvoices = ({invoices,setInvoices,projects}) => {
 };
 
 // ─── GLOBAL ESTIMATES ────────────────────────────────────────────────────────
-const GlobalEstimates = ({estimates,setEstimates,projects}) => {
+const GlobalEstimates = ({estimates,setEstimates,projects,budgetItems,companySettings}) => {
   const [showForm,setShowForm] = useState(false);
   const [form,setForm] = useState({projectId:projects[0]?.id||"",name:"",notes:""});
   const [navTo,setNavTo] = useState(null);
@@ -1953,9 +2243,10 @@ const GlobalEstimates = ({estimates,setEstimates,projects}) => {
   if(navTo){
     const est=estimates.find(e=>e.id===navTo);
     if(!est){setNavTo(null);return null;}
+    const project=projects.find(p=>p.id===est.projectId);
     return <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <Btn v="secondary" sm onClick={()=>setNavTo(null)}><Ic d={I.back} s={13}/> All Estimates</Btn>
-      <EstimateDetail est={est} estimates={estimates} setEstimates={setEstimates} onBack={()=>setNavTo(null)}/>
+      <EstimateDetail est={est} estimates={estimates} setEstimates={setEstimates} onBack={()=>setNavTo(null)} budgetItems={budgetItems} project={project} companySettings={companySettings}/>
     </div>;
   }
 
@@ -2502,7 +2793,7 @@ const Reports = ({projects,invoices,estimates,cos,budgetItems,pos}) => {
 const fromDb = {
   project: r => ({ id:r.id, name:r.name, client:r.client||"", status:r.status||"Lead", phase:r.phase||"Pre-Construction", type:r.type||"Residential", value:parseFloat(r.value)||0, spent:parseFloat(r.spent)||0, progress:parseInt(r.progress)||0, address:r.address||"", start:r.start_date||"", end:r.end_date||"", notes:r.notes||"" }),
   contact: r => ({ id:r.id, name:r.name, company:r.company||"", type:r.type||"Client", email:r.email||"", phone:r.phone||"", city:r.city||"" }),
-  budget: r => ({ id:r.id, projectId:r.project_id, category:r.category||"", budgeted:parseFloat(r.budgeted)||0, actual:parseFloat(r.actual)||0, committed:parseFloat(r.committed)||0, notes:r.notes||"" }),
+  budget: r => ({ id:r.id, projectId:r.project_id, category:r.category||"", division:r.division||"", code:r.code||"", budgeted:parseFloat(r.budgeted)||0, actual:parseFloat(r.actual)||0, committed:parseFloat(r.committed)||0, notes:r.notes||"" }),
   estimate: (r, lines) => ({ id:r.id, projectId:r.project_id, name:r.name||"", status:r.status||"Draft", date:r.date||"", notes:r.notes||"", lineItems:(lines||[]).map(l=>({ id:l.id, category:l.category||"", description:l.description||"", qty:parseFloat(l.qty)||1, unit:l.unit||"LS", cost:parseFloat(l.cost)||0, markup:parseFloat(l.markup)||0 })) }),
   invoice: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", description:r.description||"", amount:parseFloat(r.amount)||0, issued:r.issued||"", due:r.due||"", status:r.status||"Pending" }),
   co: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", title:r.title||"", category:r.category||"", description:r.description||"", amount:parseFloat(r.amount)||0, status:r.status||"Pending", requestedBy:r.requested_by||"Owner", date:r.date||"" }),
@@ -2525,7 +2816,7 @@ const db = {
   async saveContact(c) { const {error} = await sb.from("contacts").upsert({id:c.id,name:c.name,company:c.company,type:c.type,email:c.email,phone:c.phone,city:c.city}); if(error) console.error("saveContact",error); return !error; },
   async deleteContact(id) { await sb.from("contacts").delete().eq("id",id); },
   // Budget
-  async saveBudget(b) { const {error} = await sb.from("budget_items").upsert({id:b.id,project_id:b.projectId,category:b.category,budgeted:b.budgeted||0,actual:b.actual||0,committed:b.committed||0,notes:b.notes}); if(error) console.error("saveBudget",error); return !error; },
+  async saveBudget(b) { const {error} = await sb.from("budget_items").upsert({id:b.id,project_id:b.projectId,category:b.category,division:b.division||null,code:b.code||null,budgeted:b.budgeted||0,actual:b.actual||0,committed:b.committed||0,notes:b.notes}); if(error) console.error("saveBudget",error); return !error; },
   async deleteBudget(id) { await sb.from("budget_items").delete().eq("id",id); },
   // Estimates
   async saveEstimate(e) { const {error} = await sb.from("estimates").upsert({id:e.id,project_id:e.projectId,name:e.name,status:e.status,date:e.date||null,notes:e.notes}); if(error) console.error("saveEstimate",error); return !error; },
@@ -2586,6 +2877,8 @@ export default function App() {
   const [punchList,setPunchList] = useState([]);
   const [pos,setPOs] = useState([]);
   const [meetings,setMeetings] = useState([]);
+  const [companySettings,setCompanySettings] = useState(()=>{try{const s=localStorage.getItem("bf_company");return s?JSON.parse(s):DEFAULT_COMPANY;}catch{return DEFAULT_COMPANY;}});
+  const saveCompany = (s) => { setCompanySettings(s); localStorage.setItem("bf_company",JSON.stringify(s)); };
 
   // ── Load all data ──
   useEffect(() => {
@@ -2686,6 +2979,7 @@ export default function App() {
     {id:"photos",label:"Photos",icon:"photos"},
     {id:"contacts",label:"Contacts",icon:"contacts"},
     {id:"reports",label:"Reports",icon:"report"},
+    {id:"settings",label:"Settings",icon:"hard"},
   ];
 
   if(loading) return (
@@ -2840,6 +3134,7 @@ export default function App() {
     punchList, setPunchList:setPunchListDB,
     pos, setPOs:setPOsDB,
     meetings, setMeetings:setMeetingsDB,
+    companySettings,
   };
 
   // Notification badge counts for sidebar
@@ -2872,10 +3167,15 @@ export default function App() {
           </button>;
         })}
       </nav>
-      <div style={{padding:"10px 12px",borderTop:`1px solid ${C.border}`}}>
+      <div style={{padding:"10px 12px",borderTop:`1px solid ${C.border}`,cursor:"pointer"}} onClick={()=>navigate("settings")}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:30,height:30,borderRadius:"50%",background:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0}}>GC</div>
-          <div><div style={{fontSize:12,fontWeight:600,color:C.text}}>My Company</div><div style={{fontSize:11,color:C.textMuted}}>Project Manager</div></div>
+          {companySettings.logo
+            ? <img src={companySettings.logo} style={{width:30,height:30,borderRadius:"50%",objectFit:"cover",flexShrink:0}} alt="logo"/>
+            : <div style={{width:30,height:30,borderRadius:"50%",background:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0}}>{(companySettings.name||"GC").substring(0,2).toUpperCase()}</div>}
+          <div style={{flex:1,overflow:"hidden"}}>
+            <div style={{fontSize:12,fontWeight:600,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{companySettings.name||"My Company"}</div>
+            <div style={{fontSize:11,color:C.textMuted}}>⚙ Settings</div>
+          </div>
         </div>
       </div>
     </div>
@@ -2977,7 +3277,7 @@ export default function App() {
             <Projects {...sharedProps} contacts={contacts} initialId={navPayload}/>
           </div>
           {tab==="dashboard"&&<Dashboard projects={projects} invoices={invoices} cos={cos} rfis={rfis} punchList={punchList} onNav={navigate}/>}
-          {tab==="estimates"&&<GlobalEstimates estimates={estimates} setEstimates={setEstimatesDB} projects={projects}/>}
+          {tab==="estimates"&&<GlobalEstimates estimates={estimates} setEstimates={setEstimatesDB} projects={projects} budgetItems={budgetItems} companySettings={companySettings}/>}
           {tab==="invoices"&&<GlobalInvoices invoices={invoices} setInvoices={setInvoicesDB} projects={projects}/>}
           {tab==="cos"&&<ChangeOrders cos={cos} setCos={setCosDB} projects={projects}/>}
           {tab==="budget"&&<div style={{display:"flex",flexDirection:"column",gap:20}}>
@@ -3001,6 +3301,7 @@ export default function App() {
           {tab==="photos"&&<Photos photos={photos} setPhotos={setPhotosDB} projects={projects}/>}
           {tab==="contacts"&&<Contacts contacts={contacts} setContacts={setContactsDB}/>}
           {tab==="reports"&&<Reports projects={projects} invoices={invoices} estimates={estimates} cos={cos} budgetItems={budgetItems} pos={pos}/>}
+          {tab==="settings"&&<CompanySettings settings={companySettings} onSave={saveCompany}/>}
         </div>
       </div>
     </div>
