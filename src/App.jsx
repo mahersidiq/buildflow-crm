@@ -1096,20 +1096,46 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
   const [delItemId,setDelItemId] = useState(null);
   const [showBudgetImport,setShowBudgetImport] = useState(false);
   const [budgetSel,setBudgetSel] = useState({});
-  const [showProfit,setShowProfit] = useState(true);
+  // Column visibility: qty, unit, cost, markup are toggleable; category, description, total always shown
+  const [colVis,setColVis] = useState({qty:true,unit:true,cost:true,markup:true});
+  const [showColMenu,setShowColMenu] = useState(false);
+  // Collapsed parent rows (Set of item ids)
+  const [collapsed,setCollapsed] = useState(new Set());
+
   const CATS = ["Demo","Foundation","Framing","Electrical","Plumbing","HVAC","Insulation","Drywall","Flooring","Cabinets","Countertops","Tile","Painting","Roofing","Windows & Doors","Exterior","Landscaping","Permits","Equipment","GC Overhead","Profit","Other"];
   const UNITS = ["LS","SF","LF","EA","HR","SY","CY","TN","GAL","BD","SQ"];
   const co = companySettings || DEFAULT_COMPANY;
+
+  // Only non-hidden items count toward totals
   const lineTotal = i => i.qty*i.cost*(1+i.markup/100);
-  const subtotal = est.lineItems.reduce((s,i)=>s+i.qty*i.cost,0);
-  const total = est.lineItems.reduce((s,i)=>s+lineTotal(i),0);
+  const visItems = est.lineItems.filter(i=>!i.hidden);
+  const subtotal = visItems.reduce((s,i)=>s+i.qty*i.cost,0);
+  const total = visItems.reduce((s,i)=>s+lineTotal(i),0);
   const markupAmt = total-subtotal;
+  const overallMarkupPct = subtotal>0 ? Math.round((markupAmt/subtotal)*10000)/100 : 0;
+  const overallMarginPct = total>0 ? Math.round((markupAmt/total)*10000)/100 : 0;
+
+  // Column span helpers
+  const numOptCols = ["qty","unit","cost","markup"].filter(k=>colVis[k]).length;
+  const numDataCols = 2 + numOptCols + 1; // cat + desc + opts + total
+  const footerSpan = numDataCols - 1;     // all data cols except the "total" value cell
+  const emptySpan  = numDataCols + 1;     // all data cols + actions
+
+  // Markup ↔ Margin math
+  const mu2mg = mu => { const v=parseFloat(mu)||0; return Math.round(v/(100+v)*10000)/100; };
+  const mg2mu = mg => { const v=parseFloat(mg)||0; return v>=100?99.99:Math.round(v/(100-v)*10000)/100; };
 
   const update = fn => setEstimates(estimates.map(e=>e.id===est.id?fn(e):e));
 
+  const openForm = (base) => {
+    const mu = parseFloat(base.markup)||0;
+    setForm({...base, _margin:String(mu2mg(mu))});
+  };
+
   const saveItem = () => {
     if(!form.category||!form.description||!form.cost) return;
-    const item = {...form,qty:parseFloat(form.qty)||1,cost:parseFloat(form.cost)||0,markup:parseFloat(form.markup)||0};
+    const {_margin,...rest} = form;
+    const item = {...rest, qty:parseFloat(form.qty)||1, cost:parseFloat(form.cost)||0, markup:parseFloat(form.markup)||0};
     if(form.id) { update(e=>({...e,lineItems:e.lineItems.map(i=>i.id===form.id?{...item,id:form.id}:i)})); }
     else { update(e=>({...e,lineItems:[...e.lineItems,{...item,id:uid()}]})); }
     setForm(null);
@@ -1117,23 +1143,76 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
 
   const delItem = () => { update(e=>({...e,lineItems:e.lineItems.filter(i=>i.id!==delItemId)})); setDelItemId(null); };
   const setStatus = s => update(e=>({...e,status:s}));
+  const toggleHidden = id => update(e=>({...e,lineItems:e.lineItems.map(i=>i.id===id?{...i,hidden:!i.hidden}:i)}));
+  const toggleCol = k => setColVis(v=>({...v,[k]:!v[k]}));
+  const toggleCollapse = id => setCollapsed(s=>{const n=new Set(s); n.has(id)?n.delete(id):n.add(id); return n;});
 
-  // Budget import
   const projBudget = budgetItems ? budgetItems.filter(b=>b.projectId===est.projectId) : [];
   const importFromBudget = () => {
     const toImport = projBudget.filter(b=>budgetSel[b.id]);
     if(toImport.length===0){toast.error("Select at least one budget line to import");return;}
-    const newLines = toImport.map(b=>({
-      id:uid(), category:b.category, description:b.category+(b.notes?` — ${b.notes}`:""),
-      qty:1, unit:"LS", cost:b.budgeted||0, markup:co.defaultMarkup||20
-    }));
+    const newLines = toImport.map(b=>({id:uid(),category:b.category,description:b.category+(b.notes?` — ${b.notes}`:""),qty:1,unit:"LS",cost:b.budgeted||0,markup:co.defaultMarkup||20}));
     update(e=>({...e,lineItems:[...e.lineItems,...newLines]}));
     setShowBudgetImport(false); setBudgetSel({});
     toast.success(`${newLines.length} line${newLines.length!==1?"s":""} imported from budget`);
   };
 
+  // Tree helpers
+  const topItems = est.lineItems.filter(i=>!i.parentId);
+  const getChildren = pid => est.lineItems.filter(i=>i.parentId===pid);
+
+  const renderRow = (item, isChild=false) => {
+    const isHidden = !!item.hidden;
+    const children = getChildren(item.id);
+    const hasKids = children.length>0;
+    const isCollapsed = collapsed.has(item.id);
+    const lt = lineTotal(item);
+    const iBtn = (title,onClick,label,active=false) => (
+      <button title={title} onClick={onClick} style={{background:active?C.accentL:"none",border:active?`1px solid ${C.accentB}`:"none",borderRadius:4,cursor:"pointer",padding:"3px 6px",color:active?C.accent:C.textMuted,fontSize:11,fontFamily:"inherit",lineHeight:1}}>
+        {label}
+      </button>
+    );
+    return (
+      <React.Fragment key={item.id}>
+        <TR style={{opacity:isHidden?0.38:1,background:isChild?C.bg+"55":"transparent"}}>
+          <td style={{padding:"10px 14px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:5,paddingLeft:isChild?18:0}}>
+              {hasKids
+                ? <button onClick={()=>toggleCollapse(item.id)} style={{background:"none",border:"none",cursor:"pointer",padding:"0 2px",color:C.textMuted,fontSize:9,lineHeight:1,fontFamily:"inherit"}}>{isCollapsed?"▶":"▼"}</button>
+                : isChild&&<span style={{width:13,display:"inline-block"}}/>}
+              <span style={{fontSize:11,color:C.accent,background:C.accentL,padding:"2px 7px",borderRadius:4,fontWeight:600,whiteSpace:"nowrap"}}>{item.category}</span>
+              {isHidden&&<span style={{fontSize:9,color:C.textMuted,background:C.border,padding:"1px 5px",borderRadius:3,fontWeight:600}}>HIDDEN</span>}
+            </div>
+          </td>
+          <TD><span style={{paddingLeft:isChild?18:0}}>{item.description}</span></TD>
+          {colVis.qty&&<TD right muted>{item.qty}</TD>}
+          {colVis.unit&&<TD right muted>{item.unit}</TD>}
+          {colVis.cost&&<TD right muted>{fmt(item.cost)}</TD>}
+          {colVis.markup&&(
+            <td style={{padding:"10px 14px",textAlign:"right",fontSize:12,color:C.amber,fontWeight:500}}>
+              <div>{item.markup}%</div>
+              <div style={{fontSize:10,color:C.textMuted}}>{mu2mg(item.markup)}% mgn</div>
+            </td>
+          )}
+          <TD right bold color={isHidden?C.textMuted:C.accent}>{fmt(lt)}</TD>
+          <td style={{padding:"10px 10px"}}>
+            <div style={{display:"flex",gap:2,justifyContent:"flex-end",alignItems:"center"}}>
+              {iBtn(isHidden?"Show row":"Hide row",()=>toggleHidden(item.id),isHidden?"show":"hide",isHidden)}
+              {!isChild&&iBtn("Add sub-row",()=>openForm({category:item.category,description:"",qty:1,unit:"LS",cost:"",markup:co.defaultMarkup||20,parentId:item.id}),"+ sub")}
+              <EditBtn onClick={()=>openForm({...item})}/>
+              <DeleteBtn onClick={()=>setDelItemId(item.id)}/>
+            </div>
+          </td>
+        </TR>
+        {!isCollapsed&&children.map(child=>renderRow(child,true))}
+      </React.Fragment>
+    );
+  };
+
+  const COL_LABELS = [{k:"qty",l:"Qty"},{k:"unit",l:"Unit"},{k:"cost",l:"Unit Cost"},{k:"markup",l:"Markup / Margin"}];
+
   return (
-    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+    <div style={{display:"flex",flexDirection:"column",gap:16}} onClick={()=>showColMenu&&setShowColMenu(false)}>
       {delItemId&&<Confirm msg="Remove this line item?" onOk={delItem} onCancel={()=>setDelItemId(null)}/>}
 
       {showBudgetImport&&(
@@ -1141,7 +1220,7 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
           <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:12,padding:24,maxWidth:560,width:"100%",maxHeight:"80vh",display:"flex",flexDirection:"column",gap:16,boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
             <div style={{fontSize:15,fontWeight:700,color:C.text}}>Import from Budget</div>
             {projBudget.length===0
-              ? <div style={{color:C.textMuted,fontSize:13}}>No budget items found for this project. Add budget items first.</div>
+              ? <div style={{color:C.textMuted,fontSize:13}}>No budget items found for this project.</div>
               : <>
                   <div style={{overflowY:"auto",flex:1,display:"flex",flexDirection:"column",gap:8}}>
                     {projBudget.map(b=>(
@@ -1168,94 +1247,143 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
         </div>
       )}
 
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      {/* ── Header row ── */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <Btn v="secondary" sm onClick={onBack}><Ic d={I.back} s={13}/> Back</Btn>
           <div>
             <div style={{fontSize:16,fontWeight:700,color:C.text}}>{est.name}</div>
-            <div style={{fontSize:12,color:C.textSub}}>{est.date} · {est.lineItems.length} line items</div>
+            <div style={{fontSize:12,color:C.textSub}}>{est.date} · {est.lineItems.length} lines · {est.lineItems.filter(i=>i.hidden).length>0&&`${est.lineItems.filter(i=>i.hidden).length} hidden`}</div>
           </div>
           <Badge s={est.status}/>
         </div>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
           {est.status==="Draft"&&<Btn v="ghost" sm onClick={()=>setStatus("Sent")}><Ic d={I.send} s={12}/> Mark Sent</Btn>}
           {est.status==="Sent"&&<Btn sm onClick={()=>setStatus("Approved")}><Ic d={I.check} s={12}/> Mark Approved</Btn>}
           {est.status!=="Draft"&&<Btn v="secondary" sm onClick={()=>setStatus("Draft")}>Revert to Draft</Btn>}
           {projBudget.length>0&&<Btn v="secondary" sm onClick={()=>setShowBudgetImport(true)}><Ic d={I.budget} s={12}/> Import Budget</Btn>}
-          <Btn v="secondary" sm onClick={()=>printEstimate(est,project,co,!showProfit)}><Ic d={I.docs} s={12}/> Print PDF</Btn>
-          <Btn v={showProfit?"secondary":"ghost"} sm onClick={()=>setShowProfit(v=>!v)}>{showProfit?"Hide Profit":"Show Profit"}</Btn>
-          <Btn sm onClick={()=>setForm({category:"",description:"",qty:1,unit:"LS",cost:"",markup:co.defaultMarkup||20})}><Ic d={I.plus} s={13}/> Add Line</Btn>
+          <Btn v="secondary" sm onClick={()=>printEstimate(est,project,co,!colVis.markup)}><Ic d={I.docs} s={12}/> Print PDF</Btn>
+          {/* Columns dropdown */}
+          <div style={{position:"relative"}}>
+            <Btn v="secondary" sm onClick={e=>{e.stopPropagation();setShowColMenu(v=>!v);}}>Columns ▾</Btn>
+            {showColMenu&&(
+              <div onClick={e=>e.stopPropagation()} style={{position:"absolute",right:0,top:"calc(100% + 6px)",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 14px",zIndex:300,minWidth:180,boxShadow:"0 8px 24px rgba(0,0,0,0.15)",display:"flex",flexDirection:"column",gap:8}}>
+                <div style={{fontSize:10,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:2}}>Show / Hide Columns</div>
+                {COL_LABELS.map(({k,l})=>(
+                  <label key={k} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:12,color:C.text,userSelect:"none"}}>
+                    <input type="checkbox" checked={!!colVis[k]} onChange={()=>toggleCol(k)} style={{accentColor:C.accent,width:13,height:13}}/>
+                    {l}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          <Btn sm onClick={()=>openForm({category:"",description:"",qty:1,unit:"LS",cost:"",markup:co.defaultMarkup||20})}><Ic d={I.plus} s={13}/> Add Line</Btn>
         </div>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:showProfit?"repeat(4,1fr)":"repeat(3,1fr)",gap:14}}>
-        {showProfit&&<Stat label="Cost Subtotal" value={fmt(subtotal)} color={C.blue} icon="dollar"/>}
-        {showProfit&&<Stat label="Markup / O&P" value={fmt(markupAmt)} sub={subtotal?`${Math.round((markupAmt/subtotal)*100)}%`:""} color={C.amber} icon="trend"/>}
+      {/* ── Stats ── */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14}}>
+        <Stat label="Cost Subtotal" value={fmt(subtotal)} color={C.blue} icon="dollar"/>
+        <div style={{background:C.surface,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`}}>
+          <div style={{fontSize:11,color:C.textMuted,marginBottom:6}}>Profit / O&P</div>
+          <div style={{fontSize:20,fontWeight:700,color:C.amber,marginBottom:6}}>{fmt(markupAmt)}</div>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:9,color:C.textMuted,marginBottom:3}}>MARKUP %</div>
+              <input type="number" value={overallMarkupPct} readOnly
+                style={{width:"100%",padding:"4px 7px",borderRadius:5,border:`1px solid ${C.border}`,background:C.bg,color:C.amber,fontSize:12,fontWeight:600,fontFamily:"inherit",textAlign:"right"}}/>
+            </div>
+            <div style={{fontSize:11,color:C.textMuted,marginTop:12}}>↔</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:9,color:C.textMuted,marginBottom:3}}>MARGIN %</div>
+              <input type="number" value={overallMarginPct} readOnly
+                style={{width:"100%",padding:"4px 7px",borderRadius:5,border:`1px solid ${C.border}`,background:C.bg,color:C.amber,fontSize:12,fontWeight:600,fontFamily:"inherit",textAlign:"right"}}/>
+            </div>
+          </div>
+        </div>
         <Stat label="Contract Total" value={fmt(total)} color={C.accent} icon="dollar"/>
-        <Stat label="Line Items" value={est.lineItems.length} color={C.purple} icon="est"/>
+        <Stat label="Line Items" value={`${visItems.length}${est.lineItems.length!==visItems.length?" vis":""}`} color={C.purple} icon="est"/>
       </div>
 
+      {/* ── Add / Edit form ── */}
       {form!==null&&(
         <Card style={{border:`1px solid ${C.accentB}`}}>
-          <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:16}}>{form.id?"Edit":"Add"} Line Item</div>
+          <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:4}}>{form.id?"Edit":"Add"} Line Item</div>
+          {form.parentId&&<div style={{fontSize:11,color:C.textMuted,marginBottom:12}}>Sub-row under: <strong style={{color:C.accent}}>{est.lineItems.find(i=>i.id===form.parentId)?.category||"parent"}</strong></div>}
           <Grid cols="1fr 1fr" gap={12}>
             <Sel label="Category" value={form.category} onChange={e=>setForm({...form,category:e.target.value})} options={["Select...",...CATS]}/>
             <Inp label="Description" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Describe scope of work"/>
             <Inp label="Qty" type="number" value={form.qty} onChange={e=>setForm({...form,qty:e.target.value})}/>
             <Sel label="Unit" value={form.unit} onChange={e=>setForm({...form,unit:e.target.value})} options={UNITS}/>
             <Inp label="Unit Cost ($)" type="number" value={form.cost} onChange={e=>setForm({...form,cost:e.target.value})} placeholder="0.00"/>
+            {/* Linked Markup ↔ Margin */}
             <div>
-              <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:6}}>Markup %</div>
-              <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-                {[10,15,20,25,30].map(p=>(
-                  <button key={p} onClick={()=>setForm({...form,markup:p})}
-                    style={{padding:"4px 10px",borderRadius:5,border:`1px solid ${form.markup==p?C.accent:C.border}`,background:form.markup==p?C.accentL:"transparent",color:form.markup==p?C.accent:C.textMid,fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                    {p}%
+              <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:6}}>Markup % ↔ Margin %</div>
+              <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:8}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:9,color:C.textMuted,marginBottom:3}}>MARKUP (on cost)</div>
+                  <input type="number" min={0} value={form.markup}
+                    onChange={e=>{const mu=parseFloat(e.target.value)||0; setForm({...form,markup:e.target.value,_margin:String(mu2mg(mu))});}}
+                    style={{width:"100%",padding:"6px 8px",borderRadius:6,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"inherit",textAlign:"center"}}/>
+                </div>
+                <div style={{color:C.textMuted,fontSize:13,marginTop:12,flexShrink:0}}>↔</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:9,color:C.textMuted,marginBottom:3}}>MARGIN (on revenue)</div>
+                  <input type="number" min={0} max={99.99} value={form._margin||""}
+                    onChange={e=>{const mg=parseFloat(e.target.value)||0; setForm({...form,_margin:e.target.value,markup:mg2mu(mg)});}}
+                    style={{width:"100%",padding:"6px 8px",borderRadius:6,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"inherit",textAlign:"center"}}/>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                {[[10,9.09],[15,13.04],[20,16.67],[25,20],[30,23.08]].map(([mu,mg])=>(
+                  <button key={mu} onClick={()=>setForm({...form,markup:mu,_margin:String(mg)})}
+                    style={{padding:"3px 8px",borderRadius:5,border:`1px solid ${parseFloat(form.markup)==mu?C.accent:C.border}`,background:parseFloat(form.markup)==mu?C.accentL:"transparent",color:parseFloat(form.markup)==mu?C.accent:C.textMid,fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit",lineHeight:1.4}}>
+                    {mu}% / {mg}%
                   </button>
                 ))}
-                <input type="number" value={form.markup} onChange={e=>setForm({...form,markup:e.target.value})} style={{width:60,padding:"4px 8px",borderRadius:5,border:`1px solid ${C.border}`,fontSize:12,fontFamily:"inherit",textAlign:"center"}}/>
               </div>
             </div>
           </Grid>
           {form.cost&&form.qty&&(
-            <div style={{marginTop:12,padding:"10px 14px",background:C.accentL,borderRadius:7,fontSize:13}}>
-              Line total: <strong style={{color:C.accent}}>{fmt((parseFloat(form.qty)||0)*(parseFloat(form.cost)||0)*(1+(parseFloat(form.markup)||0)/100))}</strong>
+            <div style={{marginTop:12,padding:"10px 14px",background:C.accentL,borderRadius:7,fontSize:13,display:"flex",gap:20}}>
+              <span>Line total: <strong style={{color:C.accent}}>{fmt((parseFloat(form.qty)||0)*(parseFloat(form.cost)||0)*(1+(parseFloat(form.markup)||0)/100))}</strong></span>
+              <span style={{color:C.textMuted,fontSize:12}}>Hard cost: {fmt((parseFloat(form.qty)||0)*(parseFloat(form.cost)||0))} · Profit: {fmt((parseFloat(form.qty)||0)*(parseFloat(form.cost)||0)*((parseFloat(form.markup)||0)/100))}</span>
             </div>
           )}
           <div style={{display:"flex",gap:10,marginTop:14}}>
-            <Btn onClick={saveItem}>{form.id?"Save":"Add Line Item"}</Btn>
+            <Btn onClick={saveItem}>{form.id?"Save Changes":"Add Line Item"}</Btn>
             <Btn v="secondary" onClick={()=>setForm(null)}>Cancel</Btn>
           </div>
         </Card>
       )}
 
-      <Table heads={[{l:"Category"},{l:"Description"},{l:"Qty",r:true},{l:"Unit",r:true},{l:"Unit Cost",r:true},...(showProfit?[{l:"Markup",r:true}]:[]),{l:"Line Total",r:true},{l:""}]}>
-        {est.lineItems.map(item=>(
-          <TR key={item.id}>
-            <td style={{padding:"11px 14px"}}><span style={{fontSize:11,color:C.accent,background:C.accentL,padding:"2px 8px",borderRadius:5,fontWeight:600}}>{item.category}</span></td>
-            <TD>{item.description}</TD>
-            <TD right muted>{item.qty}</TD>
-            <TD right muted>{item.unit}</TD>
-            <TD right muted>{fmt(item.cost)}</TD>
-            {showProfit&&<td style={{padding:"11px 14px",textAlign:"right",fontSize:13,color:C.amber,fontWeight:500}}>{item.markup}%</td>}
-            <TD right bold color={C.accent}>{fmt(lineTotal(item))}</TD>
-            <td style={{padding:"11px 14px"}}><div style={{display:"flex",gap:6}}><EditBtn onClick={()=>setForm({...item})}/><DeleteBtn onClick={()=>setDelItemId(item.id)}/></div></td>
-          </TR>
-        ))}
-        {est.lineItems.length===0&&<tr><td colSpan={showProfit?8:7}><EmptyState msg="No line items yet. Click 'Add Line' or 'Import Budget' above."/></td></tr>}
-        {est.lineItems.length>0&&(<>
-          {showProfit&&<tr style={{background:C.bg,borderTop:`1px solid ${C.border}`}}>
-            <td colSpan={6} style={{padding:"10px 14px",fontSize:12,color:C.textSub,textAlign:"right",fontWeight:600}}>COST SUBTOTAL</td>
-            <td style={{padding:"10px 14px",fontSize:13,fontWeight:700,textAlign:"right"}}>{fmt(subtotal)}</td>
+      {/* ── Table ── */}
+      <Table heads={[
+        {l:"Category"},{l:"Description"},
+        ...(colVis.qty?[{l:"Qty",r:true}]:[]),
+        ...(colVis.unit?[{l:"Unit",r:true}]:[]),
+        ...(colVis.cost?[{l:"Unit Cost",r:true}]:[]),
+        ...(colVis.markup?[{l:"Markup / Margin",r:true}]:[]),
+        {l:"Line Total",r:true},{l:""}
+      ]}>
+        {topItems.map(item=>renderRow(item,false))}
+        {est.lineItems.length===0&&<tr><td colSpan={emptySpan}><EmptyState msg="No line items yet. Click 'Add Line' or 'Import Budget' above."/></td></tr>}
+        {visItems.length>0&&(<>
+          {colVis.markup&&<tr style={{background:C.bg,borderTop:`1px solid ${C.border}`}}>
+            <td colSpan={footerSpan} style={{padding:"9px 14px",fontSize:12,color:C.textSub,textAlign:"right",fontWeight:600}}>COST SUBTOTAL</td>
+            <td style={{padding:"9px 14px",fontSize:13,fontWeight:700,textAlign:"right"}}>{fmt(subtotal)}</td>
             <td/>
           </tr>}
-          {showProfit&&<tr style={{background:C.bg}}>
-            <td colSpan={6} style={{padding:"8px 14px",fontSize:11,color:C.textSub,textAlign:"right"}}>Markup / Overhead & Profit</td>
-            <td style={{padding:"8px 14px",fontSize:12,textAlign:"right",color:C.amber,fontWeight:600}}>{fmt(markupAmt)}</td>
+          {colVis.markup&&<tr style={{background:C.bg}}>
+            <td colSpan={footerSpan} style={{padding:"7px 14px",fontSize:11,color:C.textSub,textAlign:"right"}}>
+              Markup / O&P &nbsp;·&nbsp; <span style={{color:C.amber}}>{overallMarkupPct}% markup</span> &nbsp;·&nbsp; <span style={{color:C.amber}}>{overallMarginPct}% margin</span>
+            </td>
+            <td style={{padding:"7px 14px",fontSize:12,textAlign:"right",color:C.amber,fontWeight:600}}>{fmt(markupAmt)}</td>
             <td/>
           </tr>}
           <tr style={{background:C.accentL,borderTop:`2px solid ${C.accentB}`}}>
-            <td colSpan={showProfit?6:5} style={{padding:"12px 14px",fontSize:13,fontWeight:700,color:C.accent,textAlign:"right"}}>CONTRACT TOTAL</td>
+            <td colSpan={footerSpan} style={{padding:"12px 14px",fontSize:13,fontWeight:700,color:C.accent,textAlign:"right"}}>CONTRACT TOTAL</td>
             <td style={{padding:"12px 14px",fontSize:16,fontWeight:800,textAlign:"right",color:C.accent}}>{fmt(total)}</td>
             <td/>
           </tr>
