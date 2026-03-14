@@ -10,10 +10,18 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const uploadFile = async (file, bucket, path) => {
   try {
     const { error } = await sb.storage.from(bucket).upload(path, file, { upsert: true });
-    if (error) { console.error("upload error", error); return null; }
+    if (error) {
+      console.error("upload error", error);
+      toast.error(`Upload failed: ${error.message}`, { duration: 6000 });
+      return null;
+    }
     const { data } = sb.storage.from(bucket).getPublicUrl(path);
     return data?.publicUrl || null;
-  } catch (e) { console.error("upload exception", e); return null; }
+  } catch (e) {
+    console.error("upload exception", e);
+    toast.error(`Upload error: ${e.message}`, { duration: 6000 });
+    return null;
+  }
 };
 
 // ─── TOKENS ───────────────────────────────────────────────────────────────────
