@@ -41,6 +41,29 @@ const fmtDate = d => d ? new Date(d+"T12:00:00").toLocaleDateString("en-US",{mon
 const today = () => new Date().toISOString().slice(0,10);
 const uid = () => crypto.randomUUID();
 
+// ─── COMPANY DEFAULTS ─────────────────────────────────────────────────────────
+const DEFAULT_COMPANY = {name:"My Company",logo:"",address:"",city:"",state:"",zip:"",phone:"",email:"",website:"",license:"",defaultMarkup:20,terms:"Payment due within 30 days of invoice date. A 1.5% monthly finance charge will be applied to all overdue balances."};
+
+// ─── BUDGET CODES (CSI-based) ─────────────────────────────────────────────────
+const BUDGET_CODES = [
+  {div:"01",label:"General Conditions",items:["Project Management","Site Safety & Security","Site Utilities","Temporary Facilities","Insurance & Bonding","Permits & Fees","Surveying","Testing & Inspection","Clean-Up","Other GC"]},
+  {div:"02",label:"Site Work",items:["Demolition","Excavation & Grading","Site Drainage","Site Utilities Underground","Concrete Flatwork","Landscaping & Irrigation","Paving & Asphalt","Erosion Control"]},
+  {div:"03",label:"Concrete",items:["Footings & Grade Beams","Foundation Walls","Slab on Grade","Concrete Piers","Concrete Stairs","Reinforcing Steel"]},
+  {div:"04",label:"Masonry",items:["CMU Block","Brick Veneer","Stone Work","Mortar & Grout","Masonry Fireplace"]},
+  {div:"05",label:"Metals / Structural",items:["Structural Steel","Metal Decking","Stairs & Railings","Miscellaneous Metals"]},
+  {div:"06",label:"Rough Carpentry",items:["Lumber & Framing","Structural Sheathing","Engineered Wood Products","Blocking & Backing","Trusses"]},
+  {div:"06F",label:"Finish Carpentry & Millwork",items:["Interior Trim & Moldings","Cabinets","Vanities","Shelving","Closet Systems","Countertops"]},
+  {div:"07",label:"Thermal & Moisture",items:["Roofing","Roof Sheathing","Underlayment","Flashing","Waterproofing","Insulation","Housewrap","Caulking & Sealants","Gutters & Downspouts"]},
+  {div:"08",label:"Doors & Windows",items:["Exterior Doors","Interior Doors","Windows","Skylights","Door Hardware","Garage Doors","Storefront / Glass"]},
+  {div:"09",label:"Finishes",items:["Drywall & Framing","Drywall Finish & Paint","Tile — Floor","Tile — Shower/Bath","Flooring — Hardwood","Flooring — LVP/Laminate","Flooring — Carpet","Ceiling Finishes","Painting — Interior","Painting — Exterior"]},
+  {div:"10",label:"Specialties",items:["Shower Doors & Enclosures","Mirrors","Bath Accessories","Fireplace — Prefab","Signage","Other Specialties"]},
+  {div:"11",label:"Appliances & Equipment",items:["Kitchen Appliances","Washer / Dryer","HVAC Equipment","Water Heater","Equipment Rental"]},
+  {div:"15",label:"Mechanical",items:["Plumbing Rough-In","Plumbing Fixtures & Trim","Gas Piping","HVAC Ductwork","HVAC Controls","Fire Sprinklers"]},
+  {div:"16",label:"Electrical",items:["Electrical Rough-In","Electrical Panel & Service","Lighting Fixtures","Low Voltage / Data","Solar / PV System","EV Charging"]},
+  {div:"17",label:"Contingency & Other",items:["Owner Allowance","Contingency","Warranty Reserve","Other"]},
+];
+const BUDGET_CAT_FLAT = BUDGET_CODES.flatMap(d=>d.items.map(i=>({div:d.div,label:d.label,item:i,full:`${d.div} · ${i}`})));
+
 // ─── MOBILE HOOK ──────────────────────────────────────────────────────────────
 const useMobile = () => {
   const [mobile, setMobile] = useState(window.innerWidth <= 768);
