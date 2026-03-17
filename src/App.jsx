@@ -26,14 +26,15 @@ const uploadFile = async (file, bucket, path) => {
 
 // ─── TOKENS ───────────────────────────────────────────────────────────────────
 const C = {
-  bg:"#F4F5F7",surface:"#FFFFFF",border:"#E8EAED",borderStrong:"#D0D4DA",
-  text:"#0F1117",textMid:"#2D3340",textSub:"#5C6270",textMuted:"#9299A6",
-  accent:"#E86C2C",accentL:"#FEF3EC",accentB:"#F5B894",
-  green:"#1A7F4B",greenL:"#F0FBF5",greenB:"#A8DDBE",
-  red:"#C8252A",redL:"#FEF2F2",redB:"#F5BBBE",
-  blue:"#2255CC",blueL:"#EEF3FD",blueB:"#AABFF5",
-  amber:"#B86B00",amberL:"#FDF8EE",amberB:"#F0D48A",
-  purple:"#6930C4",purpleL:"#F4F0FD",purpleB:"#CCBAF2",
+  bg:"#F0F2F5",surface:"#FFFFFF",border:"#DFE1E6",borderStrong:"#C1C7D0",
+  text:"#0D1B2A",textMid:"#1B2A3D",textSub:"#4A5568",textMuted:"#8993A4",
+  accent:"#D35400",accentL:"#FDF2EC",accentB:"#E8A87C",
+  green:"#137547",greenL:"#EEF7F2",greenB:"#8ECBA8",
+  red:"#B91C1C",redL:"#FDF0F0",redB:"#E8A0A0",
+  blue:"#1A4B8C",blueL:"#EDF1F8",blueB:"#95B1D9",
+  amber:"#A05F00",amberL:"#FBF5EB",amberB:"#DBC17E",
+  purple:"#5B2C9F",purpleL:"#F2EEFC",purpleB:"#BBAAE5",
+  navy:"#0D1B2A",navyMid:"#1B2A3D",
 };
 
 const fmt = n => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(n||0);
@@ -144,33 +145,33 @@ const STATUS_MAP = {
 
 const Badge = ({s}) => {
   const m = STATUS_MAP[s]||{bg:C.bg,text:C.textSub,border:C.border};
-  return <span style={{background:m.bg,color:m.text,border:`1px solid ${m.border}`,padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600,whiteSpace:"nowrap",display:"inline-flex",alignItems:"center",gap:5}}>
-    <span style={{width:5,height:5,borderRadius:"50%",background:m.text,display:"inline-block"}}/>
+  return <span style={{background:m.bg,color:m.text,border:`1px solid ${m.border}`,padding:"2px 8px",borderRadius:4,fontSize:11,fontWeight:600,whiteSpace:"nowrap",display:"inline-flex",alignItems:"center",gap:4,letterSpacing:"0.01em",lineHeight:"18px"}}>
+    <span style={{width:5,height:5,borderRadius:"50%",background:m.text,display:"inline-block",flexShrink:0}}/>
     {s}
   </span>;
 };
 
 const Btn = ({children,onClick,v="primary",sm,danger,style={}}) => {
-  const base = {borderRadius:7,padding:sm?"5px 11px":"8px 16px",fontWeight:600,fontSize:sm?11:13,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:6,border:"none",transition:"all 0.12s",fontFamily:"inherit",...style};
+  const base = {borderRadius:5,padding:sm?"5px 12px":"8px 18px",fontWeight:600,fontSize:sm?11:13,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:6,border:"none",transition:"background 0.15s, border-color 0.15s",fontFamily:"inherit",letterSpacing:"0.01em",lineHeight:"20px",...style};
   const vs = {
-    primary:{background:C.accent,color:"#fff"},
+    primary:{background:C.accent,color:"#fff",border:`1px solid ${C.accent}`},
     secondary:{background:C.surface,color:C.textMid,border:`1px solid ${C.border}`},
     ghost:{background:"transparent",color:C.accent,border:`1px solid ${C.accentB}`},
     danger:{background:C.redL,color:C.red,border:`1px solid ${C.redB}`},
   };
   const s = danger ? vs.danger : vs[v]||vs.primary;
   return <button onClick={onClick} style={{...base,...s}}
-    onMouseEnter={e=>{e.currentTarget.style.opacity="0.82";e.currentTarget.style.transform="translateY(-1px)";}}
-    onMouseLeave={e=>{e.currentTarget.style.opacity="1";e.currentTarget.style.transform="translateY(0)";}}
+    onMouseEnter={e=>{if(v==="primary"&&!danger)e.currentTarget.style.background="#B84800";else if(v==="secondary")e.currentTarget.style.background=C.bg;else e.currentTarget.style.opacity="0.85";}}
+    onMouseLeave={e=>{e.currentTarget.style.background=s.background;e.currentTarget.style.opacity="1";}}
   >{children}</button>;
 };
 
 const Field = ({label,children}) => <div>
-  <label style={{fontSize:11,color:C.textSub,display:"block",marginBottom:5,fontWeight:600,letterSpacing:"0.05em",textTransform:"uppercase"}}>{label}</label>
+  <label style={{fontSize:11,color:C.textSub,display:"block",marginBottom:4,fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase",lineHeight:"16px"}}>{label}</label>
   {children}
 </div>;
 
-const inputStyle = {width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,padding:"9px 12px",color:C.text,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit"};
+const inputStyle = {width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:4,padding:"8px 12px",color:C.text,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",lineHeight:"20px"};
 const Inp = ({label,value,onChange,type="text",placeholder,readOnly}) => <Field label={label}>
   <input type={type} value={value||""} onChange={onChange} placeholder={placeholder} readOnly={readOnly}
     style={{...inputStyle,background:readOnly?C.bg:C.surface,cursor:readOnly?"default":"text"}}
@@ -195,20 +196,20 @@ const TA = ({label,value,onChange,rows=3}) => <Field label={label}>
 
 const Card = ({children,style={},onClick,onMouseEnter,onMouseLeave}) => {
   const isMobile = useMobile();
-  return <div onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:isMobile?14:22,...style}}>{children}</div>;
+  return <div onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:isMobile?14:20,...style}}>{children}</div>;
 };
 
 const Stat = ({label,value,sub,color=C.accent,icon}) => {
   const isMobile = useMobile();
   return (
-    <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:isMobile?"12px 14px":"16px 20px",position:"relative",overflow:"hidden"}}>
-      <div style={{position:"absolute",top:0,left:0,width:3,height:"100%",background:color,borderRadius:"10px 0 0 10px"}}/>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:isMobile?6:10}}>
-        <span style={{fontSize:isMobile?10:11,color:C.textMuted,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase"}}>{label}</span>
-        {icon&&!isMobile&&<div style={{width:28,height:28,borderRadius:7,background:color+"15",display:"flex",alignItems:"center",justifyContent:"center",color}}><Ic d={I[icon]} s={13}/></div>}
+    <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:isMobile?"12px 14px":"16px 20px",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:0,left:0,width:3,height:"100%",background:color}}/>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:isMobile?6:8}}>
+        <span style={{fontSize:isMobile?10:11,color:C.textMuted,fontWeight:600,letterSpacing:"0.05em",textTransform:"uppercase",lineHeight:"14px"}}>{label}</span>
+        {icon&&!isMobile&&<div style={{width:26,height:26,borderRadius:4,background:color+"12",display:"flex",alignItems:"center",justifyContent:"center",color}}><Ic d={I[icon]} s={12}/></div>}
       </div>
-      <div style={{fontSize:isMobile?18:24,fontWeight:700,color:C.text,letterSpacing:"-0.03em",lineHeight:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>{value}</div>
-      {sub&&<div style={{fontSize:11,color:C.textMuted,marginTop:4}}>{sub}</div>}
+      <div className="stat-value" style={{fontSize:isMobile?17:22,fontWeight:700,color:C.text,letterSpacing:"-0.02em",lineHeight:1.1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>{value}</div>
+      {sub&&<div style={{fontSize:11,color:C.textMuted,marginTop:4,lineHeight:"14px"}}>{sub}</div>}
     </div>
   );
 };
@@ -216,24 +217,24 @@ const Stat = ({label,value,sub,color=C.accent,icon}) => {
 const PageHead = ({eyebrow,title,action}) => {
   const isMobile = useMobile();
   return (
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:isMobile?"flex-start":"center",paddingBottom:isMobile?14:20,borderBottom:`1px solid ${C.border}`,marginBottom:isMobile?16:24,flexDirection:isMobile?"column":"row",gap:isMobile?10:0}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:isMobile?"flex-start":"center",paddingBottom:isMobile?12:16,borderBottom:`2px solid ${C.border}`,marginBottom:isMobile?16:24,flexDirection:isMobile?"column":"row",gap:isMobile?10:0}}>
       <div>
-        {eyebrow&&<div style={{fontSize:11,color:C.accent,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:4}}>{eyebrow}</div>}
-        <div style={{fontSize:isMobile?16:20,fontWeight:700,color:C.text,letterSpacing:"-0.02em"}}>{title}</div>
+        {eyebrow&&<div style={{fontSize:10,color:C.textMuted,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:3}}>{eyebrow}</div>}
+        <div style={{fontSize:isMobile?16:20,fontWeight:700,color:C.navy,letterSpacing:"-0.02em"}}>{title}</div>
       </div>
       {action&&<div style={{width:isMobile?"100%":"auto"}}>{action}</div>}
     </div>
   );
 };
 
-const TH = ({children,right}) => <th style={{padding:"11px 14px",textAlign:right?"right":"left",fontSize:11,color:C.textSub,fontWeight:600,letterSpacing:"0.05em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{children}</th>;
-const TD = ({children,right,bold,muted,color}) => <td style={{padding:"12px 14px",fontSize:13,textAlign:right?"right":"left",color:color||(muted?C.textSub:C.text),fontWeight:bold?700:400,maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{children}</td>;
+const TH = ({children,right}) => <th style={{padding:"10px 14px",textAlign:right?"right":"left",fontSize:10,color:C.textMuted,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",whiteSpace:"nowrap",lineHeight:"14px"}}>{children}</th>;
+const TD = ({children,right,bold,muted,color}) => <td style={{padding:"10px 14px",fontSize:13,textAlign:right?"right":"left",color:color||(muted?C.textSub:C.text),fontWeight:bold?600:400,maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",lineHeight:"20px"}}>{children}</td>;
 
 const Table = ({heads,children,empty}) => (
-  <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden"}}>
+  <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,overflow:"hidden"}}>
     <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
       <table style={{width:"100%",borderCollapse:"collapse",minWidth:480}}>
-        <thead><tr style={{borderBottom:`1px solid ${C.border}`,background:C.bg}}>{heads.map((h,i)=><TH key={i} right={h.r}>{h.l}</TH>)}</tr></thead>
+        <thead><tr style={{borderBottom:`2px solid ${C.border}`,background:C.bg}}>{heads.map((h,i)=><TH key={i} right={h.r}>{h.l}</TH>)}</tr></thead>
         <tbody>{children}</tbody>
       </table>
     </div>
@@ -247,9 +248,9 @@ const TR = ({children,onClick}) => <tr onClick={onClick} style={{borderBottom:`1
 >{children}</tr>;
 
 const Confirm = ({msg,onOk,onCancel}) => (
-  <div style={{position:"fixed",inset:0,background:"rgba(15,17,23,0.4)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
-    <Card style={{maxWidth:380,width:"90%",boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
-      <div style={{fontSize:15,fontWeight:700,color:C.text,marginBottom:8}}>Confirm Delete</div>
+  <div style={{position:"fixed",inset:0,background:"rgba(13,27,42,0.5)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <Card style={{maxWidth:380,width:"90%",boxShadow:"0 12px 40px rgba(0,0,0,0.18)"}}>
+      <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:8}}>Confirm Delete</div>
       <div style={{fontSize:13,color:C.textSub,marginBottom:24,lineHeight:1.6}}>{msg}</div>
       <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
         <Btn v="secondary" onClick={onCancel}>Cancel</Btn>
@@ -260,13 +261,13 @@ const Confirm = ({msg,onOk,onCancel}) => (
 );
 
 const Modal = ({title,onClose,children,width=640}) => (
-  <div style={{position:"fixed",inset:0,background:"rgba(15,17,23,0.4)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-    <div style={{background:C.surface,borderRadius:12,width:"100%",maxWidth:width,maxHeight:"90vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
-      <div style={{padding:"18px 22px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:C.surface,zIndex:1}}>
-        <div style={{fontSize:15,fontWeight:700,color:C.text}}>{title}</div>
+  <div style={{position:"fixed",inset:0,background:"rgba(13,27,42,0.5)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+    <div style={{background:C.surface,borderRadius:6,width:"100%",maxWidth:width,maxHeight:"90vh",overflow:"auto",boxShadow:"0 12px 40px rgba(0,0,0,0.18)"}}>
+      <div style={{padding:"16px 20px",borderBottom:`2px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,background:C.surface,zIndex:1}}>
+        <div style={{fontSize:14,fontWeight:700,color:C.navy}}>{title}</div>
         <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",color:C.textSub,padding:4,display:"flex"}}><Ic d={I.x} s={18}/></button>
       </div>
-      <div style={{padding:22}}>{children}</div>
+      <div style={{padding:20}}>{children}</div>
     </div>
   </div>
 );
@@ -282,14 +283,14 @@ const Span2 = ({children}) => {
 };
 
 const Progress = ({pct,color=C.accent,h=6}) => (
-  <div style={{height:h,background:C.bg,borderRadius:h/2}}>
-    <div style={{height:"100%",width:`${Math.min(pct,100)}%`,background:color,borderRadius:h/2,transition:"width 0.3s"}}/>
+  <div style={{height:h,background:C.bg,borderRadius:3}}>
+    <div style={{height:"100%",width:`${Math.min(pct,100)}%`,background:color,borderRadius:3,transition:"width 0.3s"}}/>
   </div>
 );
 
 const DeleteBtn = ({onClick}) => (
   <button onClick={onClick} title="Delete"
-    style={{background:"none",border:`1px solid ${C.border}`,borderRadius:5,padding:"4px 7px",cursor:"pointer",color:C.textMuted,display:"inline-flex",alignItems:"center"}}
+    style={{background:"none",border:`1px solid ${C.border}`,borderRadius:4,padding:"4px 7px",cursor:"pointer",color:C.textMuted,display:"inline-flex",alignItems:"center"}}
     onMouseEnter={e=>{e.currentTarget.style.borderColor=C.redB;e.currentTarget.style.color=C.red;}}
     onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textMuted;}}
   ><Ic d={I.trash} s={13}/></button>
@@ -297,13 +298,13 @@ const DeleteBtn = ({onClick}) => (
 
 const EditBtn = ({onClick}) => (
   <button onClick={onClick} title="Edit"
-    style={{background:"none",border:`1px solid ${C.border}`,borderRadius:5,padding:"4px 7px",cursor:"pointer",color:C.textSub,display:"inline-flex",alignItems:"center"}}
+    style={{background:"none",border:`1px solid ${C.border}`,borderRadius:4,padding:"4px 7px",cursor:"pointer",color:C.textSub,display:"inline-flex",alignItems:"center"}}
   ><Ic d={I.edit} s={13}/></button>
 );
 
 const EmptyState = ({msg,action}) => (
   <div style={{padding:"40px 20px",textAlign:"center"}}>
-    <div style={{fontSize:13,color:C.textMuted,marginBottom:action?14:0}}>{msg}</div>
+    <div style={{fontSize:13,color:C.textMuted,marginBottom:action?14:0,lineHeight:1.6}}>{msg}</div>
     {action}
   </div>
 );
@@ -311,10 +312,10 @@ const EmptyState = ({msg,action}) => (
 const Tabs = ({tabs,active,onChange}) => (
   <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",marginBottom:20,scrollbarWidth:"none"}}
     onScroll={e=>e.stopPropagation()}>
-    <div style={{display:"flex",gap:2,borderBottom:`1px solid ${C.border}`,minWidth:"max-content"}}>
+    <div style={{display:"flex",gap:0,borderBottom:`2px solid ${C.border}`,minWidth:"max-content"}}>
       {tabs.map(t=>(
         <button key={t} onClick={()=>onChange(t)}
-          style={{padding:"9px 14px",border:"none",borderBottom:active===t?`2px solid ${C.accent}`:"2px solid transparent",background:"none",color:active===t?C.accent:C.textSub,fontSize:13,fontWeight:active===t?600:400,cursor:"pointer",textTransform:"capitalize",marginBottom:-1,fontFamily:"inherit",whiteSpace:"nowrap"}}>
+          style={{padding:"8px 16px",border:"none",borderBottom:active===t?`2px solid ${C.accent}`:"2px solid transparent",background:active===t?C.accentL:"none",color:active===t?C.accent:C.textSub,fontSize:12,fontWeight:active===t?600:500,cursor:"pointer",textTransform:"capitalize",marginBottom:-2,fontFamily:"inherit",whiteSpace:"nowrap",letterSpacing:"0.01em"}}>
           {t}
         </button>
       ))}
@@ -357,22 +358,22 @@ const GlobalSearch = ({projects,contacts,invoices,cos,estimates,rfis,onNav}) => 
   const go = (nav) => { onNav(...nav); setQ(""); setOpen(false); };
 
   return (
-    <div style={{position:"relative",margin:"0 8px 8px"}}>
+    <div style={{position:"relative",margin:"0 4px 4px"}}>
       <div style={{position:"relative",display:"flex",alignItems:"center"}}>
-        <div style={{position:"absolute",left:9,pointerEvents:"none",color:C.textMuted,display:"flex"}}><Ic d={I.search} s={13}/></div>
+        <div style={{position:"absolute",left:9,pointerEvents:"none",color:"rgba(255,255,255,0.35)",display:"flex"}}><Ic d={I.search} s={13}/></div>
         <input ref={inputRef} className="global-search-input" value={q} onChange={e=>{setQ(e.target.value);setOpen(true);}} onFocus={()=>setOpen(true)}
-          onBlur={()=>setTimeout(()=>setOpen(false),200)} placeholder="Search… (⌘K)"
-          style={{...inputStyle,paddingLeft:30,fontSize:12,background:C.bg,borderColor:C.border,height:32}}/>
+          onBlur={()=>setTimeout(()=>setOpen(false),200)} placeholder="Search... (⌘K)"
+          style={{...inputStyle,paddingLeft:30,fontSize:11,background:"rgba(255,255,255,0.06)",borderColor:"rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.8)",height:30,borderRadius:4}}/>
       </div>
       {open&&(results.length>0||(q.length>=2))&&(
-        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:C.surface,border:`1px solid ${C.border}`,borderRadius:9,boxShadow:"0 8px 28px rgba(0,0,0,0.14)",zIndex:9999,overflow:"hidden"}}>
+        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:C.surface,border:`1px solid ${C.border}`,borderRadius:4,boxShadow:"0 8px 28px rgba(0,0,0,0.14)",zIndex:9999,overflow:"hidden"}}>
           {results.length===0&&<div style={{padding:"14px 12px",fontSize:12,color:C.textMuted,textAlign:"center"}}>No results for "{q}"</div>}
           {results.map((r,i)=>(
             <div key={i} onMouseDown={()=>go(r.nav)}
               style={{padding:"9px 12px",cursor:"pointer",borderBottom:i<results.length-1?`1px solid ${C.border}`:"none",display:"flex",alignItems:"center",gap:10}}
               onMouseEnter={e=>e.currentTarget.style.background=C.bg}
               onMouseLeave={e=>e.currentTarget.style.background=""}>
-              <div style={{width:28,height:28,borderRadius:7,background:C.accentL,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <div style={{width:28,height:28,borderRadius:4,background:C.accentL,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                 <Ic d={Array.isArray({project:I.proj,contact:I.contacts,invoice:I.inv,"change order":I.co,estimate:I.est}[r.type])?{project:I.proj,contact:I.contacts,invoice:I.inv,"change order":I.co,estimate:I.est}[r.type][0]:{project:I.proj,contact:I.contacts,invoice:I.inv,"change order":I.co,estimate:I.est}[r.type]||I.search} s={13} stroke={C.accent}/>
               </div>
               <div style={{flex:1,minWidth:0}}>
@@ -411,11 +412,11 @@ const Dashboard = ({projects,invoices,cos,rfis,punchList,onNav}) => {
   const isMobile = useMobile();
 
   return (
-    <div style={{display:"flex",flexDirection:"column",gap:isMobile?16:24}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",paddingBottom:isMobile?14:22,borderBottom:`1px solid ${C.border}`}}>
+    <div style={{display:"flex",flexDirection:"column",gap:isMobile?14:20}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:isMobile?"flex-start":"center",paddingBottom:isMobile?12:16,borderBottom:`2px solid ${C.border}`,flexWrap:"wrap",gap:10}}>
         <div>
-          <div style={{fontSize:isMobile?17:22,fontWeight:800,color:C.text,letterSpacing:"-0.03em"}}>BuildFlow Pro</div>
-          <div style={{fontSize:12,color:C.textSub,marginTop:4}}>{new Date().toLocaleDateString("en-US",{weekday:isMobile?"short":"long",year:"numeric",month:isMobile?"short":"long",day:"numeric"})}</div>
+          <div style={{fontSize:isMobile?16:20,fontWeight:800,color:C.navy,letterSpacing:"-0.02em",lineHeight:"28px"}}>Project Command Center</div>
+          <div style={{fontSize:12,color:C.textSub,marginTop:2,fontWeight:500}}>{new Date().toLocaleDateString("en-US",{weekday:isMobile?"short":"long",year:"numeric",month:isMobile?"short":"long",day:"numeric"})}</div>
         </div>
         <div style={{display:"flex",gap:8}}>
           <Btn v="secondary" sm={isMobile} onClick={()=>onNav("logs")}><Ic d={I.logs} s={14}/> {isMobile?"Log":"Field Log"}</Btn>
@@ -423,7 +424,7 @@ const Dashboard = ({projects,invoices,cos,rfis,punchList,onNav}) => {
         </div>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:isMobile?10:14}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:isMobile?8:12}}>
         <Stat label="Active Jobs" value={active.length} sub={`${projects.length} total projects`} color={C.accent} icon="proj"/>
         <Stat label="Pipeline Value" value={fmt(pipeline)} sub={`${projects.filter(p=>p.status==="Lead"||p.status==="Estimate").length} in pre-sales`} color={C.green} icon="trend"/>
         <Stat label="Receivables" value={fmt(receivables)} sub={overdue.length>0?`${overdue.length} overdue`:"All current"} color={overdue.length>0?C.red:C.amber} icon="inv"/>
@@ -431,30 +432,30 @@ const Dashboard = ({projects,invoices,cos,rfis,punchList,onNav}) => {
       </div>
 
       {(nearingDeadline.length>0||pendingCOs.length>0)&&(
-        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":nearingDeadline.length>0&&pendingCOs.length>0?"1fr 1fr":"1fr",gap:14}}>
+        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":nearingDeadline.length>0&&pendingCOs.length>0?"1fr 1fr":"1fr",gap:12}}>
           {nearingDeadline.length>0&&(
-            <div style={{background:C.redL,border:`1px solid ${C.redB}`,borderRadius:10,padding:"12px 16px"}}>
-              <div style={{fontSize:12,fontWeight:700,color:C.red,marginBottom:8,display:"flex",alignItems:"center",gap:6}}><Ic d={I.alert} s={13} stroke={C.red}/> {nearingDeadline.length} project{nearingDeadline.length!==1?"s":""} due within 14 days</div>
-              <div style={{display:"flex",flexDirection:"column",gap:4}}>
+            <div style={{background:C.redL,border:`1px solid ${C.redB}`,borderRadius:4,padding:"10px 14px"}}>
+              <div style={{fontSize:11,fontWeight:700,color:C.red,marginBottom:6,display:"flex",alignItems:"center",gap:6,textTransform:"uppercase",letterSpacing:"0.04em"}}><Ic d={I.alert} s={12} stroke={C.red}/> {nearingDeadline.length} project{nearingDeadline.length!==1?"s":""} due within 14 days</div>
+              <div style={{display:"flex",flexDirection:"column",gap:3}}>
                 {nearingDeadline.map(p=>{
                   const daysLeft=Math.ceil((new Date(p.end+"T12:00:00")-new Date(todayStr+"T12:00:00"))/86400000);
                   return <div key={p.id} style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
                     <span style={{color:C.text,fontWeight:500,cursor:"pointer"}} onClick={()=>onNav("projects",p.id)}>{p.name}</span>
-                    <span style={{color:C.red,fontWeight:700}}>{daysLeft}d left</span>
+                    <span style={{color:C.red,fontWeight:700,fontSize:11}}>{daysLeft}d left</span>
                   </div>;
                 })}
               </div>
             </div>
           )}
           {pendingCOs.length>0&&(
-            <div style={{background:C.amberL,border:`1px solid ${C.amberB}`,borderRadius:10,padding:"12px 16px"}}>
-              <div style={{fontSize:12,fontWeight:700,color:C.amber,marginBottom:8,display:"flex",alignItems:"center",gap:6}}><Ic d={I.alert} s={13} stroke={C.amber}/> {pendingCOs.length} change order{pendingCOs.length!==1?"s":""} awaiting approval</div>
-              <div style={{display:"flex",flexDirection:"column",gap:4}}>
+            <div style={{background:C.amberL,border:`1px solid ${C.amberB}`,borderRadius:4,padding:"10px 14px"}}>
+              <div style={{fontSize:11,fontWeight:700,color:C.amber,marginBottom:6,display:"flex",alignItems:"center",gap:6,textTransform:"uppercase",letterSpacing:"0.04em"}}><Ic d={I.alert} s={12} stroke={C.amber}/> {pendingCOs.length} change order{pendingCOs.length!==1?"s":""} awaiting approval</div>
+              <div style={{display:"flex",flexDirection:"column",gap:3}}>
                 {pendingCOs.slice(0,3).map(co=>{
                   const p=projects.find(x=>x.id===co.projectId);
                   return <div key={co.id} style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
-                    <span style={{color:C.text,fontWeight:500}}>{co.number} – {co.title.substring(0,24)}</span>
-                    <span style={{color:C.amber,fontWeight:700}}>+{fmt(co.amount)}</span>
+                    <span style={{color:C.text,fontWeight:500}}>{co.number} - {co.title.substring(0,24)}</span>
+                    <span style={{color:C.amber,fontWeight:700,fontSize:11}}>+{fmt(co.amount)}</span>
                   </div>;
                 })}
               </div>
@@ -464,86 +465,86 @@ const Dashboard = ({projects,invoices,cos,rfis,punchList,onNav}) => {
       )}
 
       {(overdueRFIs.length>0||openPunch>0)&&(
-        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":overdueRFIs.length>0&&openPunch>0?"1fr 1fr":"1fr",gap:14}}>
+        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":overdueRFIs.length>0&&openPunch>0?"1fr 1fr":"1fr",gap:12}}>
           {overdueRFIs.length>0&&(
-            <div style={{background:C.redL,border:`1px solid ${C.redB}`,borderRadius:10,padding:"12px 16px",cursor:"pointer"}} onClick={()=>onNav("rfis")}>
-              <div style={{fontSize:12,fontWeight:700,color:C.red,marginBottom:8,display:"flex",alignItems:"center",gap:6}}><Ic d={I.rfi} s={13} stroke={C.red}/> {overdueRFIs.length} RFI{overdueRFIs.length!==1?"s":""} past response deadline</div>
+            <div style={{background:C.redL,border:`1px solid ${C.redB}`,borderRadius:4,padding:"10px 14px",cursor:"pointer"}} onClick={()=>onNav("rfis")}>
+              <div style={{fontSize:11,fontWeight:700,color:C.red,marginBottom:6,display:"flex",alignItems:"center",gap:6,textTransform:"uppercase",letterSpacing:"0.04em"}}><Ic d={I.rfi} s={12} stroke={C.red}/> {overdueRFIs.length} RFI{overdueRFIs.length!==1?"s":""} past response deadline</div>
               <div style={{display:"flex",flexDirection:"column",gap:3}}>
                 {overdueRFIs.slice(0,3).map(r=><div key={r.id} style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
-                  <span style={{color:C.text,fontWeight:500}}>{r.number} – {r.subject.substring(0,28)}</span>
-                  <span style={{color:C.red,fontWeight:700}}>Overdue</span>
+                  <span style={{color:C.text,fontWeight:500}}>{r.number} - {r.subject.substring(0,28)}</span>
+                  <span style={{color:C.red,fontWeight:700,fontSize:11}}>Overdue</span>
                 </div>)}
               </div>
             </div>
           )}
           {openPunch>0&&(
-            <div style={{background:C.blueL,border:`1px solid ${C.blueB}`,borderRadius:10,padding:"12px 16px",cursor:"pointer"}} onClick={()=>onNav("punch")}>
-              <div style={{fontSize:12,fontWeight:700,color:C.blue,marginBottom:4,display:"flex",alignItems:"center",gap:6}}><Ic d={I.punch} s={13} stroke={C.blue}/> {openPunch} punch list item{openPunch!==1?"s":""} open</div>
-              <div style={{fontSize:12,color:C.textSub}}>Click to view and resolve</div>
+            <div style={{background:C.blueL,border:`1px solid ${C.blueB}`,borderRadius:4,padding:"10px 14px",cursor:"pointer"}} onClick={()=>onNav("punch")}>
+              <div style={{fontSize:11,fontWeight:700,color:C.blue,marginBottom:4,display:"flex",alignItems:"center",gap:6,textTransform:"uppercase",letterSpacing:"0.04em"}}><Ic d={I.punch} s={12} stroke={C.blue}/> {openPunch} punch list item{openPunch!==1?"s":""} open</div>
+              <div style={{fontSize:11,color:C.textSub}}>Click to view and resolve</div>
             </div>
           )}
         </div>
       )}
 
-      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 300px",gap:isMobile?16:20}}>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 280px",gap:isMobile?14:16}}>
         <div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-            <div style={{fontSize:14,fontWeight:600,color:C.text}}>Active Projects</div>
-            <button onClick={()=>onNav("projects")} style={{background:"none",border:"none",color:C.accent,cursor:"pointer",fontSize:12,fontWeight:600}}>View all →</button>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,paddingBottom:8,borderBottom:`1px solid ${C.border}`}}>
+            <div style={{fontSize:13,fontWeight:700,color:C.navy,textTransform:"uppercase",letterSpacing:"0.04em"}}>Active Projects</div>
+            <button onClick={()=>onNav("projects")} style={{background:"none",border:"none",color:C.accent,cursor:"pointer",fontSize:12,fontWeight:600}}>View all</button>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {active.map(p=>{
               const pct = p.value?Math.round((p.spent/p.value)*100):0;
               return (
-                <Card key={p.id} style={{padding:"14px 18px",cursor:"pointer"}} onClick={()=>onNav("projects",p.id)}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                <Card key={p.id} style={{padding:"12px 16px",cursor:"pointer"}} onClick={()=>onNav("projects",p.id)}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
                     <div>
-                      <div style={{fontWeight:600,fontSize:13,color:C.text,marginBottom:2}}>{p.name}</div>
-                      <div style={{fontSize:12,color:C.textSub}}>{p.client} · {p.phase}</div>
+                      <div style={{fontWeight:600,fontSize:13,color:C.text,marginBottom:2,lineHeight:"18px"}}>{p.name}</div>
+                      <div style={{fontSize:11,color:C.textSub}}>{p.client} · {p.phase}</div>
                     </div>
                     <Badge s={p.status}/>
                   </div>
-                  <div style={{display:"flex",gap:20,marginBottom:10}}>
-                    <div><div style={{fontSize:10,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>Contract</div><div style={{fontSize:14,fontWeight:700,color:C.accent}}>{fmt(p.value)}</div></div>
-                    <div><div style={{fontSize:10,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>Spent</div><div style={{fontSize:14,fontWeight:600,color:C.text}}>{fmt(p.spent)}</div></div>
-                    <div><div style={{fontSize:10,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>Budget</div><div style={{fontSize:14,fontWeight:600,color:pct>90?C.red:C.green}}>{pct}%</div></div>
+                  <div style={{display:"flex",gap:16,marginBottom:8}}>
+                    <div><div style={{fontSize:10,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>Contract</div><div style={{fontSize:13,fontWeight:700,color:C.navy}}>{fmt(p.value)}</div></div>
+                    <div><div style={{fontSize:10,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>Spent</div><div style={{fontSize:13,fontWeight:600,color:C.text}}>{fmt(p.spent)}</div></div>
+                    <div><div style={{fontSize:10,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>Budget</div><div style={{fontSize:13,fontWeight:600,color:pct>90?C.red:C.green}}>{pct}%</div></div>
                   </div>
                   <Progress pct={p.progress}/>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:C.textMuted,marginTop:6}}><span>Progress: {p.progress}%</span><span>{p.end}</span></div>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:C.textMuted,marginTop:5}}><span>Progress: {p.progress}%</span><span>{p.end}</span></div>
                 </Card>
               );
             })}
           </div>
         </div>
 
-        <div style={{display:"flex",flexDirection:"column",gap:14}}>
-          <Card>
-            <div style={{fontSize:13,fontWeight:600,color:C.text,marginBottom:14}}>Unpaid Invoices</div>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <Card style={{padding:"14px 16px"}}>
+            <div style={{fontSize:11,fontWeight:700,color:C.navy,marginBottom:12,textTransform:"uppercase",letterSpacing:"0.04em"}}>Unpaid Invoices</div>
             {[...overdue,...pendingInv].slice(0,5).map(inv=>{
               const p=projects.find(x=>x.id===inv.projectId);
               return (
-                <div key={inv.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
+                <div key={inv.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}>
                   <div><div style={{fontSize:12,fontWeight:600,color:C.text}}>{inv.number}</div><div style={{fontSize:11,color:C.textSub,marginTop:1}}>{p?.name?.substring(0,18)}</div></div>
-                  <div style={{textAlign:"right"}}><div style={{fontSize:13,fontWeight:700,marginBottom:3}}>{fmt(inv.amount)}</div><Badge s={inv.status}/></div>
+                  <div style={{textAlign:"right"}}><div style={{fontSize:12,fontWeight:700,marginBottom:3}}>{fmt(inv.amount)}</div><Badge s={inv.status}/></div>
                 </div>
               );
             })}
-            {[...overdue,...pendingInv].length===0&&<div style={{fontSize:12,color:C.textMuted,padding:"8px 0"}}>All caught up ✓</div>}
+            {[...overdue,...pendingInv].length===0&&<div style={{fontSize:12,color:C.textMuted,padding:"8px 0"}}>All invoices current</div>}
           </Card>
 
-          <Card>
-            <div style={{fontSize:13,fontWeight:600,color:C.text,marginBottom:14}}>Pipeline</div>
+          <Card style={{padding:"14px 16px"}}>
+            <div style={{fontSize:11,fontWeight:700,color:C.navy,marginBottom:12,textTransform:"uppercase",letterSpacing:"0.04em"}}>Pipeline</div>
             {["Lead","Estimate","Active","Complete"].map(s=>{
               const sc=STATUS_MAP[s]; const count=projects.filter(p=>p.status===s).length; const val=projects.filter(p=>p.status===s).reduce((a,p)=>a+p.value,0);
-              return <div key={s} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{width:6,height:6,borderRadius:"50%",background:sc?.text,display:"inline-block"}}/><span style={{fontSize:13,color:C.textMid}}>{s}</span><span style={{fontSize:11,color:C.textMuted,background:C.bg,padding:"1px 7px",borderRadius:10}}>{count}</span></div>
-                <span style={{fontSize:13,fontWeight:600,color:C.text}}>{fmt(val)}</span>
+              return <div key={s} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${C.border}`}}>
+                <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:5,height:5,borderRadius:"50%",background:sc?.text,display:"inline-block"}}/><span style={{fontSize:12,color:C.textMid,fontWeight:500}}>{s}</span><span style={{fontSize:10,color:C.textMuted,background:C.bg,padding:"1px 6px",borderRadius:3,fontWeight:600}}>{count}</span></div>
+                <span style={{fontSize:12,fontWeight:600,color:C.text}}>{fmt(val)}</span>
               </div>;
             })}
           </Card>
 
-          <Card>
-            <div style={{fontSize:13,fontWeight:600,color:C.text,marginBottom:12}}>Quick Actions</div>
+          <Card style={{padding:"14px 16px"}}>
+            <div style={{fontSize:11,fontWeight:700,color:C.navy,marginBottom:10,textTransform:"uppercase",letterSpacing:"0.04em"}}>Quick Actions</div>
             {[
               {label:"New Invoice",icon:"inv",nav:"invoices",color:C.accent},
               {label:"Submit RFI",icon:"rfi",nav:"rfis",color:C.blue},
@@ -553,11 +554,11 @@ const Dashboard = ({projects,invoices,cos,rfis,punchList,onNav}) => {
               {label:"View Schedule",icon:"sched",nav:"schedule",color:C.textSub},
             ].map(a=>(
               <button key={a.label} onClick={e=>{e.stopPropagation();onNav(a.nav);}}
-                style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",background:"none",border:"none",borderBottom:`1px solid ${C.border}`,cursor:"pointer",width:"100%",textAlign:"left"}}
-                onMouseEnter={e=>e.currentTarget.style.paddingLeft="6px"}
+                style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",background:"none",border:"none",borderBottom:`1px solid ${C.border}`,cursor:"pointer",width:"100%",textAlign:"left",transition:"padding-left 0.1s"}}
+                onMouseEnter={e=>e.currentTarget.style.paddingLeft="4px"}
                 onMouseLeave={e=>e.currentTarget.style.paddingLeft="0"}>
-                <div style={{width:26,height:26,borderRadius:7,background:a.color+"15",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic d={I[a.icon]} s={13} stroke={a.color}/></div>
-                <span style={{fontSize:13,color:C.textMid,fontWeight:500}}>{a.label}</span>
+                <div style={{width:24,height:24,borderRadius:4,background:a.color+"12",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic d={I[a.icon]} s={12} stroke={a.color}/></div>
+                <span style={{fontSize:12,color:C.textMid,fontWeight:500}}>{a.label}</span>
               </button>
             ))}
           </Card>
@@ -630,9 +631,9 @@ const Budget = ({projectId,budgetItems,setBudgetItems,projects,setProjects}) => 
                 value={codeSearch}
                 onChange={e=>setCodeSearch(e.target.value)}
                 placeholder="Search cost codes (e.g. 'roofing', 'electrical', '07')..."
-                style={{width:"100%",padding:"8px 12px",borderRadius:7,border:`1px solid ${C.border}`,fontSize:13,fontFamily:"inherit",marginBottom:8,outline:"none"}}
+                style={{width:"100%",padding:"8px 12px",borderRadius:4,border:`1px solid ${C.border}`,fontSize:13,fontFamily:"inherit",marginBottom:8,outline:"none"}}
               />
-              <div style={{maxHeight:200,overflowY:"auto",border:`1px solid ${C.border}`,borderRadius:8,background:C.bg}}>
+              <div style={{maxHeight:200,overflowY:"auto",border:`1px solid ${C.border}`,borderRadius:4,background:C.bg}}>
                 {BUDGET_CODES.filter(d=>!codeSearch||d.label.toLowerCase().includes(codeSearch.toLowerCase())||d.items.some(i=>i.toLowerCase().includes(codeSearch.toLowerCase()))).map(d=>(
                   <div key={d.div}>
                     <div style={{padding:"6px 12px",fontSize:11,fontWeight:700,color:C.textSub,background:C.surface,borderBottom:`1px solid ${C.border}`,letterSpacing:"0.05em",textTransform:"uppercase"}}>{d.div} · {d.label}</div>
@@ -655,7 +656,7 @@ const Budget = ({projectId,budgetItems,setBudgetItems,projects,setProjects}) => 
             {form.category
               ? <div style={{display:"flex",flexDirection:"column",gap:4}}>
                   <div style={{fontSize:11,fontWeight:600,color:C.textSub}}>Cost Category</div>
-                  <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:C.accentL,borderRadius:7,border:`1px solid ${C.accentB}`}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:C.accentL,borderRadius:4,border:`1px solid ${C.accentB}`}}>
                     {form.code&&<span style={{fontSize:10,fontWeight:700,color:C.accent,background:C.surface,padding:"1px 6px",borderRadius:4,flexShrink:0}}>{form.code}</span>}
                     <span style={{fontSize:13,fontWeight:600,color:C.text,flex:1}}>{form.category}</span>
                     {!form.id&&<button onClick={()=>setShowCodePicker(true)} style={{fontSize:10,color:C.accent,background:"none",border:"none",cursor:"pointer",padding:0,whiteSpace:"nowrap"}}>Change</button>}
@@ -842,11 +843,11 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
     onCreated(est.id);
   };
 
-  const ICONS = {"New Home Construction":"🏠","Apartment Construction":"🏢","Tenant Improvements (TI)":"🏗️"};
+  const ICONS = {"New Home Construction":"home","Apartment Construction":"proj","Tenant Improvements (TI)":"budget"};
 
   return (
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(15,17,23,0.6)",zIndex:600,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:14,maxWidth:step===1?600:940,width:"100%",maxHeight:"92vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 24px 80px rgba(0,0,0,0.35)"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:6,maxWidth:step===1?600:940,width:"100%",maxHeight:"92vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 24px 80px rgba(0,0,0,0.35)"}}>
         {/* Header */}
         <div style={{padding:"18px 24px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
           <div>
@@ -864,7 +865,7 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
               <div>
                 <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:6}}>Project</div>
                 <select value={selectedProjectId||""} onChange={e=>setSelectedProjectId(e.target.value)}
-                  style={{width:"100%",padding:"8px 12px",borderRadius:7,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"inherit"}}>
+                  style={{width:"100%",padding:"8px 12px",borderRadius:4,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"inherit"}}>
                   <option value="">— Select a project —</option>
                   {projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
@@ -873,10 +874,10 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
             {Object.entries(ESTIMATE_TEMPLATES).map(([key,t])=>(
               <div key={key} onClick={()=>pickTemplate(key)}
-                style={{padding:"16px 20px",border:`2px solid ${C.border}`,borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",gap:16,transition:"all 0.15s"}}
+                style={{padding:"16px 20px",border:`2px solid ${C.border}`,borderRadius:4,cursor:"pointer",display:"flex",alignItems:"center",gap:16,transition:"all 0.15s"}}
                 onMouseEnter={el=>{el.currentTarget.style.borderColor=C.accent;el.currentTarget.style.background=C.accentL;}}
                 onMouseLeave={el=>{el.currentTarget.style.borderColor=C.border;el.currentTarget.style.background="transparent";}}>
-                <div style={{width:44,height:44,borderRadius:10,background:C.accentL,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{ICONS[key]}</div>
+                <div style={{width:44,height:44,borderRadius:6,background:C.accentL,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic d={I[ICONS[key]]||I.proj} s={20} stroke={C.accent}/></div>
                 <div style={{flex:1}}>
                   <div style={{fontSize:14,fontWeight:700,color:C.text}}>{key}</div>
                   <div style={{fontSize:12,color:C.textSub,marginTop:2}}>{t.desc}</div>
@@ -903,27 +904,27 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
                   <div key={f.label}>
                     <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:5}}>{f.label}</div>
                     <input type={f.type} value={f.v} onChange={e=>f.set(e.target.value)} placeholder={f.ph}
-                      style={{width:"100%",padding:"8px 11px",borderRadius:7,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
+                      style={{width:"100%",padding:"8px 11px",borderRadius:4,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
                   </div>
                 ))}
               </div>
 
               {/* Markup ↔ Margin */}
-              <div style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:8,padding:"14px 16px"}}>
+              <div style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:4,padding:"14px 16px"}}>
                 <div style={{fontSize:11,fontWeight:700,color:C.textSub,marginBottom:10}}>PROFIT / MARKUP</div>
                 <div style={{display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap"}}>
                   <div style={{flex:1,minWidth:120}}>
                     <div style={{fontSize:9,color:C.textMuted,marginBottom:4}}>MARKUP % (on cost)</div>
                     <input type="number" min={0} value={profit}
                       onChange={e=>{const mu=parseFloat(e.target.value)||0;setProfit(mu);setMargin(mu2mg(mu));}}
-                      style={{width:"100%",padding:"8px 10px",borderRadius:7,border:`1px solid ${C.accentB}`,background:C.surface,color:C.amber,fontSize:15,fontWeight:700,fontFamily:"inherit",textAlign:"center"}}/>
+                      style={{width:"100%",padding:"8px 10px",borderRadius:4,border:`1px solid ${C.accentB}`,background:C.surface,color:C.amber,fontSize:15,fontWeight:700,fontFamily:"inherit",textAlign:"center"}}/>
                   </div>
                   <div style={{fontSize:18,color:C.textMuted,paddingBottom:8}}>↔</div>
                   <div style={{flex:1,minWidth:120}}>
                     <div style={{fontSize:9,color:C.textMuted,marginBottom:4}}>MARGIN % (on revenue)</div>
                     <input type="number" min={0} max={99.99} value={margin}
                       onChange={e=>{const mg=parseFloat(e.target.value)||0;setMargin(mg);setProfit(mg2mu(mg));}}
-                      style={{width:"100%",padding:"8px 10px",borderRadius:7,border:`1px solid ${C.accentB}`,background:C.surface,color:C.amber,fontSize:15,fontWeight:700,fontFamily:"inherit",textAlign:"center"}}/>
+                      style={{width:"100%",padding:"8px 10px",borderRadius:4,border:`1px solid ${C.accentB}`,background:C.surface,color:C.amber,fontSize:15,fontWeight:700,fontFamily:"inherit",textAlign:"center"}}/>
                   </div>
                   <div style={{display:"flex",gap:5,flexWrap:"wrap",paddingBottom:2}}>
                     {[[10,9.09],[15,13.04],[20,16.67],[25,20],[30,23.08]].map(([mu,mg])=>(
@@ -945,7 +946,7 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
                     {l:"Profit Amount",v:fmt(profitAmt),c:"#22c55e"},
                     {l:"Hard Cost $/Sqft",v:`$${hardCpsfN.toFixed(2)}/sf`,c:C.purple},
                   ].map(s=>(
-                    <div key={s.l} style={{padding:"11px 14px",background:C.bg,borderRadius:8,border:`1px solid ${C.border}`}}>
+                    <div key={s.l} style={{padding:"11px 14px",background:C.bg,borderRadius:4,border:`1px solid ${C.border}`}}>
                       <div style={{fontSize:10,color:C.textMuted,marginBottom:3}}>{s.l}</div>
                       <div style={{fontSize:15,fontWeight:700,color:s.c}}>{s.v}</div>
                     </div>
@@ -958,10 +959,10 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
                   <div style={{fontSize:13,fontWeight:700,color:C.text}}>Phase Breakdown</div>
                   <div style={{fontSize:12,fontWeight:600,color:Math.abs(pctSum-100)<0.01?"#22c55e":C.amber}}>
-                    Total: {pctSum.toFixed(1)}%{Math.abs(pctSum-100)<0.01?" ✓":`  (${(100-pctSum).toFixed(1)}% remaining)`}
+                    Total: {pctSum.toFixed(1)}%{Math.abs(pctSum-100)<0.01?"":`  (${(100-pctSum).toFixed(1)}% remaining)`}
                   </div>
                 </div>
-                <div style={{border:`1px solid ${C.border}`,borderRadius:8,overflow:"hidden"}}>
+                <div style={{border:`1px solid ${C.border}`,borderRadius:4,overflow:"hidden"}}>
                   <div style={{display:"grid",gridTemplateColumns:"140px 1fr 90px 90px 100px",padding:"7px 14px",background:C.bg,borderBottom:`1px solid ${C.border}`}}>
                     {[["Category","left"],["Description","left"],["% of Total","right"],["$/Sqft (hard)","right"],["Line Total","right"]].map(([h,a])=>(
                       <div key={h} style={{fontSize:10,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.04em",textAlign:a}}>{h}</div>
@@ -1249,14 +1250,14 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
 
       {showBudgetImport&&(
         <div onClick={()=>setShowBudgetImport(false)} style={{position:"fixed",inset:0,background:"rgba(15,17,23,0.5)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:12,padding:24,maxWidth:560,width:"100%",maxHeight:"80vh",display:"flex",flexDirection:"column",gap:16,boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:6,padding:24,maxWidth:560,width:"100%",maxHeight:"80vh",display:"flex",flexDirection:"column",gap:16,boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
             <div style={{fontSize:15,fontWeight:700,color:C.text}}>Import from Budget</div>
             {projBudget.length===0
               ? <div style={{color:C.textMuted,fontSize:13}}>No budget items found for this project.</div>
               : <>
                   <div style={{overflowY:"auto",flex:1,display:"flex",flexDirection:"column",gap:8}}>
                     {projBudget.map(b=>(
-                      <label key={b.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:budgetSel[b.id]?C.accentL:C.bg,borderRadius:8,border:`1px solid ${budgetSel[b.id]?C.accentB:C.border}`,cursor:"pointer",transition:"all 0.1s"}}>
+                      <label key={b.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:budgetSel[b.id]?C.accentL:C.bg,borderRadius:4,border:`1px solid ${budgetSel[b.id]?C.accentB:C.border}`,cursor:"pointer",transition:"all 0.1s"}}>
                         <input type="checkbox" checked={!!budgetSel[b.id]} onChange={e=>setBudgetSel(s=>({...s,[b.id]:e.target.checked}))} style={{width:14,height:14,accentColor:C.accent}}/>
                         <div style={{flex:1}}>
                           <div style={{fontSize:13,fontWeight:600,color:C.text}}>{b.category}</div>
@@ -1299,7 +1300,7 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
           <div style={{position:"relative"}}>
             <Btn v="secondary" sm onClick={e=>{e.stopPropagation();setShowColMenu(v=>!v);}}>Columns ▾</Btn>
             {showColMenu&&(
-              <div onClick={e=>e.stopPropagation()} style={{position:"absolute",right:0,top:"calc(100% + 6px)",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 14px",zIndex:300,minWidth:180,boxShadow:"0 8px 24px rgba(0,0,0,0.15)",display:"flex",flexDirection:"column",gap:8}}>
+              <div onClick={e=>e.stopPropagation()} style={{position:"absolute",right:0,top:"calc(100% + 6px)",background:C.surface,border:`1px solid ${C.border}`,borderRadius:4,padding:"10px 14px",zIndex:300,minWidth:180,boxShadow:"0 8px 24px rgba(0,0,0,0.15)",display:"flex",flexDirection:"column",gap:8}}>
                 <div style={{fontSize:10,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:2}}>Show / Hide Columns</div>
                 {COL_LABELS.map(({k,l})=>(
                   <label key={k} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:12,color:C.text,userSelect:"none"}}>
@@ -1317,7 +1318,7 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
       {/* ── Stats ── */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14}}>
         <Stat label="Cost Subtotal" value={fmt(subtotal)} color={C.blue} icon="dollar"/>
-        <div style={{background:C.surface,borderRadius:10,padding:"14px 16px",border:`1px solid ${C.border}`}}>
+        <div style={{background:C.surface,borderRadius:4,padding:"14px 16px",border:`1px solid ${C.border}`}}>
           <div style={{fontSize:11,color:C.textMuted,marginBottom:6}}>Profit / O&P</div>
           <div style={{fontSize:20,fontWeight:700,color:C.amber,marginBottom:6}}>{fmt(markupAmt)}</div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
@@ -1378,7 +1379,7 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
             </div>
           </Grid>
           {form.cost&&form.qty&&(
-            <div style={{marginTop:12,padding:"10px 14px",background:C.accentL,borderRadius:7,fontSize:13,display:"flex",gap:20}}>
+            <div style={{marginTop:12,padding:"10px 14px",background:C.accentL,borderRadius:4,fontSize:13,display:"flex",gap:20}}>
               <span>Line total: <strong style={{color:C.accent}}>{fmt((parseFloat(form.qty)||0)*(parseFloat(form.cost)||0)*(1+(parseFloat(form.markup)||0)/100))}</strong></span>
               <span style={{color:C.textMuted,fontSize:12}}>Hard cost: {fmt((parseFloat(form.qty)||0)*(parseFloat(form.cost)||0))} · Profit: {fmt((parseFloat(form.qty)||0)*(parseFloat(form.cost)||0)*((parseFloat(form.markup)||0)/100))}</span>
             </div>
@@ -1460,7 +1461,7 @@ const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,company
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontSize:13,fontWeight:600,color:C.text}}>Estimates</div>
         <div style={{display:"flex",gap:8}}>
-          <Btn sm v="secondary" onClick={()=>setShowWizard(true)}>⚡ From Template</Btn>
+          <Btn sm v="secondary" onClick={()=>setShowWizard(true)}>From Template</Btn>
           <Btn sm onClick={()=>setShowForm(true)}><Ic d={I.plus} s={13}/> Blank Estimate</Btn>
         </div>
       </div>
@@ -1478,7 +1479,7 @@ const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,company
           </div>
         </Card>
       )}
-      {items.length===0&&!showForm&&<Card><EmptyState msg="No estimates yet. Use a template to auto-populate line items, or start blank." action={<div style={{display:"flex",gap:8}}><Btn sm onClick={()=>setShowWizard(true)}>⚡ From Template</Btn><Btn sm v="secondary" onClick={()=>setShowForm(true)}>+ Blank</Btn></div>}/></Card>}
+      {items.length===0&&!showForm&&<Card><EmptyState msg="No estimates yet. Use a template to auto-populate line items, or start blank." action={<div style={{display:"flex",gap:8}}><Btn sm onClick={()=>setShowWizard(true)}>From Template</Btn><Btn sm v="secondary" onClick={()=>setShowForm(true)}>+ Blank</Btn></div>}/></Card>}
       {items.map(e=>{
         const total=calcTotal(e.lineItems);
         return (
@@ -1522,8 +1523,8 @@ const ProjInvoices = ({projectId,invoices,setInvoices,project}) => {
     setForm(null);
   };
 
-  const del = () => { setInvoices(invoices.filter(i=>i.id!==delId)); setDelId(null); toast("Invoice deleted",{icon:"🗑️"}); };
-  const setStatus = (id,s) => { setInvoices(invoices.map(i=>i.id===id?{...i,status:s}:i)); if(s==="Paid") toast.success("Invoice marked as paid ✓"); };
+  const del = () => { setInvoices(invoices.filter(i=>i.id!==delId)); setDelId(null); toast("Invoice deleted",{}); };
+  const setStatus = (id,s) => { setInvoices(invoices.map(i=>i.id===id?{...i,status:s}:i)); if(s==="Paid") toast.success("Invoice marked as paid"); };
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -1621,7 +1622,7 @@ const ChangeOrders = ({projectId,cos,setCos,projects}) => {
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{display:"flex",gap:6}}>
           {["All","Pending","Approved","Rejected"].map(s=>(
-            <button key={s} onClick={()=>setFilter(s)} style={{background:filter===s?C.accent:C.surface,color:filter===s?"#fff":C.textMid,border:`1px solid ${filter===s?C.accent:C.border}`,borderRadius:7,padding:"6px 14px",fontSize:12,fontWeight:500,cursor:"pointer"}}>{s}</button>
+            <button key={s} onClick={()=>setFilter(s)} style={{background:filter===s?C.accent:C.surface,color:filter===s?"#fff":C.textMid,border:`1px solid ${filter===s?C.accent:C.border}`,borderRadius:4,padding:"6px 14px",fontSize:12,fontWeight:500,cursor:"pointer"}}>{s}</button>
           ))}
         </div>
         {projectId&&<Btn sm onClick={()=>setForm({title:"",category:"Scope Addition",description:"",amount:"",requestedBy:"Owner"})}><Ic d={I.plus} s={13}/> New CO</Btn>}
@@ -1658,7 +1659,7 @@ const ChangeOrders = ({projectId,cos,setCos,projects}) => {
                     <span style={{fontSize:13,fontWeight:700,color:C.accent}}>{co.number}</span>
                     <span style={{fontSize:13,fontWeight:600,color:C.text}}>{co.title}</span>
                     <Badge s={co.status}/>
-                    <span style={{fontSize:11,fontWeight:600,color:cc,background:cc+"18",padding:"2px 9px",borderRadius:10}}>{co.category}</span>
+                    <span style={{fontSize:11,fontWeight:600,color:cc,background:cc+"18",padding:"2px 9px",borderRadius:4}}>{co.category}</span>
                   </div>
                   <div style={{fontSize:12,color:C.textSub}}>{!projectId&&p?.name+" · "}{co.date} · Requested by {co.requestedBy}</div>
                 </div>
@@ -1708,9 +1709,9 @@ const DailyLogs = ({projectId,logs,setLogs,projects}) => {
 
       {!projectId&&(
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          <button onClick={()=>setFilterProj("All")} style={{background:filterProj==="All"?C.accent:C.surface,color:filterProj==="All"?"#fff":C.textMid,border:`1px solid ${filterProj==="All"?C.accent:C.border}`,borderRadius:7,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>All Projects</button>
+          <button onClick={()=>setFilterProj("All")} style={{background:filterProj==="All"?C.accent:C.surface,color:filterProj==="All"?"#fff":C.textMid,border:`1px solid ${filterProj==="All"?C.accent:C.border}`,borderRadius:4,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>All Projects</button>
           {projects.filter(p=>p.status==="Active").map(p=>(
-            <button key={p.id} onClick={()=>setFilterProj(String(p.id))} style={{background:filterProj===String(p.id)?C.accent:C.surface,color:filterProj===String(p.id)?"#fff":C.textMid,border:`1px solid ${filterProj===String(p.id)?C.accent:C.border}`,borderRadius:7,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>{p.name.split(" ").slice(0,2).join(" ")}</button>
+            <button key={p.id} onClick={()=>setFilterProj(String(p.id))} style={{background:filterProj===String(p.id)?C.accent:C.surface,color:filterProj===String(p.id)?"#fff":C.textMid,border:`1px solid ${filterProj===String(p.id)?C.accent:C.border}`,borderRadius:4,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>{p.name.split(" ").slice(0,2).join(" ")}</button>
           ))}
         </div>
       )}
@@ -1745,7 +1746,7 @@ const DailyLogs = ({projectId,logs,setLogs,projects}) => {
                   <div style={{fontSize:12,color:C.textSub}}>{fmtDate(log.date)} · {log.author}</div>
                 </div>
                 <div style={{display:"flex",gap:10,alignItems:"center"}}>
-                  <div style={{background:C.accentL,borderRadius:7,padding:"8px 14px",textAlign:"center"}}>
+                  <div style={{background:C.accentL,borderRadius:4,padding:"8px 14px",textAlign:"center"}}>
                     <div style={{fontSize:18,fontWeight:700,color:C.accent}}>{log.crew}</div>
                     <div style={{fontSize:9,color:C.textMuted,textTransform:"uppercase",fontWeight:600}}>Crew</div>
                   </div>
@@ -1831,8 +1832,8 @@ const SubBids = ({projectId,bids,setBids,projects}) => {
                 <div>
                   <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:3,display:"flex",alignItems:"center",gap:8}}>
                     {bid.subName}
-                    {isLow&&<span style={{fontSize:10,background:C.greenL,color:C.green,border:`1px solid ${C.greenB}`,padding:"2px 8px",borderRadius:10,fontWeight:700}}>LOW BID</span>}
-                    {bid.awarded&&<span style={{fontSize:10,background:C.green,color:"#fff",padding:"2px 8px",borderRadius:10,fontWeight:700}}>AWARDED</span>}
+                    {isLow&&<span style={{fontSize:10,background:C.greenL,color:C.green,border:`1px solid ${C.greenB}`,padding:"2px 8px",borderRadius:4,fontWeight:700}}>LOW BID</span>}
+                    {bid.awarded&&<span style={{fontSize:10,background:C.green,color:"#fff",padding:"2px 8px",borderRadius:4,fontWeight:700}}>AWARDED</span>}
                   </div>
                   <div style={{fontSize:12,color:C.textSub}}>{bid.submitted}{bid.notes&&` · ${bid.notes}`}</div>
                 </div>
@@ -1937,7 +1938,7 @@ const Documents = ({projectId,docs,setDocs,projects}) => {
       {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:13,fontWeight:600,color:C.text}}>Documents</div><Btn sm onClick={()=>setForm({name:"",type:"Contract",date:today(),notes:"",fileUrl:""})}><Ic d={I.plus} s={13}/> Add</Btn></div>}
 
       <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-        {["All",...TYPES].map(t=><button key={t} onClick={()=>setFilterType(t)} style={{background:filterType===t?(TYPE_BG[t]||C.accentL):C.surface,color:filterType===t?(TYPE_COLOR[t]||C.accent):C.textMid,border:`1px solid ${filterType===t?(TYPE_COLOR[t]||C.accent)+"40":C.border}`,borderRadius:7,padding:"5px 12px",fontSize:12,fontWeight:filterType===t?600:400,cursor:"pointer"}}>{t}</button>)}
+        {["All",...TYPES].map(t=><button key={t} onClick={()=>setFilterType(t)} style={{background:filterType===t?(TYPE_BG[t]||C.accentL):C.surface,color:filterType===t?(TYPE_COLOR[t]||C.accent):C.textMid,border:`1px solid ${filterType===t?(TYPE_COLOR[t]||C.accent)+"40":C.border}`,borderRadius:4,padding:"5px 12px",fontSize:12,fontWeight:filterType===t?600:400,cursor:"pointer"}}>{t}</button>)}
       </div>
 
       {form!==null&&<Card style={{border:`1px solid ${C.accentB}`}}>
@@ -1946,8 +1947,8 @@ const Documents = ({projectId,docs,setDocs,projects}) => {
           <Span2>
             <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:4}}>Upload File</div>
             <input ref={fileRef} type="file" onChange={onFileSelect} style={{display:"none"}}/>
-            <div onClick={()=>fileRef.current?.click()} style={{border:`2px dashed ${form._fileName||form.fileUrl?C.green+"60":C.border}`,borderRadius:8,padding:"14px 16px",cursor:"pointer",background:form._fileName||form.fileUrl?C.greenL:C.bg,display:"flex",alignItems:"center",gap:10,transition:"all 0.15s"}}>
-              <div style={{width:32,height:32,borderRadius:8,background:form._fileName||form.fileUrl?C.greenL:C.surface,display:"flex",alignItems:"center",justifyContent:"center",color:form._fileName||form.fileUrl?C.green:C.textMuted}}>
+            <div onClick={()=>fileRef.current?.click()} style={{border:`2px dashed ${form._fileName||form.fileUrl?C.green+"60":C.border}`,borderRadius:4,padding:"14px 16px",cursor:"pointer",background:form._fileName||form.fileUrl?C.greenL:C.bg,display:"flex",alignItems:"center",gap:10,transition:"all 0.15s"}}>
+              <div style={{width:32,height:32,borderRadius:4,background:form._fileName||form.fileUrl?C.greenL:C.surface,display:"flex",alignItems:"center",justifyContent:"center",color:form._fileName||form.fileUrl?C.green:C.textMuted}}>
                 <Ic d={form._fileName||form.fileUrl?I.check:I.plus} s={14}/>
               </div>
               <div>
@@ -1973,7 +1974,7 @@ const Documents = ({projectId,docs,setDocs,projects}) => {
           return <TR key={doc.id}>
             <td style={{padding:"12px 14px"}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <div style={{width:30,height:30,background:tb,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center",color:tc,flexShrink:0}}><Ic d={I.docs} s={13}/></div>
+                <div style={{width:30,height:30,background:tb,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center",color:tc,flexShrink:0}}><Ic d={I.docs} s={13}/></div>
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:C.text}}>{doc.fileUrl?<a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" style={{color:C.text,textDecoration:"none",borderBottom:`1px solid ${C.accent}40`}}>{doc.name}</a>:doc.name}</div>
                   {doc.notes&&<div style={{fontSize:11,color:C.textMuted,marginTop:1}}>{doc.notes}</div>}
@@ -2009,7 +2010,7 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
   const TAGS = ["Progress","Milestone","Issue","Before","After","Inspection","Material","Complete"];
   const TAG_COLOR = {Progress:C.blue,Milestone:C.green,Issue:C.red,Before:C.purple,After:C.green,Inspection:C.amber,Material:C.accent,Complete:C.green};
   const TAG_BG = {Progress:C.blueL,Milestone:C.greenL,Issue:C.redL,Before:C.purpleL,After:C.greenL,Inspection:C.amberL,Material:C.accentL,Complete:C.greenL};
-  const EMOJIS = {Progress:"🏗️",Milestone:"✅",Issue:"⚠️",Before:"📸",After:"🏡",Inspection:"📋",Material:"📦",Complete:"🎉"};
+  const TAG_ICON = {Progress:"proj",Milestone:"check",Before:"photos",After:"home",Inspection:"logs",Material:"budget",Complete:"check",Issue:"alert"};
   const COLORS = ["#E8F4F8","#F0F8E8","#FEF3EC","#F4F0FD","#F0FBF5","#FDF8EE","#FEF2F2","#EEF3FD"];
 
   const save = async () => {
@@ -2023,13 +2024,13 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
       const url = await uploadFile(form._file, "photos", path);
       if(url) { fileUrl = url; toast.success("Photo uploaded"); }
       else { toast.error("Photo upload failed — saving metadata only"); }
-      const rec = {...form, id: form.id || id, fileUrl, projectId: form.projectId||projectId, emoji:EMOJIS[form.tag]||"📷", color:COLORS[Math.floor(Math.random()*COLORS.length)]};
+      const rec = {...form, id: form.id || id, fileUrl, projectId: form.projectId||projectId, emoji:TAG_ICON[form.tag]||"photos", color:COLORS[Math.floor(Math.random()*COLORS.length)]};
       delete rec._file; delete rec._preview;
       if(form.id){setPhotos(photos.map(p=>p.id===form.id?rec:p));}
       else{setPhotos([rec,...photos]);}
     } else {
       if(form.id){const rec={...form}; delete rec._file; delete rec._preview; setPhotos(photos.map(p=>p.id===form.id?rec:p));}
-      else{setPhotos([{...form,id:uid(),projectId:form.projectId||projectId,emoji:EMOJIS[form.tag]||"📷",color:COLORS[Math.floor(Math.random()*COLORS.length)]},...photos]);}
+      else{setPhotos([{...form,id:uid(),projectId:form.projectId||projectId,emoji:TAG_ICON[form.tag]||"photos",color:COLORS[Math.floor(Math.random()*COLORS.length)]},...photos]);}
     }
     setUploading(false);
     setForm(null);
@@ -2048,15 +2049,15 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
       {delId&&<Confirm msg="Delete this photo?" onOk={del} onCancel={()=>setDelId(null)}/>}
       {lbPhoto&&(
         <div onClick={()=>setLightbox(null)} style={{position:"fixed",inset:0,background:"rgba(15,17,23,0.85)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-          <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:12,overflow:"hidden",maxWidth:540,width:"100%"}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:6,overflow:"hidden",maxWidth:540,width:"100%"}}>
             {lbPhoto.fileUrl
               ? <img src={lbPhoto.fileUrl} alt={lbPhoto.caption} style={{width:"100%",height:320,objectFit:"cover",display:"block"}}/>
-              : <div style={{background:lbPhoto.color,height:260,display:"flex",alignItems:"center",justifyContent:"center",fontSize:64}}>{lbPhoto.emoji}</div>}
+              : <div style={{background:C.bg,height:260,display:"flex",alignItems:"center",justifyContent:"center"}}><Ic d={I[lbPhoto.emoji]||I.photos} s={48} stroke={C.textMuted}/></div>}
             <div style={{padding:22}}>
               <div style={{fontSize:16,fontWeight:700,color:C.text,marginBottom:6}}>{lbPhoto.caption}</div>
               <div style={{fontSize:13,color:C.textSub,marginBottom:16}}>{projects.find(p=>p.id===lbPhoto.projectId)?.name} · {fmtDate(lbPhoto.date)} · {lbPhoto.author}</div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <span style={{fontSize:11,fontWeight:600,color:TAG_COLOR[lbPhoto.tag]||C.textSub,background:TAG_BG[lbPhoto.tag]||C.bg,padding:"3px 12px",borderRadius:20}}>{lbPhoto.tag}</span>
+                <span style={{fontSize:11,fontWeight:600,color:TAG_COLOR[lbPhoto.tag]||C.textSub,background:TAG_BG[lbPhoto.tag]||C.bg,padding:"3px 12px",borderRadius:3}}>{lbPhoto.tag}</span>
                 <div style={{display:"flex",gap:8}}>
                   {lbPhoto.fileUrl&&<a href={lbPhoto.fileUrl} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none"}}><Btn v="secondary" sm>View Full Size</Btn></a>}
                   <Btn danger sm onClick={()=>setDelId(lbPhoto.id)}><Ic d={I.trash} s={13}/> Delete</Btn><Btn v="secondary" sm onClick={()=>setLightbox(null)}>Close</Btn>
@@ -2071,7 +2072,7 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
       {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:13,fontWeight:600,color:C.text}}>Photos</div><Btn sm onClick={()=>setForm({caption:"",tag:"Progress",date:today(),author:"",fileUrl:""})}><Ic d={I.plus} s={13}/> Add Photo</Btn></div>}
 
       <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-        {["All",...TAGS].map(t=><button key={t} onClick={()=>setFilterTag(t)} style={{background:filterTag===t?(TAG_BG[t]||C.accentL):C.surface,color:filterTag===t?(TAG_COLOR[t]||C.accent):C.textMid,border:`1px solid ${filterTag===t?(TAG_COLOR[t]||C.accent)+"40":C.border}`,borderRadius:7,padding:"5px 12px",fontSize:12,fontWeight:filterTag===t?600:400,cursor:"pointer"}}>{t}</button>)}
+        {["All",...TAGS].map(t=><button key={t} onClick={()=>setFilterTag(t)} style={{background:filterTag===t?(TAG_BG[t]||C.accentL):C.surface,color:filterTag===t?(TAG_COLOR[t]||C.accent):C.textMid,border:`1px solid ${filterTag===t?(TAG_COLOR[t]||C.accent)+"40":C.border}`,borderRadius:4,padding:"5px 12px",fontSize:12,fontWeight:filterTag===t?600:400,cursor:"pointer"}}>{t}</button>)}
       </div>
 
       {form!==null&&<Card style={{border:`1px solid ${C.accentB}`}}>
@@ -2080,11 +2081,11 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
           <Span2>
             <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:4}}>Upload Photo</div>
             <input ref={photoRef} type="file" accept="image/*" onChange={onPhotoSelect} style={{display:"none"}}/>
-            <div onClick={()=>photoRef.current?.click()} style={{border:`2px dashed ${form._preview||form.fileUrl?C.green+"60":C.border}`,borderRadius:8,cursor:"pointer",overflow:"hidden",transition:"all 0.15s"}}>
+            <div onClick={()=>photoRef.current?.click()} style={{border:`2px dashed ${form._preview||form.fileUrl?C.green+"60":C.border}`,borderRadius:4,cursor:"pointer",overflow:"hidden",transition:"all 0.15s"}}>
               {(form._preview||form.fileUrl)
                 ? <img src={form._preview||form.fileUrl} alt="Preview" style={{width:"100%",height:160,objectFit:"cover",display:"block"}}/>
                 : <div style={{padding:"24px 16px",textAlign:"center",background:C.bg}}>
-                    <div style={{fontSize:24,marginBottom:6}}>📷</div>
+                    <div style={{marginBottom:6}}><Ic d={I.photos} s={24} stroke={C.textMuted}/></div>
                     <div style={{fontSize:12,fontWeight:600,color:C.textMid}}>Click to upload a photo</div>
                     <div style={{fontSize:10,color:C.textMuted,marginTop:2}}>JPG, PNG, HEIC, WebP</div>
                   </div>}
@@ -2102,16 +2103,16 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
       {filtered.length===0&&!form&&<Card><EmptyState msg="No photos found." action={<Btn sm onClick={()=>setForm({projectId:projects[0]?.id||"",caption:"",tag:"Progress",date:today(),author:"",fileUrl:""})}>+ Add Photo</Btn>}/></Card>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
         {filtered.map(p=>(
-          <div key={p.id} onClick={()=>setLightbox(p.id)} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,overflow:"hidden",cursor:"pointer",transition:"all 0.15s"}}
+          <div key={p.id} onClick={()=>setLightbox(p.id)} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:4,overflow:"hidden",cursor:"pointer",transition:"all 0.15s"}}
             onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.02)";e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,0.1)";}}
             onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.boxShadow="none";}}>
             {p.fileUrl
               ? <img src={p.fileUrl} alt={p.caption} style={{width:"100%",height:130,objectFit:"cover",display:"block"}}/>
-              : <div style={{background:p.color,height:130,display:"flex",alignItems:"center",justifyContent:"center",fontSize:36}}>{p.emoji}</div>}
+              : <div style={{background:C.bg,height:130,display:"flex",alignItems:"center",justifyContent:"center"}}><Ic d={I[p.emoji]||I.photos} s={28} stroke={C.textMuted}/></div>}
             <div style={{padding:"10px 12px"}}>
               <div style={{fontSize:12,fontWeight:600,color:C.text,marginBottom:4,lineHeight:1.3}}>{p.caption}</div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <span style={{fontSize:10,fontWeight:600,color:TAG_COLOR[p.tag]||C.textSub,background:TAG_BG[p.tag]||C.bg,padding:"2px 7px",borderRadius:10}}>{p.tag}</span>
+                <span style={{fontSize:10,fontWeight:600,color:TAG_COLOR[p.tag]||C.textSub,background:TAG_BG[p.tag]||C.bg,padding:"2px 7px",borderRadius:4}}>{p.tag}</span>
                 <span style={{fontSize:10,color:C.textMuted}}>{p.date}</span>
               </div>
             </div>
@@ -2149,11 +2150,11 @@ const CompanySettings = ({settings,onSave}) => {
           <Card>
             <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:16}}>Company Logo</div>
             <input ref={logoRef} type="file" accept="image/*" onChange={onLogoSelect} style={{display:"none"}}/>
-            <div onClick={()=>logoRef.current?.click()} style={{border:`2px dashed ${form.logo?C.green+"60":C.border}`,borderRadius:10,cursor:"pointer",overflow:"hidden",minHeight:120,display:"flex",alignItems:"center",justifyContent:"center",background:form.logo?C.greenL:C.bg,transition:"all 0.15s"}}>
+            <div onClick={()=>logoRef.current?.click()} style={{border:`2px dashed ${form.logo?C.green+"60":C.border}`,borderRadius:4,cursor:"pointer",overflow:"hidden",minHeight:120,display:"flex",alignItems:"center",justifyContent:"center",background:form.logo?C.greenL:C.bg,transition:"all 0.15s"}}>
               {form.logo
                 ? <img src={form.logo} alt="Logo" style={{maxHeight:100,maxWidth:"100%",objectFit:"contain",padding:8}}/>
                 : <div style={{textAlign:"center",padding:24}}>
-                    <div style={{fontSize:28,marginBottom:6}}>🏗️</div>
+                    <div style={{marginBottom:6}}><Ic d={I.hard} s={28} stroke={C.textMuted}/></div>
                     <div style={{fontSize:12,fontWeight:600,color:C.textMid}}>Click to upload logo</div>
                     <div style={{fontSize:10,color:C.textMuted,marginTop:2}}>PNG, JPG, SVG</div>
                   </div>}
@@ -2224,7 +2225,7 @@ const Contacts = ({contacts,setContacts}) => {
     setForm(null);
     toast.success(form.id?"Contact updated":"Contact added");
   };
-  const del = () => { setContacts(contacts.filter(c=>c.id!==delId)); setDelId(null); toast("Contact deleted",{icon:"🗑️"}); };
+  const del = () => { setContacts(contacts.filter(c=>c.id!==delId)); setDelId(null); toast("Contact deleted",{}); };
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
@@ -2250,7 +2251,7 @@ const Contacts = ({contacts,setContacts}) => {
           <input placeholder="Search name, company, email..." value={search} onChange={e=>setSearch(e.target.value)} style={{...inputStyle,paddingLeft:36}}/>
         </div>
         <div style={{display:"flex",gap:5}}>
-          {["All",...TYPES].map(t=><button key={t} onClick={()=>setFilter(t)} style={{background:filter===t?(TYPE_BG[t]||C.accentL):C.surface,color:filter===t?(TYPE_COLOR[t]||C.accent):C.textMid,border:`1px solid ${filter===t?(TYPE_COLOR[t]||C.accent)+"40":C.border}`,borderRadius:7,padding:"6px 12px",fontSize:12,fontWeight:filter===t?600:400,cursor:"pointer"}}>{t}</button>)}
+          {["All",...TYPES].map(t=><button key={t} onClick={()=>setFilter(t)} style={{background:filter===t?(TYPE_BG[t]||C.accentL):C.surface,color:filter===t?(TYPE_COLOR[t]||C.accent):C.textMid,border:`1px solid ${filter===t?(TYPE_COLOR[t]||C.accent)+"40":C.border}`,borderRadius:4,padding:"6px 12px",fontSize:12,fontWeight:filter===t?600:400,cursor:"pointer"}}>{t}</button>)}
         </div>
       </div>
 
@@ -2264,7 +2265,7 @@ const Contacts = ({contacts,setContacts}) => {
                 <span style={{fontSize:13,fontWeight:600,color:C.text}}>{c.name}</span>
               </div>
             </td>
-            <td style={{padding:"12px 14px"}}><span style={{fontSize:11,fontWeight:600,color:tc,background:tb,padding:"3px 10px",borderRadius:20}}>{c.type}</span></td>
+            <td style={{padding:"12px 14px"}}><span style={{fontSize:11,fontWeight:600,color:tc,background:tb,padding:"3px 10px",borderRadius:3}}>{c.type}</span></td>
             <TD muted>{c.company||"—"}</TD>
             <td style={{padding:"12px 14px",fontSize:13,color:C.blue}}>{c.email||"—"}</td>
             <TD muted>{c.phone||"—"}</TD>
@@ -2315,7 +2316,7 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
     toast.success("Project saved");
   };
 
-  const del = () => { setProjects(projects.filter(p=>p.id!==delId)); setDelId(null); if(selectedId===delId)setSelectedId(null); toast("Project deleted",{icon:"🗑️"}); };
+  const del = () => { setProjects(projects.filter(p=>p.id!==delId)); setDelId(null); if(selectedId===delId)setSelectedId(null); toast("Project deleted",{}); };
 
   // ── Project Detail ──
   if(selectedId){
@@ -2407,7 +2408,7 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
                 <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:12}}>Activity</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                   {[["Estimates",projEsts.length,C.blue],["Invoices",projInvs.length,C.accent],["Change Orders",projCOs.length,C.amber],["Budget Lines",projBudget.length,C.green]].map(([k,v,c])=>(
-                    <div key={k} style={{background:C.bg,borderRadius:8,padding:"10px 14px"}}>
+                    <div key={k} style={{background:C.bg,borderRadius:4,padding:"10px 14px"}}>
                       <div style={{fontSize:20,fontWeight:700,color:c}}>{v}</div>
                       <div style={{fontSize:11,color:C.textMuted,marginTop:2}}>{k}</div>
                     </div>
@@ -2468,7 +2469,7 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
       <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
         {STATUSES.map(s=>{
           const cnt=s==="All"?projects.length:projects.filter(p=>p.status===s).length;
-          return <button key={s} onClick={()=>setFilter(s)} style={{background:filter===s?C.accent:C.surface,color:filter===s?"#fff":C.textMid,border:`1px solid ${filter===s?C.accent:C.border}`,borderRadius:7,padding:"6px 14px",fontSize:12,fontWeight:filter===s?600:500,cursor:"pointer"}}>{s} <span style={{opacity:0.7}}>({cnt})</span></button>;
+          return <button key={s} onClick={()=>setFilter(s)} style={{background:filter===s?C.accent:C.surface,color:filter===s?"#fff":C.textMid,border:`1px solid ${filter===s?C.accent:C.border}`,borderRadius:4,padding:"6px 14px",fontSize:12,fontWeight:filter===s?600:500,cursor:"pointer"}}>{s} <span style={{opacity:0.7}}>({cnt})</span></button>;
         })}
       </div>
 
@@ -2604,8 +2605,8 @@ const GlobalInvoices = ({invoices,setInvoices,projects}) => {
     setForm(null);
     toast.success("Invoice created");
   };
-  const del = () => { setInvoices(invoices.filter(i=>i.id!==delId)); setDelId(null); toast("Invoice deleted",{icon:"🗑️"}); };
-  const setStatus=(id,s)=>{ setInvoices(invoices.map(i=>i.id===id?{...i,status:s}:i)); if(s==="Paid") toast.success("Invoice marked as paid ✓"); };
+  const del = () => { setInvoices(invoices.filter(i=>i.id!==delId)); setDelId(null); toast("Invoice deleted",{}); };
+  const setStatus=(id,s)=>{ setInvoices(invoices.map(i=>i.id===id?{...i,status:s}:i)); if(s==="Paid") toast.success("Invoice marked as paid"); };
 
   const paid=invoices.filter(i=>i.status==="Paid").reduce((s,i)=>s+i.amount,0);
   const pending=invoices.filter(i=>i.status==="Pending").reduce((s,i)=>s+i.amount,0);
@@ -2632,7 +2633,7 @@ const GlobalInvoices = ({invoices,setInvoices,projects}) => {
         <div style={{display:"flex",gap:10,marginTop:14}}><Btn onClick={save}>Create Invoice</Btn><Btn v="secondary" onClick={()=>setForm(null)}>Cancel</Btn></div>
       </Card>}
       <div style={{display:"flex",gap:6}}>
-        {["All","Pending","Overdue","Paid"].map(s=><button key={s} onClick={()=>setFilterStatus(s)} style={{background:filterStatus===s?C.accent:C.surface,color:filterStatus===s?"#fff":C.textMid,border:`1px solid ${filterStatus===s?C.accent:C.border}`,borderRadius:7,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>{s}</button>)}
+        {["All","Pending","Overdue","Paid"].map(s=><button key={s} onClick={()=>setFilterStatus(s)} style={{background:filterStatus===s?C.accent:C.surface,color:filterStatus===s?"#fff":C.textMid,border:`1px solid ${filterStatus===s?C.accent:C.border}`,borderRadius:4,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>{s}</button>)}
       </div>
       <Table heads={[{l:"Invoice #"},{l:"Project"},{l:"Description"},{l:"Amount",r:true},{l:"Issued"},{l:"Due"},{l:"Status"},{l:"Actions"}]}>
         {filtered.map(inv=>{
@@ -2693,7 +2694,7 @@ const GlobalEstimates = ({estimates,setEstimates,projects,budgetItems,companySet
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
       {showWizard&&<EstimateTemplateWizard projectId={wizardProjectId} projects={projects} estimates={estimates} setEstimates={setEstimates} companySettings={companySettings} onClose={()=>setShowWizard(false)} onCreated={id=>{setShowWizard(false);setNavTo(id);}}/>}
       <PageHead eyebrow="Bids & Proposals" title="Estimates" action={<div style={{display:"flex",gap:8}}>
-        <Btn v="secondary" onClick={()=>{setWizardProjectId(projects[0]?.id||null);setShowWizard(true);}}>⚡ From Template</Btn>
+        <Btn v="secondary" onClick={()=>{setWizardProjectId(projects[0]?.id||null);setShowWizard(true);}}>From Template</Btn>
         <Btn onClick={()=>setShowForm(true)}><Ic d={I.plus} s={14}/> Blank Estimate</Btn>
       </div>}/>
       {showForm&&<Card style={{border:`1px solid ${C.accentB}`}}>
@@ -2756,7 +2757,7 @@ const RFIs = ({projectId,rfis,setRfis,projects}) => {
     setForm(null);
     toast.success(form.id?"RFI updated":"RFI submitted");
   };
-  const del = () => { setRfis(rfis.filter(r=>r.id!==delId)); setDelId(null); toast("RFI deleted",{icon:"🗑️"}); };
+  const del = () => { setRfis(rfis.filter(r=>r.id!==delId)); setDelId(null); toast("RFI deleted",{}); };
   const setStatus = (id,s) => { setRfis(rfis.map(r=>r.id===id?{...r,status:s}:r)); toast.success(`RFI ${s.toLowerCase()}`); };
 
   return (
@@ -2766,13 +2767,13 @@ const RFIs = ({projectId,rfis,setRfis,projects}) => {
       {projectId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <span style={{fontSize:13,fontWeight:600,color:C.text}}>RFIs</span>
-          {openCount>0&&<span style={{background:C.amberL,color:C.amber,border:`1px solid ${C.amberB}`,borderRadius:10,padding:"2px 8px",fontSize:11,fontWeight:700}}>{openCount} open</span>}
+          {openCount>0&&<span style={{background:C.amberL,color:C.amber,border:`1px solid ${C.amberB}`,borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:700}}>{openCount} open</span>}
         </div>
         <Btn sm onClick={()=>setForm({projectId,subject:"",toParty:"Architect",fromParty:"GC",priority:"Normal",description:"",response:"",dateNeeded:""})}><Ic d={I.plus} s={13}/> New RFI</Btn>
       </div>}
       <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
         {["All","Open","Answered","Closed","Void"].map(s=>(
-          <button key={s} onClick={()=>setFilter(s)} style={{background:filter===s?C.accent:C.surface,color:filter===s?"#fff":C.textMid,border:`1px solid ${filter===s?C.accent:C.border}`,borderRadius:7,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>
+          <button key={s} onClick={()=>setFilter(s)} style={{background:filter===s?C.accent:C.surface,color:filter===s?"#fff":C.textMid,border:`1px solid ${filter===s?C.accent:C.border}`,borderRadius:4,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>
             {s} ({s==="All"?items.length:items.filter(r=>r.status===s).length})
           </button>
         ))}
@@ -2808,8 +2809,8 @@ const RFIs = ({projectId,rfis,setRfis,projects}) => {
                     <span style={{fontSize:12,fontWeight:700,color:C.accent}}>{rfi.number}</span>
                     <span style={{fontSize:13,fontWeight:600,color:C.text}}>{rfi.subject}</span>
                     <Badge s={rfi.status}/>
-                    <span style={{fontSize:11,fontWeight:600,color:pc,background:pb,padding:"2px 9px",borderRadius:10}}>{rfi.priority}</span>
-                    {isOverdue&&<span style={{fontSize:11,fontWeight:700,color:C.red}}>⚠ Response overdue</span>}
+                    <span style={{fontSize:11,fontWeight:600,color:pc,background:pb,padding:"2px 9px",borderRadius:4}}>{rfi.priority}</span>
+                    {isOverdue&&<span style={{fontSize:11,fontWeight:700,color:C.red}}>Response overdue</span>}
                   </div>
                   <div style={{fontSize:12,color:C.textSub}}>
                     {!projectId&&<span style={{fontWeight:600,color:C.textMid}}>{p?.name} · </span>}
@@ -2820,7 +2821,7 @@ const RFIs = ({projectId,rfis,setRfis,projects}) => {
               </div>
               {rfi.description&&<div style={{fontSize:13,color:C.textMid,lineHeight:1.65,marginBottom:rfi.response?12:0,borderLeft:`3px solid ${C.border}`,paddingLeft:12}}>{rfi.description}</div>}
               {rfi.response&&(
-                <div style={{background:C.greenL,border:`1px solid ${C.greenB}`,borderRadius:8,padding:"10px 14px",marginBottom:10}}>
+                <div style={{background:C.greenL,border:`1px solid ${C.greenB}`,borderRadius:4,padding:"10px 14px",marginBottom:10}}>
                   <div style={{fontSize:10,fontWeight:700,color:C.green,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>Response</div>
                   <div style={{fontSize:13,color:C.textMid,lineHeight:1.65}}>{rfi.response}</div>
                 </div>
@@ -2864,8 +2865,8 @@ const PunchList = ({projectId,punchList,setPunchList,projects}) => {
     setForm(null);
     toast.success(form.id?"Item updated":"Punch item added");
   };
-  const del = () => { setPunchList(punchList.filter(p=>p.id!==delId)); setDelId(null); toast("Item deleted",{icon:"🗑️"}); };
-  const complete = (id) => { setPunchList(punchList.map(p=>p.id===id?{...p,status:"Complete"}:p)); toast.success("Item complete ✓"); };
+  const del = () => { setPunchList(punchList.filter(p=>p.id!==delId)); setDelId(null); toast("Item deleted",{}); };
+  const complete = (id) => { setPunchList(punchList.map(p=>p.id===id?{...p,status:"Complete"}:p)); toast.success("Item marked complete"); };
   const reopen = (id) => setPunchList(punchList.map(p=>p.id===id?{...p,status:"Open"}:p));
 
   return (
@@ -2889,7 +2890,7 @@ const PunchList = ({projectId,punchList,setPunchList,projects}) => {
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
           {["All","Open","In Progress","Complete"].map(s=>(
-            <button key={s} onClick={()=>setFilter(s)} style={{background:filter===s?C.accent:C.surface,color:filter===s?"#fff":C.textMid,border:`1px solid ${filter===s?C.accent:C.border}`,borderRadius:7,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>
+            <button key={s} onClick={()=>setFilter(s)} style={{background:filter===s?C.accent:C.surface,color:filter===s?"#fff":C.textMid,border:`1px solid ${filter===s?C.accent:C.border}`,borderRadius:4,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>
               {s} ({s==="All"?items.length:items.filter(p=>p.status===s).length})
             </button>
           ))}
@@ -2918,15 +2919,15 @@ const PunchList = ({projectId,punchList,setPunchList,projects}) => {
           const isComplete = item.status==="Complete";
           const isOverdue = item.dueDate&&item.dueDate<today()&&!isComplete;
           return (
-            <div key={item.id} style={{background:C.surface,border:`1px solid ${isComplete?C.greenB:isOverdue?C.redB:C.border}`,borderRadius:10,padding:"14px 18px",opacity:isComplete?0.72:1,transition:"all 0.15s"}}>
+            <div key={item.id} style={{background:C.surface,border:`1px solid ${isComplete?C.greenB:isOverdue?C.redB:C.border}`,borderRadius:4,padding:"14px 18px",opacity:isComplete?0.72:1,transition:"all 0.15s"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                 <div style={{flex:1}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,flexWrap:"wrap"}}>
                     <span style={{fontSize:11,fontWeight:700,color:C.accent}}>{item.number}</span>
                     <span style={{fontSize:13,fontWeight:600,color:C.text,textDecoration:isComplete?"line-through":"none"}}>{item.description}</span>
                     <Badge s={item.status}/>
-                    <span style={{fontSize:11,fontWeight:600,color:pc,background:pc+"18",padding:"2px 8px",borderRadius:10}}>{item.priority}</span>
-                    {isOverdue&&<span style={{fontSize:11,fontWeight:700,color:C.red}}>⚠ Overdue</span>}
+                    <span style={{fontSize:11,fontWeight:600,color:pc,background:pc+"18",padding:"2px 8px",borderRadius:4}}>{item.priority}</span>
+                    {isOverdue&&<span style={{fontSize:11,fontWeight:700,color:C.red}}>OVERDUE</span>}
                   </div>
                   <div style={{fontSize:12,color:C.textSub}}>
                     {item.location&&<span style={{fontWeight:600,color:C.textMid}}>{item.location} · </span>}
@@ -2971,7 +2972,7 @@ const PurchaseOrders = ({projectId,pos,setPOs,projects}) => {
     setForm(null);
     toast.success(form.id?"PO updated":"Purchase order created");
   };
-  const del = () => { setPOs(pos.filter(p=>p.id!==delId)); setDelId(null); toast("PO deleted",{icon:"🗑️"}); };
+  const del = () => { setPOs(pos.filter(p=>p.id!==delId)); setDelId(null); toast("PO deleted",{}); };
   const setStatus = (id,s) => { setPOs(pos.map(p=>p.id===id?{...p,status:s}:p)); toast.success(`PO ${s.toLowerCase()}`); };
 
   return (
@@ -2988,7 +2989,7 @@ const PurchaseOrders = ({projectId,pos,setPOs,projects}) => {
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
           {["All","Draft","Sent","Received","Complete"].map(s=>(
-            <button key={s} onClick={()=>setFilter(s)} style={{background:filter===s?C.accent:C.surface,color:filter===s?"#fff":C.textMid,border:`1px solid ${filter===s?C.accent:C.border}`,borderRadius:7,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>
+            <button key={s} onClick={()=>setFilter(s)} style={{background:filter===s?C.accent:C.surface,color:filter===s?"#fff":C.textMid,border:`1px solid ${filter===s?C.accent:C.border}`,borderRadius:4,padding:"6px 14px",fontSize:12,cursor:"pointer"}}>
               {s} ({s==="All"?items.length:items.filter(p=>p.status===s).length})
             </button>
           ))}
@@ -3021,7 +3022,7 @@ const PurchaseOrders = ({projectId,pos,setPOs,projects}) => {
               <TD muted>{po.description?.substring(0,28)||"—"}</TD>
               <TD muted>{po.budgetCategory||"—"}</TD>
               <TD right bold>{fmt(po.amount)}</TD>
-              <td style={{padding:"12px 14px",fontSize:13,color:isLate?C.red:C.textSub}}>{po.deliveryDate?fmtDate(po.deliveryDate):"—"}{isLate&&" ⚠"}</td>
+              <td style={{padding:"12px 14px",fontSize:13,color:isLate?C.red:C.textSub}}>{po.deliveryDate?fmtDate(po.deliveryDate):"—"}{isLate&&" LATE"}</td>
               <td style={{padding:"12px 14px"}}><Badge s={po.status}/></td>
               <td style={{padding:"12px 14px"}}>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -3053,7 +3054,7 @@ const MeetingMinutes = ({projectId,meetings,setMeetings,projects}) => {
     setForm(null);
     toast.success(form.id?"Meeting updated":"Meeting minutes saved");
   };
-  const del = () => { setMeetings(meetings.filter(m=>m.id!==delId)); setDelId(null); toast("Meeting deleted",{icon:"🗑️"}); };
+  const del = () => { setMeetings(meetings.filter(m=>m.id!==delId)); setDelId(null); toast("Meeting deleted",{}); };
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -3090,14 +3091,14 @@ const MeetingMinutes = ({projectId,meetings,setMeetings,projects}) => {
                   {!projectId&&<div style={{fontSize:11,color:C.accent,fontWeight:700,letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:3}}>{p?.name}</div>}
                   <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:3}}>{m.title}</div>
                   <div style={{fontSize:12,color:C.textSub}}>{fmtDate(m.date)}{m.location&&` · ${m.location}`}</div>
-                  {m.attendees&&<div style={{fontSize:12,color:C.textMuted,marginTop:3}}>👥 {m.attendees}</div>}
+                  {m.attendees&&<div style={{fontSize:12,color:C.textMuted,marginTop:3}}>Attendees: {m.attendees}</div>}
                 </div>
                 <div style={{display:"flex",gap:6}}><EditBtn onClick={()=>setForm({...m})}/><DeleteBtn onClick={()=>setDelId(m.id)}/></div>
               </div>
               {m.agenda&&<div style={{marginBottom:12}}><div style={{fontSize:10,fontWeight:700,color:C.textSub,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4}}>Agenda</div><div style={{fontSize:13,color:C.textMid,lineHeight:1.65}}>{m.agenda}</div></div>}
               {m.notes&&<div style={{fontSize:13,color:C.textMid,lineHeight:1.7,borderLeft:`3px solid ${C.accentB}`,paddingLeft:14,marginBottom:m.actionItems?12:0}}>{m.notes}</div>}
               {m.actionItems&&(
-                <div style={{background:C.amberL,border:`1px solid ${C.amberB}`,borderRadius:8,padding:"10px 14px"}}>
+                <div style={{background:C.amberL,border:`1px solid ${C.amberB}`,borderRadius:4,padding:"10px 14px"}}>
                   <div style={{fontSize:10,fontWeight:700,color:C.amber,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:5}}>Action Items</div>
                   <div style={{fontSize:13,color:C.textMid,lineHeight:1.8,whiteSpace:"pre-wrap"}}>{m.actionItems}</div>
                 </div>
@@ -3235,7 +3236,7 @@ const fromDb = {
   log: r => ({ id:r.id, projectId:r.project_id, date:r.date||"", author:r.author||"", weather:r.weather||"", crew:parseInt(r.crew)||0, notes:r.notes||"" }),
   bidPkg: (r, bids) => ({ id:r.id, projectId:r.project_id, trade:r.trade||"", scope:r.scope||"", dueDate:r.due_date||"", status:r.status||"Open", bids:(bids||[]).map(b=>({ subId:b.id, subName:b.sub_name||"", amount:parseFloat(b.amount)||0, notes:b.notes||"", submitted:b.submitted||"", awarded:b.awarded||false })) }),
   doc: r => ({ id:r.id, projectId:r.project_id, name:r.name||"", type:r.type||"Contract", date:r.date||"", notes:r.notes||"", uploader:r.uploader||"", fileUrl:r.file_url||"" }),
-  photo: r => ({ id:r.id, projectId:r.project_id, caption:r.caption||"", tag:r.tag||"Progress", date:r.date||"", author:r.author||"", emoji:r.emoji||"📷", color:r.color||"#F4F5F7", fileUrl:r.file_url||"" }),
+  photo: r => ({ id:r.id, projectId:r.project_id, caption:r.caption||"", tag:r.tag||"Progress", date:r.date||"", author:r.author||"", emoji:r.emoji||"photos", color:r.color||"#F4F5F7", fileUrl:r.file_url||"" }),
   rfi: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", subject:r.subject||"", toParty:r.to_party||"Architect", fromParty:r.from_party||"GC", dateSubmitted:r.date_submitted||"", dateNeeded:r.date_needed||"", priority:r.priority||"Normal", status:r.status||"Open", description:r.description||"", response:r.response||"" }),
   punchItem: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", location:r.location||"", description:r.description||"", assignedTo:r.assigned_to||"", priority:r.priority||"Normal", status:r.status||"Open", dueDate:r.due_date||"", notes:r.notes||"" }),
   po: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", vendor:r.vendor||"", description:r.description||"", amount:parseFloat(r.amount)||0, status:r.status||"Draft", date:r.date||"", budgetCategory:r.budget_category||"", deliveryDate:r.delivery_date||"", notes:r.notes||"" }),
@@ -3419,7 +3420,7 @@ export default function App() {
 
   if(loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:C.bg,fontFamily:"'Inter',system-ui,sans-serif",flexDirection:"column",gap:16}}>
-      <div style={{width:44,height:44,background:C.accent,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center"}}><Ic d={I.hard} s={22} stroke="#fff"/></div>
+      <div style={{width:44,height:44,background:C.accent,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center"}}><Ic d={I.hard} s={22} stroke="#fff"/></div>
       <div style={{fontSize:15,fontWeight:700,color:C.text}}>BuildFlow Pro</div>
       <div style={{fontSize:13,color:C.textSub}}>Loading your projects...</div>
       <div style={{width:200,height:3,background:C.border,borderRadius:3,overflow:"hidden",marginTop:4}}>
@@ -3580,36 +3581,36 @@ export default function App() {
   const BADGES = {cos:pendingCOCount, invoices:overdueInvCount, rfis:openRFICount, punch:openPunchCount};
 
   const Sidebar = () => (
-    <div style={{display:"flex",flexDirection:"column",height:"100%"}}>
-      <div style={{padding:"16px 14px 12px",borderBottom:`1px solid ${C.border}`}}>
+    <div style={{display:"flex",flexDirection:"column",height:"100%",background:C.navy}}>
+      <div style={{padding:"16px 14px 12px",borderBottom:`1px solid rgba(255,255,255,0.08)`}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-          <div style={{width:32,height:32,background:C.accent,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic d={I.hard} s={15} stroke="#fff"/></div>
-          <div><div style={{fontSize:13,fontWeight:800,color:C.text,letterSpacing:"0.04em"}}>BUILDFLOW</div><div style={{fontSize:9,color:C.textMuted,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase"}}>Pro</div></div>
+          <div style={{width:30,height:30,background:C.accent,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic d={I.hard} s={14} stroke="#fff"/></div>
+          <div><div style={{fontSize:13,fontWeight:800,color:"#fff",letterSpacing:"0.06em"}}>BUILDFLOW</div><div style={{fontSize:9,color:"rgba(255,255,255,0.4)",fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase"}}>CONSTRUCTION</div></div>
         </div>
         <GlobalSearch projects={projects} contacts={contacts} invoices={invoices} cos={cos} estimates={estimates} rfis={rfis} onNav={navigate}/>
       </div>
-      <nav style={{flex:1,padding:"10px 8px",display:"flex",flexDirection:"column",gap:1,overflowY:"auto"}}>
+      <nav style={{flex:1,padding:"8px 8px",display:"flex",flexDirection:"column",gap:1,overflowY:"auto"}}>
         {NAV.map(item=>{
           const active=tab===item.id;
           const badge=BADGES[item.id]||0;
           return <button key={item.id} onClick={()=>navigate(item.id)}
-            style={{display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:7,border:"none",background:active?"#FEF3EC":"transparent",color:active?"#C85A1E":C.textSub,cursor:"pointer",fontSize:13,fontWeight:active?600:400,textAlign:"left",width:"100%",fontFamily:"inherit",transition:"all 0.1s"}}
-            onMouseEnter={e=>{if(!active){e.currentTarget.style.background=C.bg;e.currentTarget.style.color=C.textMid;}}}
-            onMouseLeave={e=>{if(!active){e.currentTarget.style.background="transparent";e.currentTarget.style.color=C.textSub;}}}>
+            style={{display:"flex",alignItems:"center",gap:9,padding:"7px 10px",borderRadius:4,border:"none",background:active?"rgba(211,84,0,0.15)":"transparent",color:active?C.accent:"rgba(255,255,255,0.55)",cursor:"pointer",fontSize:12,fontWeight:active?600:400,textAlign:"left",width:"100%",fontFamily:"inherit",transition:"background 0.1s",borderLeft:active?`2px solid ${C.accent}`:"2px solid transparent",letterSpacing:"0.01em"}}
+            onMouseEnter={e=>{if(!active){e.currentTarget.style.background="rgba(255,255,255,0.05)";e.currentTarget.style.color="rgba(255,255,255,0.8)";}}}
+            onMouseLeave={e=>{if(!active){e.currentTarget.style.background="transparent";e.currentTarget.style.color="rgba(255,255,255,0.55)";}}}>
             <Ic d={I[item.icon]||I.home} s={14}/>
             <span style={{flex:1}}>{item.label}</span>
-            {badge>0&&<span style={{background:item.id==="invoices"?C.red:C.amber,color:"#fff",borderRadius:10,padding:"1px 6px",fontSize:10,fontWeight:700,minWidth:18,textAlign:"center"}}>{badge}</span>}
+            {badge>0&&<span style={{background:item.id==="invoices"?C.red:C.amber,color:"#fff",borderRadius:3,padding:"1px 6px",fontSize:10,fontWeight:700,minWidth:18,textAlign:"center"}}>{badge}</span>}
           </button>;
         })}
       </nav>
-      <div style={{padding:"10px 12px",borderTop:`1px solid ${C.border}`,cursor:"pointer"}} onClick={()=>navigate("settings")}>
+      <div style={{padding:"10px 12px",borderTop:`1px solid rgba(255,255,255,0.08)`,cursor:"pointer"}} onClick={()=>navigate("settings")}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           {companySettings.logo
-            ? <img src={companySettings.logo} style={{width:30,height:30,borderRadius:"50%",objectFit:"cover",flexShrink:0}} alt="logo"/>
-            : <div style={{width:30,height:30,borderRadius:"50%",background:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0}}>{(companySettings.name||"GC").substring(0,2).toUpperCase()}</div>}
+            ? <img src={companySettings.logo} style={{width:28,height:28,borderRadius:4,objectFit:"cover",flexShrink:0}} alt="logo"/>
+            : <div style={{width:28,height:28,borderRadius:4,background:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#fff",flexShrink:0}}>{(companySettings.name||"GC").substring(0,2).toUpperCase()}</div>}
           <div style={{flex:1,overflow:"hidden"}}>
-            <div style={{fontSize:12,fontWeight:600,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{companySettings.name||"My Company"}</div>
-            <div style={{fontSize:11,color:C.textMuted}}>⚙ Settings</div>
+            <div style={{fontSize:12,fontWeight:600,color:"rgba(255,255,255,0.85)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{companySettings.name||"My Company"}</div>
+            <div style={{fontSize:10,color:"rgba(255,255,255,0.35)"}}>Settings</div>
           </div>
         </div>
       </div>
@@ -3618,17 +3619,20 @@ export default function App() {
 
   return (
     <div style={{display:"flex",height:"100vh",background:C.bg,fontFamily:"'Inter','DM Sans',system-ui,sans-serif",overflow:"hidden"}}>
-      <Toaster position="bottom-right" toastOptions={{duration:2500,style:{fontFamily:"'Inter',system-ui,sans-serif",fontSize:13,fontWeight:500,borderRadius:9,boxShadow:"0 4px 20px rgba(0,0,0,0.12)"}}}/>
+      <Toaster position="bottom-right" toastOptions={{duration:2500,style:{fontFamily:"'Inter',system-ui,sans-serif",fontSize:13,fontWeight:500,borderRadius:4,boxShadow:"0 2px 12px rgba(13,27,42,0.12)",border:`1px solid ${C.border}`}}}/>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;}
         ::-webkit-scrollbar{width:5px;height:5px;}
         ::-webkit-scrollbar-track{background:transparent;}
-        ::-webkit-scrollbar-thumb{background:#D0D4DA;border-radius:10px;}
+        ::-webkit-scrollbar-thumb{background:${C.borderStrong};border-radius:3px;}
+        ::-webkit-scrollbar-thumb:hover{background:${C.textMuted};}
         input[type=number]::-webkit-inner-spin-button{opacity:0.4;}
         input[type=date]::-webkit-calendar-picker-indicator{opacity:0.4;cursor:pointer;}
-        input::placeholder,textarea::placeholder{color:#B0B6BF;}
+        input::placeholder,textarea::placeholder{color:${C.textMuted};}
         textarea,button,select{font-family:inherit;}
+        input:focus,textarea:focus,select:focus{border-color:${C.accent}!important;outline:none;box-shadow:0 0 0 2px ${C.accentL}!important;}
+        table{border-collapse:collapse;}
 
         @media(min-width:769px){
           .mobileHeader{display:none!important;}
@@ -3641,13 +3645,12 @@ export default function App() {
         @media(max-width:768px){
           .sidebar{display:none!important;}
           .mobileHeader{display:flex!important;}
-          .mainPad{padding:12px!important;padding-top:62px!important;padding-bottom:76px!important;}
-          .bottomNav{display:flex!important;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #E8EAED;z-index:200;padding:4px 0 env(safe-area-inset-bottom,8px);}
+          .mainPad{padding:12px!important;padding-top:58px!important;padding-bottom:72px!important;}
+          .bottomNav{display:flex!important;position:fixed;bottom:0;left:0;right:0;background:${C.navy};border-top:none;z-index:200;padding:6px 0 env(safe-area-inset-bottom,6px);}
 
           /* Make ALL multi-column grids stack on mobile */
           div[style*="repeat(4,1fr)"],
-          div[style*="repeat(3,1fr)"],
-          div[style*="repeat(2,1fr)"]{
+          div[style*="repeat(3,1fr)"]{
             grid-template-columns: 1fr 1fr !important;
           }
 
@@ -3661,33 +3664,44 @@ export default function App() {
           /* Compact page header actions go full width */
           .page-action{width:100%!important;}
           .page-action button{width:100%!important;}
+
+          /* Number overflow fix */
+          td,th{word-break:break-word;max-width:150px;}
+          .stat-value{font-size:20px!important;}
+        }
+
+        @media(max-width:480px){
+          div[style*="repeat(2,1fr)"]{
+            grid-template-columns: 1fr !important;
+          }
+          .mainPad{padding:8px!important;padding-top:56px!important;padding-bottom:68px!important;}
         }
       `}</style>
 
       {/* Desktop Sidebar */}
-      <div className="sidebar" style={{width:205,background:"#fff",borderRight:`1px solid ${C.border}`,flexShrink:0}}>
+      <div className="sidebar" style={{width:220,background:C.navy,flexShrink:0}}>
         <Sidebar/>
       </div>
 
       {/* Mobile Top Header */}
-      <div className="mobileHeader" style={{position:"fixed",top:0,left:0,right:0,zIndex:200,background:"#fff",borderBottom:`1px solid ${C.border}`,padding:"10px 16px",display:"none",alignItems:"center",justifyContent:"space-between",height:54}}>
+      <div className="mobileHeader" style={{position:"fixed",top:0,left:0,right:0,zIndex:200,background:C.navy,padding:"10px 16px",display:"none",alignItems:"center",justifyContent:"space-between",height:52}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <div style={{width:26,height:26,background:C.accent,borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center"}}><Ic d={I.hard} s={12} stroke="#fff"/></div>
-          <div style={{fontSize:13,fontWeight:800,color:C.text,letterSpacing:"0.02em"}}>BUILDFLOW PRO</div>
+          <div style={{width:26,height:26,background:C.accent,borderRadius:4,display:"flex",alignItems:"center",justifyContent:"center"}}><Ic d={I.hard} s={12} stroke="#fff"/></div>
+          <div style={{fontSize:12,fontWeight:800,color:"#fff",letterSpacing:"0.06em"}}>BUILDFLOW</div>
         </div>
-        <button onClick={()=>setMenuOpen(!menuOpen)} style={{background:"none",border:"none",cursor:"pointer",color:C.textMid,display:"flex",padding:4}}>
+        <button onClick={()=>setMenuOpen(!menuOpen)} style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.7)",display:"flex",padding:4}}>
           <Ic d={menuOpen?I.x:I.menu} s={22}/>
         </button>
       </div>
 
       {/* Mobile Slide-out Menu */}
-      {menuOpen&&<div className="mobileMenu" onClick={()=>setMenuOpen(false)} style={{position:"fixed",inset:0,background:"rgba(15,17,23,0.4)",zIndex:300}}>
-        <div onClick={e=>e.stopPropagation()} style={{width:"75%",maxWidth:280,height:"100%",background:"#fff",borderRight:`1px solid ${C.border}`,overflowY:"auto"}}>
+      {menuOpen&&<div className="mobileMenu" onClick={()=>setMenuOpen(false)} style={{position:"fixed",inset:0,background:"rgba(13,27,42,0.6)",zIndex:300}}>
+        <div onClick={e=>e.stopPropagation()} style={{width:"78%",maxWidth:280,height:"100%",background:C.navy,overflowY:"auto"}}>
           <Sidebar/>
         </div>
       </div>}
 
-      {/* Mobile Bottom Nav - quick access to key tabs */}
+      {/* Mobile Bottom Nav */}
       <div className="bottomNav" style={{display:"none"}}>
         {[
           {id:"dashboard",label:"Home",icon:"home"},
@@ -3698,9 +3712,9 @@ export default function App() {
         ].map(item=>{
           const active=tab===item.id;
           return <button key={item.id} onClick={()=>navigate(item.id)}
-            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"none",border:"none",cursor:"pointer",padding:"4px 0",color:active?C.accent:C.textMuted}}>
-            <Ic d={I[item.icon]||I.home} s={active?20:18} stroke={active?C.accent:C.textMuted}/>
-            <span style={{fontSize:9,fontWeight:active?700:500,letterSpacing:"0.02em"}}>{item.label}</span>
+            style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"none",border:"none",cursor:"pointer",padding:"6px 0",color:active?C.accent:"rgba(255,255,255,0.5)"}}>
+            <Ic d={I[item.icon]||I.home} s={active?20:18} stroke={active?C.accent:"rgba(255,255,255,0.5)"}/>
+            <span style={{fontSize:9,fontWeight:active?700:500,letterSpacing:"0.04em"}}>{item.label}</span>
           </button>;
         })}
       </div>
