@@ -26,14 +26,15 @@ const uploadFile = async (file, bucket, path) => {
 
 // ─── TOKENS ───────────────────────────────────────────────────────────────────
 const C = {
-  bg:"#F4F5F7",surface:"#FFFFFF",border:"#E8EAED",borderStrong:"#D0D4DA",
-  text:"#0F1117",textMid:"#2D3340",textSub:"#5C6270",textMuted:"#9299A6",
-  accent:"#E86C2C",accentL:"#FEF3EC",accentB:"#F5B894",
-  green:"#1A7F4B",greenL:"#F0FBF5",greenB:"#A8DDBE",
-  red:"#C8252A",redL:"#FEF2F2",redB:"#F5BBBE",
-  blue:"#2255CC",blueL:"#EEF3FD",blueB:"#AABFF5",
-  amber:"#B86B00",amberL:"#FDF8EE",amberB:"#F0D48A",
-  purple:"#6930C4",purpleL:"#F4F0FD",purpleB:"#CCBAF2",
+  bg:"#F0F2F5",surface:"#FFFFFF",border:"#DFE1E6",borderStrong:"#C1C7D0",
+  text:"#0D1B2A",textMid:"#1B2A3D",textSub:"#4A5568",textMuted:"#8993A4",
+  accent:"#D35400",accentL:"#FDF2EC",accentB:"#E8A87C",
+  green:"#137547",greenL:"#EEF7F2",greenB:"#8ECBA8",
+  red:"#B91C1C",redL:"#FDF0F0",redB:"#E8A0A0",
+  blue:"#1A4B8C",blueL:"#EDF1F8",blueB:"#95B1D9",
+  amber:"#A05F00",amberL:"#FBF5EB",amberB:"#DBC17E",
+  purple:"#5B2C9F",purpleL:"#F2EEFC",purpleB:"#BBAAE5",
+  navy:"#0D1B2A",navyMid:"#1B2A3D",
 };
 
 const fmt = n => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(n||0);
@@ -144,33 +145,33 @@ const STATUS_MAP = {
 
 const Badge = ({s}) => {
   const m = STATUS_MAP[s]||{bg:C.bg,text:C.textSub,border:C.border};
-  return <span style={{background:m.bg,color:m.text,border:`1px solid ${m.border}`,padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600,whiteSpace:"nowrap",display:"inline-flex",alignItems:"center",gap:5}}>
-    <span style={{width:5,height:5,borderRadius:"50%",background:m.text,display:"inline-block"}}/>
+  return <span style={{background:m.bg,color:m.text,border:`1px solid ${m.border}`,padding:"2px 8px",borderRadius:4,fontSize:11,fontWeight:600,whiteSpace:"nowrap",display:"inline-flex",alignItems:"center",gap:4,letterSpacing:"0.01em",lineHeight:"18px"}}>
+    <span style={{width:5,height:5,borderRadius:"50%",background:m.text,display:"inline-block",flexShrink:0}}/>
     {s}
   </span>;
 };
 
 const Btn = ({children,onClick,v="primary",sm,danger,style={}}) => {
-  const base = {borderRadius:7,padding:sm?"5px 11px":"8px 16px",fontWeight:600,fontSize:sm?11:13,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:6,border:"none",transition:"all 0.12s",fontFamily:"inherit",...style};
+  const base = {borderRadius:5,padding:sm?"5px 12px":"8px 18px",fontWeight:600,fontSize:sm?11:13,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:6,border:"none",transition:"background 0.15s, border-color 0.15s",fontFamily:"inherit",letterSpacing:"0.01em",lineHeight:"20px",...style};
   const vs = {
-    primary:{background:C.accent,color:"#fff"},
+    primary:{background:C.accent,color:"#fff",border:`1px solid ${C.accent}`},
     secondary:{background:C.surface,color:C.textMid,border:`1px solid ${C.border}`},
     ghost:{background:"transparent",color:C.accent,border:`1px solid ${C.accentB}`},
     danger:{background:C.redL,color:C.red,border:`1px solid ${C.redB}`},
   };
   const s = danger ? vs.danger : vs[v]||vs.primary;
   return <button onClick={onClick} style={{...base,...s}}
-    onMouseEnter={e=>{e.currentTarget.style.opacity="0.82";e.currentTarget.style.transform="translateY(-1px)";}}
-    onMouseLeave={e=>{e.currentTarget.style.opacity="1";e.currentTarget.style.transform="translateY(0)";}}
+    onMouseEnter={e=>{if(v==="primary"&&!danger)e.currentTarget.style.background="#B84800";else if(v==="secondary")e.currentTarget.style.background=C.bg;else e.currentTarget.style.opacity="0.85";}}
+    onMouseLeave={e=>{e.currentTarget.style.background=s.background;e.currentTarget.style.opacity="1";}}
   >{children}</button>;
 };
 
 const Field = ({label,children}) => <div>
-  <label style={{fontSize:11,color:C.textSub,display:"block",marginBottom:5,fontWeight:600,letterSpacing:"0.05em",textTransform:"uppercase"}}>{label}</label>
+  <label style={{fontSize:11,color:C.textSub,display:"block",marginBottom:4,fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase",lineHeight:"16px"}}>{label}</label>
   {children}
 </div>;
 
-const inputStyle = {width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,padding:"9px 12px",color:C.text,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit"};
+const inputStyle = {width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:4,padding:"8px 12px",color:C.text,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit",lineHeight:"20px"};
 const Inp = ({label,value,onChange,type="text",placeholder,readOnly}) => <Field label={label}>
   <input type={type} value={value||""} onChange={onChange} placeholder={placeholder} readOnly={readOnly}
     style={{...inputStyle,background:readOnly?C.bg:C.surface,cursor:readOnly?"default":"text"}}
@@ -195,7 +196,7 @@ const TA = ({label,value,onChange,rows=3}) => <Field label={label}>
 
 const Card = ({children,style={},onClick,onMouseEnter,onMouseLeave}) => {
   const isMobile = useMobile();
-  return <div onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:isMobile?14:22,...style}}>{children}</div>;
+  return <div onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:isMobile?14:20,...style}}>{children}</div>;
 };
 
 const Stat = ({label,value,sub,color=C.accent,icon}) => {
