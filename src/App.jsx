@@ -202,14 +202,13 @@ const Card = ({children,style={},onClick,onMouseEnter,onMouseLeave}) => {
 const Stat = ({label,value,sub,color=C.accent,icon}) => {
   const isMobile = useMobile();
   return (
-    <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:isMobile?"12px 14px":"16px 20px",position:"relative",overflow:"hidden"}}>
+    <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:isMobile?"10px 10px":"16px 20px",position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",top:0,left:0,width:3,height:"100%",background:color}}/>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:isMobile?6:8}}>
-        <span style={{fontSize:isMobile?10:11,color:C.textMuted,fontWeight:600,letterSpacing:"0.05em",textTransform:"uppercase",lineHeight:"14px"}}>{label}</span>
-        {icon&&!isMobile&&<div style={{width:26,height:26,borderRadius:4,background:color+"12",display:"flex",alignItems:"center",justifyContent:"center",color}}><Ic d={I[icon]} s={12}/></div>}
+      <div style={{marginBottom:isMobile?4:8}}>
+        <span style={{fontSize:isMobile?9:11,color:C.textMuted,fontWeight:600,letterSpacing:"0.05em",textTransform:"uppercase",lineHeight:"12px"}}>{label}</span>
       </div>
-      <div className="stat-value" style={{fontSize:isMobile?17:22,fontWeight:700,color:C.text,letterSpacing:"-0.02em",lineHeight:1.1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}}>{value}</div>
-      {sub&&<div style={{fontSize:11,color:C.textMuted,marginTop:4,lineHeight:"14px"}}>{sub}</div>}
+      <div className="stat-value" style={{fontSize:isMobile?14:22,fontWeight:700,color:C.text,letterSpacing:"-0.02em",lineHeight:1.2,minWidth:0}}>{value}</div>
+      {sub&&<div style={{fontSize:isMobile?9:11,color:C.textMuted,marginTop:isMobile?2:4,lineHeight:"14px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{sub}</div>}
     </div>
   );
 };
@@ -2477,17 +2476,24 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
         {filtered.map(p=>{
           const pct=p.value?Math.round((p.spent/p.value)*100):0;
           return (
-            <div key={p.id} style={{position:"relative"}}>
-              <Card style={{cursor:"pointer",transition:"all 0.15s"}}
+              <Card key={p.id} style={{cursor:"pointer",transition:"all 0.15s"}}
                 onClick={()=>{setSelectedId(p.id);setActiveTab("overview");}}
                 onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accentB;e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,0.07)";}}
                 onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="none";}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14,gap:8}}>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:700,fontSize:14,color:C.text,marginBottom:3}}>{p.name}</div>
                     <div style={{fontSize:12,color:C.textSub}}>{p.client}</div>
                   </div>
-                  <Badge s={p.status}/>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                    <Badge s={p.status}/>
+                    <button onClick={e=>{e.stopPropagation();setDelId(p.id);}} title="Delete"
+                      style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:4,padding:"4px 6px",cursor:"pointer",color:C.textMuted,display:"flex",alignItems:"center",justifyContent:"center"}}
+                      onMouseEnter={e=>{e.currentTarget.style.borderColor=C.redB;e.currentTarget.style.color=C.red;}}
+                      onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textMuted;}}>
+                      <Ic d={I.trash} s={12}/>
+                    </button>
+                  </div>
                 </div>
                 <div style={{display:"flex",gap:20,marginBottom:14}}>
                   <div><div style={{fontSize:10,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:3}}>Contract</div><div style={{fontSize:15,fontWeight:700,color:C.accent}}>{fmt(p.value)}</div></div>
@@ -2503,13 +2509,6 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
                   <span>{fmtDate(p.end)}</span>
                 </div>
               </Card>
-              <button onClick={e=>{e.stopPropagation();setDelId(p.id);}} title="Delete"
-                style={{position:"absolute",top:10,right:10,background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"4px 6px",cursor:"pointer",color:C.textMuted,zIndex:2}}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor=C.redB;e.currentTarget.style.color=C.red;}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textMuted;}}>
-                <Ic d={I.trash} s={13}/>
-              </button>
-            </div>
           );
         })}
       </div>
@@ -3618,7 +3617,7 @@ export default function App() {
   );
 
   return (
-    <div style={{display:"flex",height:"100vh",background:C.bg,fontFamily:"'Inter','DM Sans',system-ui,sans-serif",overflow:"hidden"}}>
+    <div style={{display:"flex",height:"100dvh",background:C.bg,fontFamily:"'Inter','DM Sans',system-ui,sans-serif",overflow:"hidden"}}>
       <Toaster position="bottom-right" toastOptions={{duration:2500,style:{fontFamily:"'Inter',system-ui,sans-serif",fontSize:13,fontWeight:500,borderRadius:4,boxShadow:"0 2px 12px rgba(13,27,42,0.12)",border:`1px solid ${C.border}`}}}/>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -3645,7 +3644,7 @@ export default function App() {
         @media(max-width:768px){
           .sidebar{display:none!important;}
           .mobileHeader{display:flex!important;}
-          .mainPad{padding:12px!important;padding-top:58px!important;padding-bottom:100px!important;}
+          .mainPad{padding:12px!important;padding-top:58px!important;padding-bottom:140px!important;}
           .bottomNav{display:flex!important;position:fixed;bottom:0;left:0;right:0;background:${C.navy};border-top:none;z-index:200;padding:6px 0 env(safe-area-inset-bottom,6px);}
 
           /* Make ALL multi-column grids stack on mobile */
@@ -3667,14 +3666,13 @@ export default function App() {
 
           /* Number overflow fix */
           td,th{word-break:break-word;max-width:150px;}
-          .stat-value{font-size:20px!important;}
         }
 
         @media(max-width:480px){
           div[style*="repeat(2,1fr)"]{
             grid-template-columns: 1fr !important;
           }
-          .mainPad{padding:8px!important;padding-top:56px!important;padding-bottom:100px!important;}
+          .mainPad{padding:8px!important;padding-top:56px!important;padding-bottom:140px!important;}
         }
       `}</style>
 
