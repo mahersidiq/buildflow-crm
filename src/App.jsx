@@ -504,10 +504,10 @@ const Dashboard = ({projects,invoices,cos,rfis,punchList,onNav}) => {
                     </div>
                     <Badge s={p.status}/>
                   </div>
-                  <div style={{display:"flex",gap:16,marginBottom:8}}>
-                    <div><div style={{fontSize:10,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>Contract</div><div style={{fontSize:13,fontWeight:700,color:C.navy}}>{fmt(p.value)}</div></div>
-                    <div><div style={{fontSize:10,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>Spent</div><div style={{fontSize:13,fontWeight:600,color:C.text}}>{fmt(p.spent)}</div></div>
-                    <div><div style={{fontSize:10,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>Budget</div><div style={{fontSize:13,fontWeight:600,color:pct>90?C.red:C.green}}>{pct}%</div></div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:isMobile?"8px 12px":"4px 16px",marginBottom:8}}>
+                    <div style={{minWidth:0}}><div style={{fontSize:10,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>Contract</div><div style={{fontSize:isMobile?12:13,fontWeight:700,color:C.navy,whiteSpace:"nowrap"}}>{fmt(p.value)}</div></div>
+                    <div style={{minWidth:0}}><div style={{fontSize:10,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>Spent</div><div style={{fontSize:isMobile?12:13,fontWeight:600,color:C.text,whiteSpace:"nowrap"}}>{fmt(p.spent)}</div></div>
+                    <div style={{minWidth:0}}><div style={{fontSize:10,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>Budget</div><div style={{fontSize:isMobile?12:13,fontWeight:600,color:pct>90?C.red:C.green}}>{pct}%</div></div>
                   </div>
                   <Progress pct={p.progress}/>
                   <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:C.textMuted,marginTop:5}}><span>Progress: {p.progress}%</span><span>{p.end}</span></div>
@@ -3645,7 +3645,7 @@ export default function App() {
         @media(max-width:768px){
           .sidebar{display:none!important;}
           .mobileHeader{display:flex!important;}
-          .mainPad{padding:12px!important;padding-top:58px!important;padding-bottom:72px!important;}
+          .mainPad{padding:12px!important;padding-top:58px!important;padding-bottom:100px!important;}
           .bottomNav{display:flex!important;position:fixed;bottom:0;left:0;right:0;background:${C.navy};border-top:none;z-index:200;padding:6px 0 env(safe-area-inset-bottom,6px);}
 
           /* Make ALL multi-column grids stack on mobile */
@@ -3674,7 +3674,7 @@ export default function App() {
           div[style*="repeat(2,1fr)"]{
             grid-template-columns: 1fr !important;
           }
-          .mainPad{padding:8px!important;padding-top:56px!important;padding-bottom:68px!important;}
+          .mainPad{padding:8px!important;padding-top:56px!important;padding-bottom:100px!important;}
         }
       `}</style>
 
