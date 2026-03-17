@@ -2477,17 +2477,24 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
         {filtered.map(p=>{
           const pct=p.value?Math.round((p.spent/p.value)*100):0;
           return (
-            <div key={p.id} style={{position:"relative"}}>
-              <Card style={{cursor:"pointer",transition:"all 0.15s"}}
+              <Card key={p.id} style={{cursor:"pointer",transition:"all 0.15s"}}
                 onClick={()=>{setSelectedId(p.id);setActiveTab("overview");}}
                 onMouseEnter={e=>{e.currentTarget.style.borderColor=C.accentB;e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,0.07)";}}
                 onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="none";}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14,gap:8}}>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:700,fontSize:14,color:C.text,marginBottom:3}}>{p.name}</div>
                     <div style={{fontSize:12,color:C.textSub}}>{p.client}</div>
                   </div>
-                  <Badge s={p.status}/>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                    <Badge s={p.status}/>
+                    <button onClick={e=>{e.stopPropagation();setDelId(p.id);}} title="Delete"
+                      style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:4,padding:"4px 6px",cursor:"pointer",color:C.textMuted,display:"flex",alignItems:"center",justifyContent:"center"}}
+                      onMouseEnter={e=>{e.currentTarget.style.borderColor=C.redB;e.currentTarget.style.color=C.red;}}
+                      onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textMuted;}}>
+                      <Ic d={I.trash} s={12}/>
+                    </button>
+                  </div>
                 </div>
                 <div style={{display:"flex",gap:20,marginBottom:14}}>
                   <div><div style={{fontSize:10,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:3}}>Contract</div><div style={{fontSize:15,fontWeight:700,color:C.accent}}>{fmt(p.value)}</div></div>
@@ -2503,13 +2510,6 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
                   <span>{fmtDate(p.end)}</span>
                 </div>
               </Card>
-              <button onClick={e=>{e.stopPropagation();setDelId(p.id);}} title="Delete"
-                style={{position:"absolute",top:10,right:10,background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"4px 6px",cursor:"pointer",color:C.textMuted,zIndex:2}}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor=C.redB;e.currentTarget.style.color=C.red;}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textMuted;}}>
-                <Ic d={I.trash} s={13}/>
-              </button>
-            </div>
           );
         })}
       </div>
