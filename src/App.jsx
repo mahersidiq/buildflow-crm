@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import toast, { Toaster } from "react-hot-toast";
-import { api, setToken } from "./lib/api";
+import { api, setToken, getToken } from "./lib/api";
 import { login as authLogin, signup as authSignup, logout as authLogout, restoreSession } from "./lib/auth";
 
 // ─── FILE UPLOAD ──────────────────────────────────────────────────────────────
@@ -9,7 +9,7 @@ const uploadFile = async (file, bucket, path) => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("path", path);
-    const token = sessionStorage.getItem("bf_token");
+    const token = getToken();
     const res = await fetch(`/api/upload/${bucket}`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -1923,7 +1923,7 @@ const Documents = ({projectId,docs,setDocs,projects}) => {
       const rec = {...form, id: form.id || uid(), fileUrl, projectId: form.projectId||projectId, uploader: form.uploader || "", date: form.date||today()};
       delete rec._file; delete rec._fileName;
       if(form.id){setDocs(docs.map(d=>d.id===form.id?rec:d));}
-      else{setDocs([...docs,rec]);}
+      else{setDocs([...docs,{...rec, _isNew: true}]);}
       toast.success(form.id ? "Document updated" : "Document added");
     } catch(e) { toast.error("Failed to save document: " + e.message); }
     setUploading(false);
@@ -2035,7 +2035,7 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
       const rec = {...form, id: form.id || uid(), fileUrl, projectId: form.projectId||projectId, emoji:TAG_ICON[form.tag]||"photos", color:COLORS[Math.floor(Math.random()*COLORS.length)]};
       delete rec._file; delete rec._preview;
       if(form.id){setPhotos(photos.map(p=>p.id===form.id?rec:p));}
-      else{setPhotos([rec,...photos]);}
+      else{setPhotos([{...rec, _isNew: true},...photos]);}
       toast.success(form.id ? "Photo updated" : "Photo added");
     } catch(e) { toast.error("Failed to save photo: " + e.message); }
     setUploading(false);
@@ -3520,10 +3520,13 @@ export default function App() {
       const prevMap = new Map(prev.map(x => [x[idKey], x]));
       const nextMap = new Map(next.map(x => [x[idKey], x]));
       // Save only new or changed items
-      next.forEach(item => {
+      next.forEach((item, i) => {
         const old = prevMap.get(item[idKey]);
         if (!old || JSON.stringify(old) !== JSON.stringify(item)) {
-          saveFn(item).then(ok => { if (!ok) toast.error("Failed to save — please retry"); });
+          saveFn(item).then(ok => {
+            if (!ok) toast.error("Failed to save — please retry");
+            else if (item._isNew) rawSetter(cur => cur.map(x => x[idKey] === item[idKey] ? (({_isNew, ...rest}) => rest)(x) : x));
+          });
         }
       });
       // Delete removed items
