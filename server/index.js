@@ -27,6 +27,9 @@ app.use('/api/auth', authLimiter, require('./routes/auth'));
 // Health check
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
+// --- File upload route (auth + tenant scope) ---
+app.use('/api/upload', authenticate, tenantScope, require('./routes/upload'));
+
 // --- Protected routes (auth + tenant scope) ---
 const protectedRoutes = [
   ['/api/projects',        require('./routes/projects')],
@@ -44,6 +47,8 @@ const protectedRoutes = [
   ['/api/purchase-orders', require('./routes/purchaseOrders')],
   ['/api/meetings',        require('./routes/meetings')],
   ['/api/settings',        require('./routes/tenantSettings')],
+  ['/api/email',           require('./routes/email')],
+  ['/api/templates',       require('./routes/templates')],
 ];
 
 for (const [path, router] of protectedRoutes) {
