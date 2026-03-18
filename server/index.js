@@ -53,9 +53,11 @@ for (const [path, router] of protectedRoutes) {
 // --- Error handling ---
 app.use(errorHandler);
 
-// --- Start server ---
-app.listen(env.PORT, () => {
-  console.log(`BuildFlow CRM API running on port ${env.PORT}`);
-});
+// --- Start server (skip in serverless/Vercel) ---
+if (!process.env.VERCEL) {
+  app.listen(env.PORT, () => {
+    console.log(`BuildFlow CRM API running on port ${env.PORT}`);
+  });
+}
 
 module.exports = app;
