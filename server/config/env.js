@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const env = {
   PORT: process.env.PORT || 3001,
   SUPABASE_URL: process.env.SUPABASE_URL,
