@@ -1,21 +1,26 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { createClient } from "@supabase/supabase-js";
 import toast, { Toaster } from "react-hot-toast";
-
-const SUPABASE_URL = "https://daxqltkdkfpkhnzttfln.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRheHFsdGtka2Zwa2huenR0ZmxuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNTQwMjAsImV4cCI6MjA4ODkzMDAyMH0.2Kx2oGa7ftl9q8XiVCGqqzAiPcP6Q4KSeoz0Mc-LDpo";
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+import { api, setToken } from "./lib/api";
+import { login as authLogin, signup as authSignup, logout as authLogout, restoreSession } from "./lib/auth";
 
 // ─── FILE UPLOAD ──────────────────────────────────────────────────────────────
 const uploadFile = async (file, bucket, path) => {
   try {
-    const { error } = await sb.storage.from(bucket).upload(path, file, { upsert: true });
-    if (error) {
-      console.error("upload error", error);
-      toast.error(`Upload failed: ${error.message}`, { duration: 6000 });
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("path", path);
+    const token = sessionStorage.getItem("bf_token");
+    const res = await fetch(`/api/upload/${bucket}`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      toast.error(`Upload failed: ${err.error}`, { duration: 6000 });
       return null;
     }
-    const { data } = sb.storage.from(bucket).getPublicUrl(path);
+    const data = await res.json();
     return data?.publicUrl || null;
   } catch (e) {
     console.error("upload exception", e);
@@ -3224,16 +3229,16 @@ const Reports = ({projects,invoices,estimates,cos,budgetItems,pos}) => {
   );
 };
 
-// ─── DB HELPERS ───────────────────────────────────────────────────────────────
+// ─── DB HELPERS (via tenant-safe API) ────────────────────────────────────────
 const fromDb = {
   project: r => ({ id:r.id, name:r.name, client:r.client||"", status:r.status||"Lead", phase:r.phase||"Pre-Construction", type:r.type||"Residential", value:parseFloat(r.value)||0, spent:parseFloat(r.spent)||0, progress:parseInt(r.progress)||0, address:r.address||"", start:r.start_date||"", end:r.end_date||"", notes:r.notes||"" }),
   contact: r => ({ id:r.id, name:r.name, company:r.company||"", type:r.type||"Client", email:r.email||"", phone:r.phone||"", city:r.city||"" }),
   budget: r => ({ id:r.id, projectId:r.project_id, category:r.category||"", division:r.division||"", code:r.code||"", budgeted:parseFloat(r.budgeted)||0, actual:parseFloat(r.actual)||0, committed:parseFloat(r.committed)||0, notes:r.notes||"" }),
-  estimate: (r, lines) => ({ id:r.id, projectId:r.project_id, name:r.name||"", status:r.status||"Draft", date:r.date||"", notes:r.notes||"", lineItems:(lines||[]).map(l=>({ id:l.id, category:l.category||"", description:l.description||"", qty:parseFloat(l.qty)||1, unit:l.unit||"LS", cost:parseFloat(l.cost)||0, markup:parseFloat(l.markup)||0 })) }),
+  estimate: (r) => ({ id:r.id, projectId:r.project_id, name:r.name||"", status:r.status||"Draft", date:r.date||"", notes:r.notes||"", lineItems:(r.estimate_line_items||[]).map(l=>({ id:l.id, category:l.category||"", description:l.description||"", qty:parseFloat(l.qty)||1, unit:l.unit||"LS", cost:parseFloat(l.cost)||0, markup:parseFloat(l.markup)||0 })) }),
   invoice: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", description:r.description||"", amount:parseFloat(r.amount)||0, issued:r.issued||"", due:r.due||"", status:r.status||"Pending" }),
   co: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", title:r.title||"", category:r.category||"", description:r.description||"", amount:parseFloat(r.amount)||0, status:r.status||"Pending", requestedBy:r.requested_by||"Owner", date:r.date||"" }),
   log: r => ({ id:r.id, projectId:r.project_id, date:r.date||"", author:r.author||"", weather:r.weather||"", crew:parseInt(r.crew)||0, notes:r.notes||"" }),
-  bidPkg: (r, bids) => ({ id:r.id, projectId:r.project_id, trade:r.trade||"", scope:r.scope||"", dueDate:r.due_date||"", status:r.status||"Open", bids:(bids||[]).map(b=>({ subId:b.id, subName:b.sub_name||"", amount:parseFloat(b.amount)||0, notes:b.notes||"", submitted:b.submitted||"", awarded:b.awarded||false })) }),
+  bidPkg: (r) => ({ id:r.id, projectId:r.project_id, trade:r.trade||"", scope:r.scope||"", dueDate:r.due_date||"", status:r.status||"Open", bids:(r.bids||[]).map(b=>({ subId:b.id, subName:b.sub_name||"", amount:parseFloat(b.amount)||0, notes:b.notes||"", submitted:b.submitted||"", awarded:b.awarded||false })) }),
   doc: r => ({ id:r.id, projectId:r.project_id, name:r.name||"", type:r.type||"Contract", date:r.date||"", notes:r.notes||"", uploader:r.uploader||"", fileUrl:r.file_url||"" }),
   photo: r => ({ id:r.id, projectId:r.project_id, caption:r.caption||"", tag:r.tag||"Progress", date:r.date||"", author:r.author||"", emoji:r.emoji||"photos", color:r.color||"#F4F5F7", fileUrl:r.file_url||"" }),
   rfi: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", subject:r.subject||"", toParty:r.to_party||"Architect", fromParty:r.from_party||"GC", dateSubmitted:r.date_submitted||"", dateNeeded:r.date_needed||"", priority:r.priority||"Normal", status:r.status||"Open", description:r.description||"", response:r.response||"" }),
@@ -3242,54 +3247,115 @@ const fromDb = {
   meeting: r => ({ id:r.id, projectId:r.project_id, date:r.date||"", title:r.title||"", location:r.location||"", attendees:r.attendees||"", agenda:r.agenda||"", notes:r.notes||"", actionItems:r.action_items||"" }),
 };
 
-// Direct DB operations — no diffing, just straight insert/update/delete
+// DB operations via tenant-safe API — org_id is injected server-side from JWT
 const db = {
   // Projects
-  async saveProject(p) { const {error} = await sb.from("projects").upsert({id:p.id,name:p.name,client:p.client,status:p.status,phase:p.phase,type:p.type,value:p.value||0,spent:p.spent||0,progress:p.progress||0,address:p.address,start_date:p.start||null,end_date:p.end||null,notes:p.notes}); if(error) console.error("saveProject",error); return !error; },
-  async deleteProject(id) { await sb.from("projects").delete().eq("id",id); },
+  async saveProject(p) { try { if(p._isNew) { await api.projects.create({name:p.name,client:p.client,status:p.status,phase:p.phase,type:p.type,value:p.value||0,spent:p.spent||0,progress:p.progress||0,address:p.address,start_date:p.start||null,end_date:p.end||null,notes:p.notes}); } else { await api.projects.update(p.id,{name:p.name,client:p.client,status:p.status,phase:p.phase,type:p.type,value:p.value||0,spent:p.spent||0,progress:p.progress||0,address:p.address,start_date:p.start||null,end_date:p.end||null,notes:p.notes}); } return true; } catch(e) { console.error("saveProject",e); return false; } },
+  async deleteProject(id) { try { await api.projects.delete(id); } catch(e) { console.error("deleteProject",e); } },
   // Contacts
-  async saveContact(c) { const {error} = await sb.from("contacts").upsert({id:c.id,name:c.name,company:c.company,type:c.type,email:c.email,phone:c.phone,city:c.city}); if(error) console.error("saveContact",error); return !error; },
-  async deleteContact(id) { await sb.from("contacts").delete().eq("id",id); },
+  async saveContact(c) { try { if(c._isNew) { await api.contacts.create({name:c.name,company:c.company,type:c.type,email:c.email,phone:c.phone,city:c.city}); } else { await api.contacts.update(c.id,{name:c.name,company:c.company,type:c.type,email:c.email,phone:c.phone,city:c.city}); } return true; } catch(e) { console.error("saveContact",e); return false; } },
+  async deleteContact(id) { try { await api.contacts.delete(id); } catch(e) { console.error("deleteContact",e); } },
   // Budget
-  async saveBudget(b) { const {error} = await sb.from("budget_items").upsert({id:b.id,project_id:b.projectId,category:b.category,division:b.division||null,code:b.code||null,budgeted:b.budgeted||0,actual:b.actual||0,committed:b.committed||0,notes:b.notes}); if(error) console.error("saveBudget",error); return !error; },
-  async deleteBudget(id) { await sb.from("budget_items").delete().eq("id",id); },
+  async saveBudget(b) { try { if(b._isNew) { await api.budgetItems.create({project_id:b.projectId,category:b.category,division:b.division||null,code:b.code||null,budgeted:b.budgeted||0,actual:b.actual||0,committed:b.committed||0,notes:b.notes}); } else { await api.budgetItems.update(b.id,{project_id:b.projectId,category:b.category,division:b.division||null,code:b.code||null,budgeted:b.budgeted||0,actual:b.actual||0,committed:b.committed||0,notes:b.notes}); } return true; } catch(e) { console.error("saveBudget",e); return false; } },
+  async deleteBudget(id) { try { await api.budgetItems.delete(id); } catch(e) { console.error("deleteBudget",e); } },
   // Estimates
-  async saveEstimate(e) { const {error} = await sb.from("estimates").upsert({id:e.id,project_id:e.projectId,name:e.name,status:e.status,date:e.date||null,notes:e.notes}); if(error) console.error("saveEstimate",error); return !error; },
-  async deleteEstimate(id) { await sb.from("estimate_line_items").delete().eq("estimate_id",id); await sb.from("estimates").delete().eq("id",id); },
-  async saveLineItem(l,estimateId) { const {error} = await sb.from("estimate_line_items").upsert({id:l.id,estimate_id:estimateId,category:l.category,description:l.description,qty:l.qty||1,unit:l.unit,cost:l.cost||0,markup:l.markup||0}); if(error) console.error("saveLineItem",error); return !error; },
-  async deleteLineItem(id) { await sb.from("estimate_line_items").delete().eq("id",id); },
+  async saveEstimate(e) { try { if(e._isNew) { await api.estimates.create({project_id:e.projectId,name:e.name,status:e.status,date:e.date||null,notes:e.notes}); } else { await api.estimates.update(e.id,{project_id:e.projectId,name:e.name,status:e.status,date:e.date||null,notes:e.notes}); } return true; } catch(err) { console.error("saveEstimate",err); return false; } },
+  async deleteEstimate(id) { try { await api.estimates.delete(id); } catch(e) { console.error("deleteEstimate",e); } },
+  async saveLineItem(l,estimateId) { try { if(l._isNew) { await api.estimates.createLineItem(estimateId,{category:l.category,description:l.description,qty:l.qty||1,unit:l.unit,cost:l.cost||0,markup:l.markup||0}); } else { await api.estimates.updateLineItem(l.id,{category:l.category,description:l.description,qty:l.qty||1,unit:l.unit,cost:l.cost||0,markup:l.markup||0}); } return true; } catch(e) { console.error("saveLineItem",e); return false; } },
+  async deleteLineItem(id) { try { await api.estimates.deleteLineItem(id); } catch(e) { console.error("deleteLineItem",e); } },
   // Invoices
-  async saveInvoice(i) { const {error} = await sb.from("invoices").upsert({id:i.id,project_id:i.projectId,number:i.number,description:i.description,amount:i.amount||0,issued:i.issued||null,due:i.due||null,status:i.status}); if(error) console.error("saveInvoice",error); return !error; },
-  async deleteInvoice(id) { await sb.from("invoices").delete().eq("id",id); },
+  async saveInvoice(i) { try { if(i._isNew) { await api.invoices.create({project_id:i.projectId,number:i.number,description:i.description,amount:i.amount||0,issued:i.issued||null,due:i.due||null,status:i.status}); } else { await api.invoices.update(i.id,{project_id:i.projectId,number:i.number,description:i.description,amount:i.amount||0,issued:i.issued||null,due:i.due||null,status:i.status}); } return true; } catch(e) { console.error("saveInvoice",e); return false; } },
+  async deleteInvoice(id) { try { await api.invoices.delete(id); } catch(e) { console.error("deleteInvoice",e); } },
   // Change Orders
-  async saveCO(c) { const {error} = await sb.from("change_orders").upsert({id:c.id,project_id:c.projectId,number:c.number,title:c.title,category:c.category,description:c.description,amount:c.amount||0,status:c.status,requested_by:c.requestedBy,date:c.date||null}); if(error) console.error("saveCO",error); return !error; },
-  async deleteCO(id) { await sb.from("change_orders").delete().eq("id",id); },
+  async saveCO(c) { try { if(c._isNew) { await api.changeOrders.create({project_id:c.projectId,number:c.number,title:c.title,category:c.category,description:c.description,amount:c.amount||0,status:c.status,requested_by:c.requestedBy,date:c.date||null}); } else { await api.changeOrders.update(c.id,{project_id:c.projectId,number:c.number,title:c.title,category:c.category,description:c.description,amount:c.amount||0,status:c.status,requested_by:c.requestedBy,date:c.date||null}); } return true; } catch(e) { console.error("saveCO",e); return false; } },
+  async deleteCO(id) { try { await api.changeOrders.delete(id); } catch(e) { console.error("deleteCO",e); } },
   // Daily Logs
-  async saveLog(l) { const {error} = await sb.from("daily_logs").upsert({id:l.id,project_id:l.projectId,date:l.date||null,author:l.author,weather:l.weather,crew:l.crew||0,notes:l.notes}); if(error) console.error("saveLog",error); return !error; },
-  async deleteLog(id) { await sb.from("daily_logs").delete().eq("id",id); },
+  async saveLog(l) { try { if(l._isNew) { await api.dailyLogs.create({project_id:l.projectId,date:l.date||null,author:l.author,weather:l.weather,crew:l.crew||0,notes:l.notes}); } else { await api.dailyLogs.update(l.id,{project_id:l.projectId,date:l.date||null,author:l.author,weather:l.weather,crew:l.crew||0,notes:l.notes}); } return true; } catch(e) { console.error("saveLog",e); return false; } },
+  async deleteLog(id) { try { await api.dailyLogs.delete(id); } catch(e) { console.error("deleteLog",e); } },
   // Bid Packages
-  async saveBidPkg(p) { const {error} = await sb.from("bid_packages").upsert({id:p.id,project_id:p.projectId,trade:p.trade,scope:p.scope,due_date:p.dueDate||null,status:p.status}); if(error) console.error("saveBidPkg",error); return !error; },
-  async deleteBidPkg(id) { await sb.from("bids").delete().eq("package_id",id); await sb.from("bid_packages").delete().eq("id",id); },
-  async saveBid(b,pkgId) { const {error} = await sb.from("bids").upsert({id:b.subId,package_id:pkgId,sub_name:b.subName,amount:b.amount||0,notes:b.notes,submitted:b.submitted||null,awarded:b.awarded||false}); if(error) console.error("saveBid",error); return !error; },
-  async deleteBid(id) { await sb.from("bids").delete().eq("id",id); },
+  async saveBidPkg(p) { try { if(p._isNew) { await api.bidPackages.create({project_id:p.projectId,trade:p.trade,scope:p.scope,due_date:p.dueDate||null,status:p.status}); } else { await api.bidPackages.update(p.id,{project_id:p.projectId,trade:p.trade,scope:p.scope,due_date:p.dueDate||null,status:p.status}); } return true; } catch(e) { console.error("saveBidPkg",e); return false; } },
+  async deleteBidPkg(id) { try { await api.bidPackages.delete(id); } catch(e) { console.error("deleteBidPkg",e); } },
+  async saveBid(b,pkgId) { try { if(b._isNew) { await api.bidPackages.createBid(pkgId,{sub_name:b.subName,amount:b.amount||0,notes:b.notes,submitted:b.submitted||null,awarded:b.awarded||false}); } else { await api.bidPackages.updateBid(b.subId,{sub_name:b.subName,amount:b.amount||0,notes:b.notes,submitted:b.submitted||null,awarded:b.awarded||false}); } return true; } catch(e) { console.error("saveBid",e); return false; } },
+  async deleteBid(id) { try { await api.bidPackages.deleteBid(id); } catch(e) { console.error("deleteBid",e); } },
   // Documents
-  async saveDoc(d) { const {error} = await sb.from("documents").upsert({id:d.id,project_id:d.projectId,name:d.name,type:d.type,date:d.date||null,notes:d.notes,uploader:d.uploader,file_url:d.fileUrl||null}); if(error) console.error("saveDoc",error); return !error; },
-  async deleteDoc(id) { await sb.from("documents").delete().eq("id",id); },
+  async saveDoc(d) { try { if(d._isNew) { await api.documents.create({project_id:d.projectId,name:d.name,type:d.type,date:d.date||null,notes:d.notes,uploader:d.uploader,file_url:d.fileUrl||null}); } else { await api.documents.update(d.id,{project_id:d.projectId,name:d.name,type:d.type,date:d.date||null,notes:d.notes,uploader:d.uploader,file_url:d.fileUrl||null}); } return true; } catch(e) { console.error("saveDoc",e); return false; } },
+  async deleteDoc(id) { try { await api.documents.delete(id); } catch(e) { console.error("deleteDoc",e); } },
   // Photos
-  async savePhoto(p) { const {error} = await sb.from("photos").upsert({id:p.id,project_id:p.projectId,caption:p.caption,tag:p.tag,date:p.date||null,author:p.author,emoji:p.emoji,color:p.color,file_url:p.fileUrl||null}); if(error) console.error("savePhoto",error); return !error; },
-  async deletePhoto(id) { await sb.from("photos").delete().eq("id",id); },
+  async savePhoto(p) { try { if(p._isNew) { await api.photos.create({project_id:p.projectId,caption:p.caption,tag:p.tag,date:p.date||null,author:p.author,emoji:p.emoji,color:p.color,file_url:p.fileUrl||null}); } else { await api.photos.update(p.id,{project_id:p.projectId,caption:p.caption,tag:p.tag,date:p.date||null,author:p.author,emoji:p.emoji,color:p.color,file_url:p.fileUrl||null}); } return true; } catch(e) { console.error("savePhoto",e); return false; } },
+  async deletePhoto(id) { try { await api.photos.delete(id); } catch(e) { console.error("deletePhoto",e); } },
   // RFIs
-  async saveRFI(r) { const {error} = await sb.from("rfis").upsert({id:r.id,project_id:r.projectId,number:r.number,subject:r.subject,to_party:r.toParty,from_party:r.fromParty,date_submitted:r.dateSubmitted||null,date_needed:r.dateNeeded||null,priority:r.priority,status:r.status,description:r.description,response:r.response}); if(error) console.error("saveRFI",error); return !error; },
-  async deleteRFI(id) { await sb.from("rfis").delete().eq("id",id); },
+  async saveRFI(r) { try { if(r._isNew) { await api.rfis.create({project_id:r.projectId,number:r.number,subject:r.subject,to_party:r.toParty,from_party:r.fromParty,date_submitted:r.dateSubmitted||null,date_needed:r.dateNeeded||null,priority:r.priority,status:r.status,description:r.description,response:r.response}); } else { await api.rfis.update(r.id,{project_id:r.projectId,number:r.number,subject:r.subject,to_party:r.toParty,from_party:r.fromParty,date_submitted:r.dateSubmitted||null,date_needed:r.dateNeeded||null,priority:r.priority,status:r.status,description:r.description,response:r.response}); } return true; } catch(e) { console.error("saveRFI",e); return false; } },
+  async deleteRFI(id) { try { await api.rfis.delete(id); } catch(e) { console.error("deleteRFI",e); } },
   // Punch List
-  async savePunchItem(p) { const {error} = await sb.from("punch_list").upsert({id:p.id,project_id:p.projectId,number:p.number,location:p.location,description:p.description,assigned_to:p.assignedTo,priority:p.priority,status:p.status,due_date:p.dueDate||null,notes:p.notes}); if(error) console.error("savePunchItem",error); return !error; },
-  async deletePunchItem(id) { await sb.from("punch_list").delete().eq("id",id); },
+  async savePunchItem(p) { try { if(p._isNew) { await api.punchList.create({project_id:p.projectId,number:p.number,location:p.location,description:p.description,assigned_to:p.assignedTo,priority:p.priority,status:p.status,due_date:p.dueDate||null,notes:p.notes}); } else { await api.punchList.update(p.id,{project_id:p.projectId,number:p.number,location:p.location,description:p.description,assigned_to:p.assignedTo,priority:p.priority,status:p.status,due_date:p.dueDate||null,notes:p.notes}); } return true; } catch(e) { console.error("savePunchItem",e); return false; } },
+  async deletePunchItem(id) { try { await api.punchList.delete(id); } catch(e) { console.error("deletePunchItem",e); } },
   // Purchase Orders
-  async savePO(p) { const {error} = await sb.from("purchase_orders").upsert({id:p.id,project_id:p.projectId,number:p.number,vendor:p.vendor,description:p.description,amount:p.amount||0,status:p.status,date:p.date||null,budget_category:p.budgetCategory,delivery_date:p.deliveryDate||null,notes:p.notes}); if(error) console.error("savePO",error); return !error; },
-  async deletePO(id) { await sb.from("purchase_orders").delete().eq("id",id); },
+  async savePO(p) { try { if(p._isNew) { await api.purchaseOrders.create({project_id:p.projectId,number:p.number,vendor:p.vendor,description:p.description,amount:p.amount||0,status:p.status,date:p.date||null,budget_category:p.budgetCategory,delivery_date:p.deliveryDate||null,notes:p.notes}); } else { await api.purchaseOrders.update(p.id,{project_id:p.projectId,number:p.number,vendor:p.vendor,description:p.description,amount:p.amount||0,status:p.status,date:p.date||null,budget_category:p.budgetCategory,delivery_date:p.deliveryDate||null,notes:p.notes}); } return true; } catch(e) { console.error("savePO",e); return false; } },
+  async deletePO(id) { try { await api.purchaseOrders.delete(id); } catch(e) { console.error("deletePO",e); } },
   // Meetings
-  async saveMeeting(m) { const {error} = await sb.from("meetings").upsert({id:m.id,project_id:m.projectId,date:m.date||null,title:m.title,location:m.location,attendees:m.attendees,agenda:m.agenda,notes:m.notes,action_items:m.actionItems}); if(error) console.error("saveMeeting",error); return !error; },
-  async deleteMeeting(id) { await sb.from("meetings").delete().eq("id",id); },
+  async saveMeeting(m) { try { if(m._isNew) { await api.meetings.create({project_id:m.projectId,date:m.date||null,title:m.title,location:m.location,attendees:m.attendees,agenda:m.agenda,notes:m.notes,action_items:m.actionItems}); } else { await api.meetings.update(m.id,{project_id:m.projectId,date:m.date||null,title:m.title,location:m.location,attendees:m.attendees,agenda:m.agenda,notes:m.notes,action_items:m.actionItems}); } return true; } catch(e) { console.error("saveMeeting",e); return false; } },
+  async deleteMeeting(id) { try { await api.meetings.delete(id); } catch(e) { console.error("deleteMeeting",e); } },
+};
+
+// ─── LOGIN / SIGNUP PAGE ─────────────────────────────────────────────────────
+const LoginPage = ({ onAuth }) => {
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [companySlug, setCompanySlug] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      if (mode === "login") {
+        const result = await authLogin({ email, password });
+        onAuth(result);
+      } else {
+        const result = await authSignup({ email, password, name, companyName, companySlug });
+        onAuth(result);
+      }
+    } catch (err) {
+      toast.error(err.message || "Authentication failed");
+    }
+    setSubmitting(false);
+  };
+
+  return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:C.bg,fontFamily:"'Inter',system-ui,sans-serif"}}>
+      <div style={{background:C.surface,borderRadius:12,padding:40,width:380,boxShadow:"0 4px 24px rgba(0,0,0,0.08)"}}>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{width:44,height:44,background:C.accent,borderRadius:6,display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:12}}><Ic d={I.hard} s={22} stroke="#fff"/></div>
+          <div style={{fontSize:20,fontWeight:700,color:C.text}}>BuildFlow Pro</div>
+          <div style={{fontSize:13,color:C.textSub,marginTop:4}}>{mode === "login" ? "Sign in to your account" : "Create your company account"}</div>
+        </div>
+        <form onSubmit={handleSubmit}>
+          {mode === "signup" && (
+            <>
+              <input type="text" placeholder="Your Name" value={name} onChange={e=>setName(e.target.value)} required style={{width:"100%",padding:"10px 12px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:14,marginBottom:10,boxSizing:"border-box"}} />
+              <input type="text" placeholder="Company Name" value={companyName} onChange={e=>setCompanyName(e.target.value)} required style={{width:"100%",padding:"10px 12px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:14,marginBottom:10,boxSizing:"border-box"}} />
+              <input type="text" placeholder="Company Slug (e.g., acme-corp)" value={companySlug} onChange={e=>setCompanySlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,""))} required style={{width:"100%",padding:"10px 12px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:14,marginBottom:10,boxSizing:"border-box"}} />
+            </>
+          )}
+          <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} required style={{width:"100%",padding:"10px 12px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:14,marginBottom:10,boxSizing:"border-box"}} />
+          <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={8} style={{width:"100%",padding:"10px 12px",borderRadius:6,border:`1px solid ${C.border}`,fontSize:14,marginBottom:16,boxSizing:"border-box"}} />
+          <button type="submit" disabled={submitting} style={{width:"100%",padding:"10px 12px",borderRadius:6,border:"none",background:C.accent,color:"#fff",fontSize:14,fontWeight:600,cursor:"pointer",opacity:submitting?0.7:1}}>
+            {submitting ? "..." : mode === "login" ? "Sign In" : "Create Account"}
+          </button>
+        </form>
+        <div style={{textAlign:"center",marginTop:16,fontSize:13,color:C.textSub}}>
+          {mode === "login" ? (
+            <>Don't have an account? <span onClick={()=>setMode("signup")} style={{color:C.accent,cursor:"pointer",fontWeight:600}}>Sign Up</span></>
+          ) : (
+            <>Already have an account? <span onClick={()=>setMode("login")} style={{color:C.accent,cursor:"pointer",fontWeight:600}}>Sign In</span></>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 // ─── APP ROOT ────────────────────────────────────────────────────────────────
@@ -3298,6 +3364,8 @@ export default function App() {
   const [navPayload,setNavPayload] = useState(null);
   const [menuOpen,setMenuOpen] = useState(false);
   const [loading,setLoading] = useState(true);
+  const [authenticated,setAuthenticated] = useState(false);
+  const [currentUser,setCurrentUser] = useState(null);
   const [projects,setProjects] = useState([]);
   const [contacts,setContacts] = useState([]);
   const [estimates,setEstimates] = useState([]);
@@ -3312,44 +3380,59 @@ export default function App() {
   const [punchList,setPunchList] = useState([]);
   const [pos,setPOs] = useState([]);
   const [meetings,setMeetings] = useState([]);
-  const [companySettings,setCompanySettings] = useState(()=>{try{const s=localStorage.getItem("bf_company");return s?JSON.parse(s):DEFAULT_COMPANY;}catch{return DEFAULT_COMPANY;}});
-  const saveCompany = (s) => { setCompanySettings(s); localStorage.setItem("bf_company",JSON.stringify(s)); };
+  const [companySettings,setCompanySettings] = useState(DEFAULT_COMPANY);
+  const saveCompany = async (s) => { setCompanySettings(s); try { await api.settings.update(s); } catch(e) { console.error("saveCompany",e); } };
 
-  // ── Load all data ──
+  // ── Auth handler ──
+  const handleAuth = (result) => {
+    setCurrentUser(result.user);
+    if (result.organization) {
+      setCompanySettings(prev => ({ ...prev, ...result.organization }));
+    }
+    setAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    authLogout();
+    setAuthenticated(false);
+    setCurrentUser(null);
+    setProjects([]); setContacts([]); setEstimates([]); setInvoices([]);
+    setBudgetItems([]); setCos([]); setLogs([]); setBids([]);
+    setDocs([]); setPhotos([]); setRfis([]); setPunchList([]);
+    setPOs([]); setMeetings([]);
+  };
+
+  // ── Load all data via tenant-safe API ──
   useEffect(() => {
+    if (!authenticated) { setLoading(false); return; }
     (async () => {
       setLoading(true);
       try {
-        const [
-          {data:proj,error:e1},{data:cont,error:e2},{data:budg,error:e3},
-          {data:ests,error:e4},{data:lines,error:e5},{data:invs,error:e6},
-          {data:cosr,error:e7},{data:lgsr,error:e8},{data:pkgs,error:e9},
-          {data:bdsr,error:e10},{data:dcsr,error:e11},{data:phsr,error:e12}
-        ] = await Promise.all([
-          sb.from("projects").select("*").order("created_at",{ascending:false}),
-          sb.from("contacts").select("*").order("created_at",{ascending:false}),
-          sb.from("budget_items").select("*"),
-          sb.from("estimates").select("*").order("created_at",{ascending:false}),
-          sb.from("estimate_line_items").select("*"),
-          sb.from("invoices").select("*").order("created_at",{ascending:false}),
-          sb.from("change_orders").select("*").order("created_at",{ascending:false}),
-          sb.from("daily_logs").select("*").order("date",{ascending:false}),
-          sb.from("bid_packages").select("*").order("created_at",{ascending:false}),
-          sb.from("bids").select("*"),
-          sb.from("documents").select("*").order("created_at",{ascending:false}),
-          sb.from("photos").select("*").order("created_at",{ascending:false}),
+        const [proj, cont, budg, ests, invs, cosr, lgsr, pkgs, dcsr, phsr, rfisR, punchR, posR, meetR] = await Promise.all([
+          api.projects.list(),
+          api.contacts.list(),
+          api.budgetItems.list(),
+          api.estimates.list(),
+          api.invoices.list(),
+          api.changeOrders.list(),
+          api.dailyLogs.list(),
+          api.bidPackages.list(),
+          api.documents.list(),
+          api.photos.list(),
+          api.rfis.list().catch(()=>[]),
+          api.punchList.list().catch(()=>[]),
+          api.purchaseOrders.list().catch(()=>[]),
+          api.meetings.list().catch(()=>[]),
         ]);
-        [e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11,e12].forEach(e=>e&&console.error("Load error:",e));
         setProjects((proj||[]).map(fromDb.project));
         setContacts((cont||[]).map(fromDb.contact));
         setBudgetItems((budg||[]).map(fromDb.budget));
-        setEstimates((ests||[]).map(e=>fromDb.estimate(e,(lines||[]).filter(l=>l.estimate_id===e.id))));
+        setEstimates((ests||[]).map(fromDb.estimate));
         const todayStr = today();
-        const autoOverdue = (invs) => invs.map(i =>
+        const autoOverdue = (list) => list.map(i =>
           i.status === "Pending" && i.due && i.due < todayStr ? {...i, status:"Overdue"} : i
         );
         const loadedInvoices = autoOverdue((invs||[]).map(fromDb.invoice));
-        // Persist any status changes back to DB
         loadedInvoices.forEach(i => {
           const orig = (invs||[]).find(r => r.id === i.id);
           if(orig && orig.status !== i.status) db.saveInvoice(i);
@@ -3357,27 +3440,23 @@ export default function App() {
         setInvoices(loadedInvoices);
         setCos((cosr||[]).map(fromDb.co));
         setLogs((lgsr||[]).map(fromDb.log));
-        setBids((pkgs||[]).map(p=>fromDb.bidPkg(p,(bdsr||[]).filter(b=>b.package_id===p.id))));
+        setBids((pkgs||[]).map(fromDb.bidPkg));
         setDocs((dcsr||[]).map(fromDb.doc));
         setPhotos((phsr||[]).map(fromDb.photo));
-
-        // Load new modules — tables may not exist yet; errors are silenced
-        const [
-          {data:rfisR},{data:punchR},{data:posR},{data:meetR}
-        ] = await Promise.all([
-          sb.from("rfis").select("*").order("created_at",{ascending:false}).catch(()=>({data:[]})),
-          sb.from("punch_list").select("*").catch(()=>({data:[]})),
-          sb.from("purchase_orders").select("*").order("created_at",{ascending:false}).catch(()=>({data:[]})),
-          sb.from("meetings").select("*").order("date",{ascending:false}).catch(()=>({data:[]})),
-        ]);
         setRfis((rfisR||[]).map(fromDb.rfi));
         setPunchList((punchR||[]).map(fromDb.punchItem));
         setPOs((posR||[]).map(fromDb.po));
         setMeetings((meetR||[]).map(fromDb.meeting));
+
+        // Load org settings from API
+        try {
+          const orgSettings = await api.settings.get();
+          if (orgSettings) setCompanySettings(prev => ({ ...prev, ...orgSettings }));
+        } catch(e) { console.error("Load settings:",e); }
       } catch(e) { console.error("Load failed:",e); }
       setLoading(false);
     })();
-  }, []);
+  }, [authenticated]);
 
   const navigate = (t,payload=null) => { setTab(t); setNavPayload(payload); setMenuOpen(false); };
 
@@ -3416,6 +3495,9 @@ export default function App() {
     {id:"reports",label:"Reports",icon:"report"},
     {id:"settings",label:"Settings",icon:"hard"},
   ];
+
+  // ── Auth guard ──
+  if(!authenticated) return <LoginPage onAuth={handleAuth} />;
 
   if(loading) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:C.bg,fontFamily:"'Inter',system-ui,sans-serif",flexDirection:"column",gap:16}}>
