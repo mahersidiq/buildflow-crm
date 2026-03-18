@@ -1,45 +1,48 @@
 /**
  * Authentication state management for BuildFlow CRM.
- * Stores JWT in memory (not localStorage) to prevent XSS token theft.
- * Persists a refresh indicator in sessionStorage so page reloads
- * can attempt to restore the session via /api/auth/me.
+ * Stores JWT in localStorage so sessions survive page refreshes.
  */
 
-import { api, setToken, clearToken } from './api';
+import { api, setToken, clearToken, getToken } from './api';
 
-const SESSION_KEY = 'bf_authenticated';
+const TOKEN_KEY = 'bf_token';
 
 export async function signup({ email, password, name, companyName, companySlug }) {
   const result = await api.auth.signup({ email, password, name, companyName, companySlug });
   setToken(result.token);
-  sessionStorage.setItem(SESSION_KEY, '1');
+  localStorage.setItem(TOKEN_KEY, result.token);
   return result;
 }
 
 export async function login({ email, password }) {
   const result = await api.auth.login({ email, password });
   setToken(result.token);
-  sessionStorage.setItem(SESSION_KEY, '1');
+  localStorage.setItem(TOKEN_KEY, result.token);
   return result;
 }
 
 export function logout() {
   clearToken();
-  sessionStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(TOKEN_KEY);
 }
 
 export async function restoreSession() {
-  if (!sessionStorage.getItem(SESSION_KEY)) return null;
+  const saved = localStorage.getItem(TOKEN_KEY);
+  if (!saved) return null;
+  // Put the saved token back in memory so the API client sends it
+  setToken(saved);
   try {
-    // Token is still in memory if page hasn't fully reloaded.
-    // If token is gone, this will fail with 401 and we clear the session.
-    return await api.auth.me();
+    const result = await api.auth.me();
+    // Server returns a fresh token — update both stores
+    if (result.token) {
+      setToken(result.token);
+      localStorage.setItem(TOKEN_KEY, result.token);
+    }
+    return result;
   } catch {
-    sessionStorage.removeItem(SESSION_KEY);
+    // Token expired or invalid — clean up
+    clearToken();
+    localStorage.removeItem(TOKEN_KEY);
     return null;
   }
-}
-
-export function isAuthenticated() {
-  return sessionStorage.getItem(SESSION_KEY) === '1';
 }

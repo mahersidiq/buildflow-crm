@@ -191,7 +191,15 @@ router.get('/me', authenticate, async (req, res, next) => {
       .eq('id', user.org_id)
       .single();
 
-    res.json({ user, organization: org });
+    // Issue a fresh token so the client can extend the session
+    const token = signToken({
+      userId: user.id,
+      orgId: user.org_id,
+      email: user.email,
+      role: user.role,
+    });
+
+    res.json({ token, user, organization: org });
   } catch (err) {
     next(err);
   }
