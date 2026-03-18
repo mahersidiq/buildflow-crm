@@ -3404,6 +3404,14 @@ export default function App() {
     setPOs([]); setMeetings([]);
   };
 
+  // ── Restore session on page refresh ──
+  useEffect(() => {
+    restoreSession().then(result => {
+      if (result) handleAuth(result);
+      else setLoading(false);
+    });
+  }, []);
+
   // ── Load all data via tenant-safe API ──
   useEffect(() => {
     if (!authenticated) { setLoading(false); return; }
