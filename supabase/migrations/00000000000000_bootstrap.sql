@@ -375,7 +375,6 @@ BEGIN
     ])
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
-    EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', tbl);
 
     EXECUTE format(
       'CREATE POLICY tenant_select ON %I FOR SELECT USING (org_id = current_org_id())',
@@ -399,7 +398,6 @@ $$;
 
 -- Organizations table: special policy (org_id IS the id itself)
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY tenant_select ON organizations FOR SELECT USING (id = current_org_id());
 CREATE POLICY tenant_insert ON organizations FOR INSERT WITH CHECK (id = current_org_id());
