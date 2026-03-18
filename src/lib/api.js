@@ -114,4 +114,27 @@ export const api = {
     deleteBid: (id) =>
       request(`/bid-packages/bids/${id}`, { method: 'DELETE' }),
   },
+
+  // Email
+  email: {
+    send: (data) => request('/email/send', { method: 'POST', body: data }),
+    log: (params = {}) => {
+      const qs = new URLSearchParams();
+      if (params.contactId) qs.set('contactId', params.contactId);
+      if (params.projectId) qs.set('projectId', params.projectId);
+      const q = qs.toString();
+      return request(`/email/log${q ? '?' + q : ''}`);
+    },
+    test: () => request('/email/test', { method: 'POST' }),
+  },
+
+  // Templates
+  templates: {
+    ...crudResource('/templates'),
+    list: (category) => {
+      const q = category ? `?category=${category}` : '';
+      return request(`/templates${q}`);
+    },
+    seed: () => request('/templates/seed', { method: 'POST' }),
+  },
 };

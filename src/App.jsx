@@ -21,7 +21,7 @@ const uploadFile = async (file, bucket, path) => {
       return null;
     }
     const data = await res.json();
-    return data?.publicUrl || null;
+    return data?.url || data?.publicUrl || null;
   } catch (e) {
     console.error("upload exception", e);
     toast.error(`Upload error: ${e.message}`, { duration: 6000 });
@@ -1907,28 +1907,29 @@ const Documents = ({projectId,docs,setDocs,projects}) => {
   const TYPE_BG = {Contract:C.accentL,Plans:C.purpleL,Permit:C.greenL,Engineering:C.blueL,Scope:C.amberL,Submittal:C.blueL,Inspection:C.greenL,RFI:C.redL,Proposal:C.amberL,Other:C.bg};
 
   const save = async () => {
-    if(!form.name) return;
+    if(!form.name) { toast.error("Document name is required"); return; }
+    if(!form.projectId && !projectId) { toast.error("Please select a project"); return; }
     setUploading(true);
-    let fileUrl = form.fileUrl || "";
-    if(form._file) {
-      const id = form.id || uid();
-      const ext = form._file.name.split(".").pop();
-      const path = `documents/${id}.${ext}`;
-      const url = await uploadFile(form._file, "documents", path);
-      if(url) { fileUrl = url; toast.success("File uploaded"); }
-      else { toast.error("File upload failed — saving metadata only"); }
-      const rec = {...form, id: form.id || id, fileUrl, projectId: form.projectId||projectId, uploader: form.uploader || "", date: form.date||today()};
+    try {
+      let fileUrl = form.fileUrl || "";
+      if(form._file) {
+        const id = form.id || uid();
+        const ext = form._file.name.split(".").pop();
+        const path = `${id}.${ext}`;
+        const url = await uploadFile(form._file, "documents", path);
+        if(url) { fileUrl = url; toast.success("File uploaded successfully"); }
+        else { toast.error("File upload failed — saving metadata only"); }
+      }
+      const rec = {...form, id: form.id || uid(), fileUrl, projectId: form.projectId||projectId, uploader: form.uploader || "", date: form.date||today()};
       delete rec._file; delete rec._fileName;
       if(form.id){setDocs(docs.map(d=>d.id===form.id?rec:d));}
       else{setDocs([...docs,rec]);}
-    } else {
-      if(form.id){setDocs(docs.map(d=>d.id===form.id?form:d));}
-      else{setDocs([...docs,{...form,id:uid(),projectId:form.projectId||projectId,uploader:"",date:form.date||today()}]);}
-    }
+      toast.success(form.id ? "Document updated" : "Document added");
+    } catch(e) { toast.error("Failed to save document: " + e.message); }
     setUploading(false);
     setForm(null);
   };
-  const del = () => { setDocs(docs.filter(d=>d.id!==delId)); setDelId(null); };
+  const del = () => { setDocs(docs.filter(d=>d.id!==delId)); setDelId(null); toast.success("Document deleted"); };
   const onFileSelect = (e) => {
     const file = e.target.files?.[0];
     if(!file) return;
@@ -2018,28 +2019,29 @@ const Photos = ({projectId,photos,setPhotos,projects}) => {
   const COLORS = ["#E8F4F8","#F0F8E8","#FEF3EC","#F4F0FD","#F0FBF5","#FDF8EE","#FEF2F2","#EEF3FD"];
 
   const save = async () => {
-    if(!form.caption) return;
+    if(!form.caption) { toast.error("Caption is required"); return; }
+    if(!form.projectId && !projectId) { toast.error("Please select a project"); return; }
     setUploading(true);
-    let fileUrl = form.fileUrl || "";
-    if(form._file) {
-      const id = form.id || uid();
-      const ext = form._file.name.split(".").pop();
-      const path = `photos/${id}.${ext}`;
-      const url = await uploadFile(form._file, "photos", path);
-      if(url) { fileUrl = url; toast.success("Photo uploaded"); }
-      else { toast.error("Photo upload failed — saving metadata only"); }
-      const rec = {...form, id: form.id || id, fileUrl, projectId: form.projectId||projectId, emoji:TAG_ICON[form.tag]||"photos", color:COLORS[Math.floor(Math.random()*COLORS.length)]};
+    try {
+      let fileUrl = form.fileUrl || "";
+      if(form._file) {
+        const id = form.id || uid();
+        const ext = form._file.name.split(".").pop();
+        const path = `${id}.${ext}`;
+        const url = await uploadFile(form._file, "photos", path);
+        if(url) { fileUrl = url; toast.success("Photo uploaded successfully"); }
+        else { toast.error("Photo upload failed — saving metadata only"); }
+      }
+      const rec = {...form, id: form.id || uid(), fileUrl, projectId: form.projectId||projectId, emoji:TAG_ICON[form.tag]||"photos", color:COLORS[Math.floor(Math.random()*COLORS.length)]};
       delete rec._file; delete rec._preview;
       if(form.id){setPhotos(photos.map(p=>p.id===form.id?rec:p));}
       else{setPhotos([rec,...photos]);}
-    } else {
-      if(form.id){const rec={...form}; delete rec._file; delete rec._preview; setPhotos(photos.map(p=>p.id===form.id?rec:p));}
-      else{setPhotos([{...form,id:uid(),projectId:form.projectId||projectId,emoji:TAG_ICON[form.tag]||"photos",color:COLORS[Math.floor(Math.random()*COLORS.length)]},...photos]);}
-    }
+      toast.success(form.id ? "Photo updated" : "Photo added");
+    } catch(e) { toast.error("Failed to save photo: " + e.message); }
     setUploading(false);
     setForm(null);
   };
-  const del = () => { setPhotos(photos.filter(p=>p.id!==delId)); setDelId(null); setLightbox(null); };
+  const del = () => { setPhotos(photos.filter(p=>p.id!==delId)); setDelId(null); setLightbox(null); toast.success("Photo deleted"); };
   const lbPhoto = lightbox ? photos.find(p=>p.id===lightbox) : null;
   const onPhotoSelect = (e) => {
     const file = e.target.files?.[0];
@@ -3511,128 +3513,94 @@ export default function App() {
     </div>
   );
 
-  // Clean DB setters — update state immediately, write to DB in background
-  const setProjectsDB = (updater) => {
-    setProjects(prev => {
-      const next = typeof updater==="function" ? updater(prev) : updater;
-      const prevIds = new Set(prev.map(x=>x.id));
-      const nextIds = new Set(next.map(x=>x.id));
-      next.forEach(p => db.saveProject(p));
-      prev.forEach(p => { if(!nextIds.has(p.id)) db.deleteProject(p.id); });
+  // Smart DB setters — only persist changed/new/deleted items, not the entire array
+  const makeSetter = (rawSetter, saveFn, deleteFn, idKey = 'id') => (updater) => {
+    rawSetter(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      const prevMap = new Map(prev.map(x => [x[idKey], x]));
+      const nextMap = new Map(next.map(x => [x[idKey], x]));
+      // Save only new or changed items
+      next.forEach(item => {
+        const old = prevMap.get(item[idKey]);
+        if (!old || JSON.stringify(old) !== JSON.stringify(item)) {
+          saveFn(item).then(ok => { if (!ok) toast.error("Failed to save — please retry"); });
+        }
+      });
+      // Delete removed items
+      prev.forEach(item => {
+        if (!nextMap.has(item[idKey])) {
+          deleteFn(item[idKey]).catch(() => toast.error("Failed to delete — please retry"));
+        }
+      });
       return next;
     });
   };
-  const setContactsDB = (updater) => {
-    setContacts(prev => {
-      const next = typeof updater==="function" ? updater(prev) : updater;
-      next.forEach(c => db.saveContact(c));
-      prev.forEach(c => { if(!next.find(x=>x.id===c.id)) db.deleteContact(c.id); });
-      return next;
-    });
-  };
-  const setBudgetDB = (updater) => {
-    setBudgetItems(prev => {
-      const next = typeof updater==="function" ? updater(prev) : updater;
-      next.forEach(b => db.saveBudget(b));
-      prev.forEach(b => { if(!next.find(x=>x.id===b.id)) db.deleteBudget(b.id); });
-      return next;
-    });
-  };
+
+  const setProjectsDB = makeSetter(setProjects, db.saveProject, db.deleteProject);
+  const setContactsDB = makeSetter(setContacts, db.saveContact, db.deleteContact);
+  const setBudgetDB = makeSetter(setBudgetItems, db.saveBudget, db.deleteBudget);
+  const setInvoicesDB = makeSetter(setInvoices, db.saveInvoice, db.deleteInvoice);
+  const setCosDB = makeSetter(setCos, db.saveCO, db.deleteCO);
+  const setLogsDB = makeSetter(setLogs, db.saveLog, db.deleteLog);
+  const setRfisDB = makeSetter(setRfis, db.saveRFI, db.deleteRFI);
+  const setPunchListDB = makeSetter(setPunchList, db.savePunchItem, db.deletePunchItem);
+  const setPOsDB = makeSetter(setPOs, db.savePO, db.deletePO);
+  const setMeetingsDB = makeSetter(setMeetings, db.saveMeeting, db.deleteMeeting);
+  const setDocsDB = makeSetter(setDocs, db.saveDoc, db.deleteDoc);
+  const setPhotosDB = makeSetter(setPhotos, db.savePhoto, db.deletePhoto);
+
+  // Estimates need special handling for nested line items
   const setEstimatesDB = (updater) => {
     setEstimates(prev => {
-      const next = typeof updater==="function" ? updater(prev) : updater;
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      const prevMap = new Map(prev.map(e => [e.id, e]));
+      const nextMap = new Map(next.map(e => [e.id, e]));
       next.forEach(e => {
-        db.saveEstimate(e);
-        e.lineItems.forEach(l => db.saveLineItem(l, e.id));
-        const old = prev.find(x=>x.id===e.id);
-        if(old) old.lineItems.forEach(l => { if(!e.lineItems.find(x=>x.id===l.id)) db.deleteLineItem(l.id); });
+        const old = prevMap.get(e.id);
+        if (!old || JSON.stringify({...old, lineItems:[]}) !== JSON.stringify({...e, lineItems:[]})) {
+          db.saveEstimate(e).then(ok => { if (!ok) toast.error("Failed to save estimate"); });
+        }
+        // Save changed/new line items
+        const oldItems = new Map((old?.lineItems||[]).map(l => [l.id, l]));
+        e.lineItems.forEach(l => {
+          const ol = oldItems.get(l.id);
+          if (!ol || JSON.stringify(ol) !== JSON.stringify(l)) {
+            db.saveLineItem(l, e.id);
+          }
+        });
+        // Delete removed line items
+        if (old) {
+          const newItemIds = new Set(e.lineItems.map(l => l.id));
+          old.lineItems.forEach(l => { if (!newItemIds.has(l.id)) db.deleteLineItem(l.id); });
+        }
       });
-      prev.forEach(e => { if(!next.find(x=>x.id===e.id)) db.deleteEstimate(e.id); });
+      prev.forEach(e => { if (!nextMap.has(e.id)) db.deleteEstimate(e.id); });
       return next;
     });
   };
-  const setInvoicesDB = (updater) => {
-    setInvoices(prev => {
-      const next = typeof updater==="function" ? updater(prev) : updater;
-      next.forEach(i => db.saveInvoice(i));
-      prev.forEach(i => { if(!next.find(x=>x.id===i.id)) db.deleteInvoice(i.id); });
-      return next;
-    });
-  };
-  const setCosDB = (updater) => {
-    setCos(prev => {
-      const next = typeof updater==="function" ? updater(prev) : updater;
-      next.forEach(c => db.saveCO(c));
-      prev.forEach(c => { if(!next.find(x=>x.id===c.id)) db.deleteCO(c.id); });
-      return next;
-    });
-  };
-  const setLogsDB = (updater) => {
-    setLogs(prev => {
-      const next = typeof updater==="function" ? updater(prev) : updater;
-      next.forEach(l => db.saveLog(l));
-      prev.forEach(l => { if(!next.find(x=>x.id===l.id)) db.deleteLog(l.id); });
-      return next;
-    });
-  };
+
+  // Bid packages need special handling for nested bids
   const setBidsDB = (updater) => {
     setBids(prev => {
-      const next = typeof updater==="function" ? updater(prev) : updater;
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      const prevMap = new Map(prev.map(p => [p.id, p]));
+      const nextMap = new Map(next.map(p => [p.id, p]));
       next.forEach(pkg => {
-        db.saveBidPkg(pkg);
-        pkg.bids.forEach(b => db.saveBid(b, pkg.id));
-        const old = prev.find(x=>x.id===pkg.id);
-        if(old) old.bids.forEach(b => { if(!pkg.bids.find(x=>x.subId===b.subId)) db.deleteBid(b.subId); });
+        const old = prevMap.get(pkg.id);
+        if (!old || JSON.stringify({...old, bids:[]}) !== JSON.stringify({...pkg, bids:[]})) {
+          db.saveBidPkg(pkg);
+        }
+        const oldBids = new Map((old?.bids||[]).map(b => [b.subId, b]));
+        pkg.bids.forEach(b => {
+          const ob = oldBids.get(b.subId);
+          if (!ob || JSON.stringify(ob) !== JSON.stringify(b)) db.saveBid(b, pkg.id);
+        });
+        if (old) {
+          const newBidIds = new Set(pkg.bids.map(b => b.subId));
+          old.bids.forEach(b => { if (!newBidIds.has(b.subId)) db.deleteBid(b.subId); });
+        }
       });
-      prev.forEach(p => { if(!next.find(x=>x.id===p.id)) db.deleteBidPkg(p.id); });
-      return next;
-    });
-  };
-  const setDocsDB = (updater) => {
-    setDocs(prev => {
-      const next = typeof updater==="function" ? updater(prev) : updater;
-      next.forEach(d => db.saveDoc(d));
-      prev.forEach(d => { if(!next.find(x=>x.id===d.id)) db.deleteDoc(d.id); });
-      return next;
-    });
-  };
-  const setPhotosDB = (updater) => {
-    setPhotos(prev => {
-      const next = typeof updater==="function" ? updater(prev) : updater;
-      next.forEach(p => db.savePhoto(p));
-      prev.forEach(p => { if(!next.find(x=>x.id===p.id)) db.deletePhoto(p.id); });
-      return next;
-    });
-  };
-  const setRfisDB = (updater) => {
-    setRfis(prev => {
-      const next = typeof updater==="function" ? updater(prev) : updater;
-      next.forEach(r => db.saveRFI(r));
-      prev.forEach(r => { if(!next.find(x=>x.id===r.id)) db.deleteRFI(r.id); });
-      return next;
-    });
-  };
-  const setPunchListDB = (updater) => {
-    setPunchList(prev => {
-      const next = typeof updater==="function" ? updater(prev) : updater;
-      next.forEach(p => db.savePunchItem(p));
-      prev.forEach(p => { if(!next.find(x=>x.id===p.id)) db.deletePunchItem(p.id); });
-      return next;
-    });
-  };
-  const setPOsDB = (updater) => {
-    setPOs(prev => {
-      const next = typeof updater==="function" ? updater(prev) : updater;
-      next.forEach(p => db.savePO(p));
-      prev.forEach(p => { if(!next.find(x=>x.id===p.id)) db.deletePO(p.id); });
-      return next;
-    });
-  };
-  const setMeetingsDB = (updater) => {
-    setMeetings(prev => {
-      const next = typeof updater==="function" ? updater(prev) : updater;
-      next.forEach(m => db.saveMeeting(m));
-      prev.forEach(m => { if(!next.find(x=>x.id===m.id)) db.deleteMeeting(m.id); });
+      prev.forEach(p => { if (!nextMap.has(p.id)) db.deleteBidPkg(p.id); });
       return next;
     });
   };
