@@ -3,7 +3,7 @@
  * Stores JWT in localStorage so sessions survive page refreshes.
  */
 
-import { api, setToken, clearToken, getToken } from './api';
+import { api, setToken, clearToken } from './api';
 
 const TOKEN_KEY = 'bf_token';
 

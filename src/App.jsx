@@ -592,7 +592,7 @@ const Budget = ({projectId,budgetItems,setBudgetItems,projects,setProjects}) => 
     const item = {...form,projectId,budgeted:parseFloat(form.budgeted)||0,actual:parseFloat(form.actual)||0,committed:parseFloat(form.committed)||0};
     let next;
     if(form.id) { next = budgetItems.map(b=>b.id===form.id?item:b); }
-    else { next = [...budgetItems,{...item,id:uid()}]; }
+    else { next = [...budgetItems,{...item,id:uid(),_isNew:true}]; }
     setBudgetItems(next); syncSpent(next); setForm(null);
     toast.success(form.id?"Budget line updated":"Budget line added");
   };
@@ -834,12 +834,12 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
     if(!estName||sqftN<=0||cpsfN<=0){toast.error("Please fill in name, square footage, and $/sqft");return;}
     if(Math.abs(pctSum-100)>0.01){toast.error(`Percentages must sum to 100% (currently ${pctSum.toFixed(1)}%)`);return;}
     const lineItems = phases.map(p=>({
-      id:uid(), category:p.category, description:p.description,
+      id:uid(), _isNew:true, category:p.category, description:p.description,
       qty:sqftN, unit:"SF",
       cost:Math.round((p.pct/100)*hardCpsfN*100)/100,
       markup:profit
     }));
-    const est = {id:uid(),projectId,name:estName,
+    const est = {id:uid(),_isNew:true,projectId,name:estName,
       notes:`${tKey} · ${sqftN.toLocaleString()} SF · $${cpsfN}/sqft · ${profit}% profit`,
       status:"Draft",date:today(),lineItems};
     setEstimates(prev=>[...prev,est]);
@@ -1174,7 +1174,7 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
     const {_margin,...rest} = form;
     const item = {...rest, qty:parseFloat(form.qty)||1, cost:parseFloat(form.cost)||0, markup:parseFloat(form.markup)||0};
     if(form.id) { update(e=>({...e,lineItems:e.lineItems.map(i=>i.id===form.id?{...item,id:form.id}:i)})); }
-    else { update(e=>({...e,lineItems:[...e.lineItems,{...item,id:uid()}]})); }
+    else { update(e=>({...e,lineItems:[...e.lineItems,{...item,id:uid(),_isNew:true}]})); }
     setForm(null);
   };
 
@@ -1188,7 +1188,7 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
   const importFromBudget = () => {
     const toImport = projBudget.filter(b=>budgetSel[b.id]);
     if(toImport.length===0){toast.error("Select at least one budget line to import");return;}
-    const newLines = toImport.map(b=>({id:uid(),category:b.category,description:b.category+(b.notes?` — ${b.notes}`:""),qty:1,unit:"LS",cost:b.budgeted||0,markup:co.defaultMarkup||20}));
+    const newLines = toImport.map(b=>({id:uid(),_isNew:true,category:b.category,description:b.category+(b.notes?` — ${b.notes}`:""),qty:1,unit:"LS",cost:b.budgeted||0,markup:co.defaultMarkup||20}));
     update(e=>({...e,lineItems:[...e.lineItems,...newLines]}));
     setShowBudgetImport(false); setBudgetSel({});
     toast.success(`${newLines.length} line${newLines.length!==1?"s":""} imported from budget`);
@@ -1443,7 +1443,7 @@ const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,company
 
   const create = () => {
     if(!form.name) return;
-    const e = {id:uid(),projectId,name:form.name,notes:form.notes,status:"Draft",date:today(),lineItems:[]};
+    const e = {id:uid(),_isNew:true,projectId,name:form.name,notes:form.notes,status:"Draft",date:today(),lineItems:[]};
     setEstimates([...estimates,e]);
     setSelectedId(e.id);
     setShowForm(false);
@@ -1522,7 +1522,7 @@ const ProjInvoices = ({projectId,invoices,setInvoices,project}) => {
     if(form.id) {
       setInvoices(invoices.map(i=>i.id===form.id?{...form,amount:parseFloat(form.amount)}:i));
     } else {
-      setInvoices([...invoices,{...form,id:uid(),projectId,number:num,status:"Pending",issued:today(),amount:parseFloat(form.amount)}]);
+      setInvoices([...invoices,{...form,id:uid(),_isNew:true,projectId,number:num,status:"Pending",issued:today(),amount:parseFloat(form.amount)}]);
     }
     setForm(null);
   };
@@ -1602,7 +1602,7 @@ const ChangeOrders = ({projectId,cos,setCos,projects}) => {
       const projId=form.projectId||projectId;
       const projCOs=cos.filter(c=>c.projectId===projId);
       const num=`CO-${String(projCOs.length+1).padStart(3,"0")}`;
-      setCos([...cos,{...form,id:uid(),number:num,status:"Pending",date:today(),projectId:projId,amount:parseFloat(form.amount)}]);
+      setCos([...cos,{...form,id:uid(),_isNew:true,number:num,status:"Pending",date:today(),projectId:projId,amount:parseFloat(form.amount)}]);
     }
     setForm(null);
   };
@@ -1696,7 +1696,7 @@ const DailyLogs = ({projectId,logs,setLogs,projects}) => {
     if(form.id) {
       setLogs(logs.map(l=>l.id===form.id?{...form,crew:parseInt(form.crew)||0}:l));
     } else {
-      setLogs([{...form,id:uid(),projectId:form.projectId,crew:parseInt(form.crew)||0,photos:0},...logs]);
+      setLogs([{...form,id:uid(),_isNew:true,projectId:form.projectId,crew:parseInt(form.crew)||0,photos:0},...logs]);
     }
     setForm(null);
     toast.success(form.id?"Log updated":"Field log saved");
@@ -1782,14 +1782,14 @@ const SubBids = ({projectId,bids,setBids,projects}) => {
     if(!pkgForm.trade) return;
     const projId=pkgForm.projectId||projectId;
     if(pkgForm.id){setBids(bids.map(b=>b.id===pkgForm.id?{...pkgForm,projectId:projId||pkgForm.projectId}:b));}
-    else{setBids([...bids,{...pkgForm,id:uid(),projectId:projId,status:"Open",bids:[]}]);}
+    else{setBids([...bids,{...pkgForm,id:uid(),_isNew:true,projectId:projId,status:"Open",bids:[]}]);}
     setPkgForm(null);
   };
 
   const saveBid = () => {
     if(!bidForm.subName||!bidForm.amount) return;
     if(bidForm.id){setBids(bids.map(b=>b.id===selectedId?{...b,bids:b.bids.map(x=>x.subId===bidForm.id?{...bidForm,amount:parseFloat(bidForm.amount)}:x)}:b));}
-    else{setBids(bids.map(b=>b.id===selectedId?{...b,bids:[...b.bids,{...bidForm,subId:uid(),amount:parseFloat(bidForm.amount),submitted:today(),awarded:false}]}:b));}
+    else{setBids(bids.map(b=>b.id===selectedId?{...b,bids:[...b.bids,{...bidForm,subId:uid(),_isNew:true,amount:parseFloat(bidForm.amount),submitted:today(),awarded:false}]}:b));}
     setBidForm(null);
   };
 
@@ -2227,7 +2227,7 @@ const Contacts = ({contacts,setContacts}) => {
   const save = () => {
     if(!form.name) return;
     if(form.id){setContacts(contacts.map(c=>c.id===form.id?form:c));}
-    else{setContacts([...contacts,{...form,id:uid(),projects:[]}]);}
+    else{setContacts([...contacts,{...form,id:uid(),_isNew:true,projects:[]}]);}
     setForm(null);
     toast.success(form.id?"Contact updated":"Contact added");
   };
@@ -2308,7 +2308,7 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
 
   const createProject = () => {
     if(!form.name||!form.client) return;
-    const p={...form,id:uid(),value:parseFloat(form.value)||0,spent:0,progress:0};
+    const p={...form,id:uid(),_isNew:true,value:parseFloat(form.value)||0,spent:0,progress:0};
     setProjects([...projects,p]);
     setSelectedId(p.id);
     setActiveTab("overview");
@@ -2607,7 +2607,7 @@ const GlobalInvoices = ({invoices,setInvoices,projects}) => {
   const save = () => {
     if(!form.description||!form.amount||!form.projectId) return;
     const yr=new Date().getFullYear(); const maxSeq=invoices.filter(i=>i.number.startsWith(`INV-${yr}`)).reduce((m,i)=>{const n=parseInt(i.number.split("-")[2]||0);return Math.max(m,n);},0); const num=`INV-${yr}-${String(maxSeq+1).padStart(3,"0")}`;
-    setInvoices([...invoices,{...form,id:uid(),number:num,status:"Pending",issued:today(),projectId:form.projectId,amount:parseFloat(form.amount)}]);
+    setInvoices([...invoices,{...form,id:uid(),_isNew:true,number:num,status:"Pending",issued:today(),projectId:form.projectId,amount:parseFloat(form.amount)}]);
     setForm(null);
     toast.success("Invoice created");
   };
@@ -2690,7 +2690,7 @@ const GlobalEstimates = ({estimates,setEstimates,projects,budgetItems,companySet
 
   const create = () => {
     if(!form.name||!form.projectId) return;
-    const e={id:uid(),projectId:form.projectId,name:form.name,notes:form.notes,status:"Draft",date:today(),lineItems:[]};
+    const e={id:uid(),_isNew:true,projectId:form.projectId,name:form.name,notes:form.notes,status:"Draft",date:today(),lineItems:[]};
     setEstimates([...estimates,e]);
     setNavTo(e.id);
     setShowForm(false);
@@ -2759,7 +2759,7 @@ const RFIs = ({projectId,rfis,setRfis,projects}) => {
     const maxNum = rfis.filter(r=>r.projectId===projId).reduce((m,r)=>{const n=parseInt(r.number?.split("-")[1]||0);return Math.max(m,n);},0);
     const number = form.id ? form.number : `RFI-${String(maxNum+1).padStart(3,"0")}`;
     if(form.id){setRfis(rfis.map(r=>r.id===form.id?{...form}:r));}
-    else{setRfis([...rfis,{...form,id:uid(),number,projectId:projId,dateSubmitted:today(),status:"Open"}]);}
+    else{setRfis([...rfis,{...form,id:uid(),_isNew:true,number,projectId:projId,status:"Open"}]);}
     setForm(null);
     toast.success(form.id?"RFI updated":"RFI submitted");
   };
@@ -2820,7 +2820,7 @@ const RFIs = ({projectId,rfis,setRfis,projects}) => {
                   </div>
                   <div style={{fontSize:12,color:C.textSub}}>
                     {!projectId&&<span style={{fontWeight:600,color:C.textMid}}>{p?.name} · </span>}
-                    To: <strong>{rfi.toParty}</strong> · From: {rfi.fromParty} · Submitted: {fmtDate(rfi.dateSubmitted)}
+                    To: <strong>{rfi.toParty}</strong> · From: {rfi.fromParty}
                     {rfi.dateNeeded&&<span> · Needed by: <span style={{color:isOverdue?C.red:C.textMid,fontWeight:600}}>{fmtDate(rfi.dateNeeded)}</span></span>}
                   </div>
                 </div>
@@ -2867,7 +2867,7 @@ const PunchList = ({projectId,punchList,setPunchList,projects}) => {
     const maxNum = punchList.filter(p=>p.projectId===projId).reduce((m,p)=>{const n=parseInt(p.number?.split("-")[1]||0);return Math.max(m,n);},0);
     const number = form.id ? form.number : `PL-${String(maxNum+1).padStart(3,"0")}`;
     if(form.id){setPunchList(punchList.map(p=>p.id===form.id?{...form}:p));}
-    else{setPunchList([...punchList,{...form,id:uid(),number,projectId:projId,status:"Open"}]);}
+    else{setPunchList([...punchList,{...form,id:uid(),_isNew:true,number,projectId:projId,status:"Open"}]);}
     setForm(null);
     toast.success(form.id?"Item updated":"Punch item added");
   };
@@ -2974,7 +2974,7 @@ const PurchaseOrders = ({projectId,pos,setPOs,projects}) => {
     const maxNum = pos.filter(p=>p.projectId===projId).reduce((m,p)=>{const n=parseInt(p.number?.split("-")[1]||0);return Math.max(m,n);},0);
     const number = form.id ? form.number : `PO-${String(maxNum+1).padStart(3,"0")}`;
     if(form.id){setPOs(pos.map(p=>p.id===form.id?{...form,amount:parseFloat(form.amount)||0}:p));}
-    else{setPOs([...pos,{...form,id:uid(),number,projectId:projId,status:"Draft",date:today(),amount:parseFloat(form.amount)||0}]);}
+    else{setPOs([...pos,{...form,id:uid(),_isNew:true,number,projectId:projId,status:"Draft",date:today(),amount:parseFloat(form.amount)||0}]);}
     setForm(null);
     toast.success(form.id?"PO updated":"Purchase order created");
   };
@@ -3056,7 +3056,7 @@ const MeetingMinutes = ({projectId,meetings,setMeetings,projects}) => {
   const save = () => {
     if(!form.title) return;
     if(form.id){setMeetings(meetings.map(m=>m.id===form.id?{...form}:m));}
-    else{setMeetings([...meetings,{...form,id:uid(),projectId:form.projectId||projectId}]);}
+    else{setMeetings([...meetings,{...form,id:uid(),_isNew:true,projectId:form.projectId||projectId}]);}
     setForm(null);
     toast.success(form.id?"Meeting updated":"Meeting minutes saved");
   };
@@ -3233,7 +3233,7 @@ const Reports = ({projects,invoices,estimates,cos,budgetItems,pos}) => {
 
 // ─── DB HELPERS (via tenant-safe API) ────────────────────────────────────────
 const fromDb = {
-  project: r => ({ id:r.id, name:r.name, client:r.client||"", status:r.status||"Lead", phase:r.phase||"Pre-Construction", type:r.type||"Residential", value:parseFloat(r.value)||0, spent:parseFloat(r.spent)||0, progress:parseInt(r.progress)||0, address:r.address||"", start:r.start_date||"", end:r.end_date||"", notes:r.notes||"" }),
+  project: r => ({ id:r.id, name:r.name, client:r.client||"", status:r.status||"Lead", phase:"Pre-Construction", type:r.type||"Residential", value:parseFloat(r.value)||0, spent:parseFloat(r.spent)||0, progress:parseInt(r.progress)||0, address:r.address||"", start:r.start||"", end:r.end||"", notes:r.notes||"" }),
   contact: r => ({ id:r.id, name:r.name, company:r.company||"", type:r.type||"Client", email:r.email||"", phone:r.phone||"", city:r.city||"" }),
   budget: r => ({ id:r.id, projectId:r.project_id, category:r.category||"", division:r.division||"", code:r.code||"", budgeted:parseFloat(r.budgeted)||0, actual:parseFloat(r.actual)||0, committed:parseFloat(r.committed)||0, notes:r.notes||"" }),
   estimate: (r) => ({ id:r.id, projectId:r.project_id, name:r.name||"", status:r.status||"Draft", date:r.date||"", notes:r.notes||"", lineItems:(r.estimate_line_items||[]).map(l=>({ id:l.id, category:l.category||"", description:l.description||"", qty:parseFloat(l.qty)||1, unit:l.unit||"LS", cost:parseFloat(l.cost)||0, markup:parseFloat(l.markup)||0 })) }),
@@ -3243,7 +3243,7 @@ const fromDb = {
   bidPkg: (r) => ({ id:r.id, projectId:r.project_id, trade:r.trade||"", scope:r.scope||"", dueDate:r.due_date||"", status:r.status||"Open", bids:(r.bids||[]).map(b=>({ subId:b.id, subName:b.sub_name||"", amount:parseFloat(b.amount)||0, notes:b.notes||"", submitted:b.submitted||"", awarded:b.awarded||false })) }),
   doc: r => ({ id:r.id, projectId:r.project_id, name:r.name||"", type:r.type||"Contract", date:r.date||"", notes:r.notes||"", uploader:r.uploader||"", fileUrl:r.file_url||"" }),
   photo: r => ({ id:r.id, projectId:r.project_id, caption:r.caption||"", tag:r.tag||"Progress", date:r.date||"", author:r.author||"", emoji:r.emoji||"photos", color:r.color||"#F4F5F7", fileUrl:r.file_url||"" }),
-  rfi: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", subject:r.subject||"", toParty:r.to_party||"Architect", fromParty:r.from_party||"GC", dateSubmitted:r.date_submitted||"", dateNeeded:r.date_needed||"", priority:r.priority||"Normal", status:r.status||"Open", description:r.description||"", response:r.response||"" }),
+  rfi: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", subject:r.subject||"", toParty:r.to_party||"Architect", fromParty:r.from_party||"GC", dateNeeded:r.date_needed||"", priority:r.priority||"Normal", status:r.status||"Open", description:r.description||"", response:r.response||"" }),
   punchItem: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", location:r.location||"", description:r.description||"", assignedTo:r.assigned_to||"", priority:r.priority||"Normal", status:r.status||"Open", dueDate:r.due_date||"", notes:r.notes||"" }),
   po: r => ({ id:r.id, projectId:r.project_id, number:r.number||"", vendor:r.vendor||"", description:r.description||"", amount:parseFloat(r.amount)||0, status:r.status||"Draft", date:r.date||"", budgetCategory:r.budget_category||"", deliveryDate:r.delivery_date||"", notes:r.notes||"" }),
   meeting: r => ({ id:r.id, projectId:r.project_id, date:r.date||"", title:r.title||"", location:r.location||"", attendees:r.attendees||"", agenda:r.agenda||"", notes:r.notes||"", actionItems:r.action_items||"" }),
@@ -3252,7 +3252,7 @@ const fromDb = {
 // DB operations via tenant-safe API — org_id is injected server-side from JWT
 const db = {
   // Projects
-  async saveProject(p) { try { if(p._isNew) { await api.projects.create({name:p.name,client:p.client,status:p.status,phase:p.phase,type:p.type,value:p.value||0,spent:p.spent||0,progress:p.progress||0,address:p.address,start_date:p.start||null,end_date:p.end||null,notes:p.notes}); } else { await api.projects.update(p.id,{name:p.name,client:p.client,status:p.status,phase:p.phase,type:p.type,value:p.value||0,spent:p.spent||0,progress:p.progress||0,address:p.address,start_date:p.start||null,end_date:p.end||null,notes:p.notes}); } return true; } catch(e) { console.error("saveProject",e); return false; } },
+  async saveProject(p) { try { if(p._isNew) { await api.projects.create({name:p.name,client:p.client,status:p.status,type:p.type,value:p.value||0,spent:p.spent||0,progress:p.progress||0,address:p.address,start:p.start||null,end:p.end||null,notes:p.notes}); } else { await api.projects.update(p.id,{name:p.name,client:p.client,status:p.status,type:p.type,value:p.value||0,spent:p.spent||0,progress:p.progress||0,address:p.address,start:p.start||null,end:p.end||null,notes:p.notes}); } return true; } catch(e) { console.error("saveProject",e); return false; } },
   async deleteProject(id) { try { await api.projects.delete(id); } catch(e) { console.error("deleteProject",e); } },
   // Contacts
   async saveContact(c) { try { if(c._isNew) { await api.contacts.create({name:c.name,company:c.company,type:c.type,email:c.email,phone:c.phone,city:c.city}); } else { await api.contacts.update(c.id,{name:c.name,company:c.company,type:c.type,email:c.email,phone:c.phone,city:c.city}); } return true; } catch(e) { console.error("saveContact",e); return false; } },
@@ -3286,7 +3286,7 @@ const db = {
   async savePhoto(p) { try { if(p._isNew) { await api.photos.create({project_id:p.projectId,caption:p.caption,tag:p.tag,date:p.date||null,author:p.author,emoji:p.emoji,color:p.color,file_url:p.fileUrl||null}); } else { await api.photos.update(p.id,{project_id:p.projectId,caption:p.caption,tag:p.tag,date:p.date||null,author:p.author,emoji:p.emoji,color:p.color,file_url:p.fileUrl||null}); } return true; } catch(e) { console.error("savePhoto",e); return false; } },
   async deletePhoto(id) { try { await api.photos.delete(id); } catch(e) { console.error("deletePhoto",e); } },
   // RFIs
-  async saveRFI(r) { try { if(r._isNew) { await api.rfis.create({project_id:r.projectId,number:r.number,subject:r.subject,to_party:r.toParty,from_party:r.fromParty,date_submitted:r.dateSubmitted||null,date_needed:r.dateNeeded||null,priority:r.priority,status:r.status,description:r.description,response:r.response}); } else { await api.rfis.update(r.id,{project_id:r.projectId,number:r.number,subject:r.subject,to_party:r.toParty,from_party:r.fromParty,date_submitted:r.dateSubmitted||null,date_needed:r.dateNeeded||null,priority:r.priority,status:r.status,description:r.description,response:r.response}); } return true; } catch(e) { console.error("saveRFI",e); return false; } },
+  async saveRFI(r) { try { if(r._isNew) { await api.rfis.create({project_id:r.projectId,number:r.number,subject:r.subject,to_party:r.toParty,from_party:r.fromParty,date_needed:r.dateNeeded||null,priority:r.priority,status:r.status,description:r.description,response:r.response}); } else { await api.rfis.update(r.id,{project_id:r.projectId,number:r.number,subject:r.subject,to_party:r.toParty,from_party:r.fromParty,date_needed:r.dateNeeded||null,priority:r.priority,status:r.status,description:r.description,response:r.response}); } return true; } catch(e) { console.error("saveRFI",e); return false; } },
   async deleteRFI(id) { try { await api.rfis.delete(id); } catch(e) { console.error("deleteRFI",e); } },
   // Punch List
   async savePunchItem(p) { try { if(p._isNew) { await api.punchList.create({project_id:p.projectId,number:p.number,location:p.location,description:p.description,assigned_to:p.assignedTo,priority:p.priority,status:p.status,due_date:p.dueDate||null,notes:p.notes}); } else { await api.punchList.update(p.id,{project_id:p.projectId,number:p.number,location:p.location,description:p.description,assigned_to:p.assignedTo,priority:p.priority,status:p.status,due_date:p.dueDate||null,notes:p.notes}); } return true; } catch(e) { console.error("savePunchItem",e); return false; } },
