@@ -147,11 +147,12 @@ router.post('/login', async (req, res, next) => {
       return res.status(403).json({ error: 'Organization is deactivated' });
     }
 
-    // Update last_login
-    await supabase
+    // Update last_login (non-blocking, but log errors)
+    supabase
       .from('users')
       .update({ last_login: new Date().toISOString() })
-      .eq('id', user.id);
+      .eq('id', user.id)
+      .then(({ error }) => { if (error) console.error('last_login update failed:', error.message); });
 
     // Sign JWT
     const token = signToken({
