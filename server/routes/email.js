@@ -86,7 +86,7 @@ router.post('/send', async (req, res, next) => {
         status: 'failed',
       });
     } catch (_logErr) {
-      // Swallow logging errors so the real error surfaces
+      console.warn('Failed to log email error to database:', _logErr.message);
     }
     next(err);
   }

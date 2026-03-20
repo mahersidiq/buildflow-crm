@@ -70,6 +70,16 @@ const BUDGET_CODES = [
 ];
 const BUDGET_CAT_FLAT = BUDGET_CODES.flatMap(d=>d.items.map(i=>({div:d.div,label:d.label,item:i,full:`${d.div} · ${i}`})));
 
+// ─── UNSAVED CHANGES WARNING ─────────────────────────────────────────────────
+const useUnsavedWarning = (isDirty) => {
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
+};
+
 // ─── MOBILE HOOK ──────────────────────────────────────────────────────────────
 const useMobile = () => {
   const [mobile, setMobile] = useState(window.innerWidth <= 768);
@@ -373,7 +383,7 @@ const GlobalSearch = ({projects,contacts,invoices,cos,estimates,rfis,onNav}) => 
         <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:C.surface,border:`1px solid ${C.border}`,borderRadius:4,boxShadow:"0 8px 28px rgba(0,0,0,0.14)",zIndex:9999,overflow:"hidden"}}>
           {results.length===0&&<div style={{padding:"14px 12px",fontSize:12,color:C.textMuted,textAlign:"center"}}>No results for "{q}"</div>}
           {results.map((r,i)=>(
-            <div key={i} onMouseDown={()=>go(r.nav)}
+            <div key={`${r.type}-${r.label}-${i}`} onMouseDown={()=>go(r.nav)}
               style={{padding:"9px 12px",cursor:"pointer",borderBottom:i<results.length-1?`1px solid ${C.border}`:"none",display:"flex",alignItems:"center",gap:10}}
               onMouseEnter={e=>e.currentTarget.style.background=C.bg}
               onMouseLeave={e=>e.currentTarget.style.background=""}>
@@ -578,6 +588,7 @@ const Budget = ({projectId,budgetItems,setBudgetItems,projects,setProjects}) => 
   const [delId,setDelId] = useState(null);
   const [codeSearch,setCodeSearch] = useState("");
   const [showCodePicker,setShowCodePicker] = useState(false);
+  useUnsavedWarning(form !== null);
   const items = budgetItems.filter(b=>b.projectId===projectId);
   const tot = (k) => items.reduce((s,b)=>s+(parseFloat(b[k])||0),0);
   const totalB=tot("budgeted"), totalA=tot("actual"), totalC=tot("committed");
@@ -592,7 +603,7 @@ const Budget = ({projectId,budgetItems,setBudgetItems,projects,setProjects}) => 
     const item = {...form,projectId,budgeted:parseFloat(form.budgeted)||0,actual:parseFloat(form.actual)||0,committed:parseFloat(form.committed)||0};
     let next;
     if(form.id) { next = budgetItems.map(b=>b.id===form.id?item:b); }
-    else { next = [...budgetItems,{...item,id:uid()}]; }
+    else { next = [...budgetItems,{...item,id:uid(),_isNew:true}]; }
     setBudgetItems(next); syncSpent(next); setForm(null);
     toast.success(form.id?"Budget line updated":"Budget line added");
   };
@@ -834,12 +845,12 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
     if(!estName||sqftN<=0||cpsfN<=0){toast.error("Please fill in name, square footage, and $/sqft");return;}
     if(Math.abs(pctSum-100)>0.01){toast.error(`Percentages must sum to 100% (currently ${pctSum.toFixed(1)}%)`);return;}
     const lineItems = phases.map(p=>({
-      id:uid(), category:p.category, description:p.description,
+      id:uid(), _isNew:true, category:p.category, description:p.description,
       qty:sqftN, unit:"SF",
       cost:Math.round((p.pct/100)*hardCpsfN*100)/100,
       markup:profit
     }));
-    const est = {id:uid(),projectId,name:estName,
+    const est = {id:uid(),_isNew:true,projectId,name:estName,
       notes:`${tKey} · ${sqftN.toLocaleString()} SF · $${cpsfN}/sqft · ${profit}% profit`,
       status:"Draft",date:today(),lineItems};
     setEstimates(prev=>[...prev,est]);
@@ -977,7 +988,7 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
                       const dpcsf = (p.pct/100)*hardCpsfN;
                       const lineT = dpcsf*sqftN;
                       return (
-                        <div key={i} style={{display:"grid",gridTemplateColumns:"140px 1fr 90px 90px 100px",padding:"8px 14px",borderBottom:i<phases.length-1?`1px solid ${C.border}`:"none",alignItems:"center",background:i%2===0?"transparent":C.bg+"66"}}>
+                        <div key={p.category} style={{display:"grid",gridTemplateColumns:"140px 1fr 90px 90px 100px",padding:"8px 14px",borderBottom:i<phases.length-1?`1px solid ${C.border}`:"none",alignItems:"center",background:i%2===0?"transparent":C.bg+"66"}}>
                           <span style={{fontSize:11,color:C.accent,background:C.accentL,padding:"2px 7px",borderRadius:4,fontWeight:600,display:"inline-block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:130}}>{p.category}</span>
                           <div style={{fontSize:11,color:C.textSub,paddingRight:8,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.description}</div>
                           <div style={{textAlign:"right",display:"flex",alignItems:"center",justifyContent:"flex-end",gap:3}}>
@@ -1132,6 +1143,7 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
   const [form,setForm] = useState(null);
   const [delItemId,setDelItemId] = useState(null);
   const [showBudgetImport,setShowBudgetImport] = useState(false);
+  useUnsavedWarning(form !== null);
   const [budgetSel,setBudgetSel] = useState({});
   // Column visibility: qty, unit, cost, markup are toggleable; category, description, total always shown
   const [colVis,setColVis] = useState({qty:true,unit:true,cost:true,markup:true});
@@ -1174,7 +1186,7 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
     const {_margin,...rest} = form;
     const item = {...rest, qty:parseFloat(form.qty)||1, cost:parseFloat(form.cost)||0, markup:parseFloat(form.markup)||0};
     if(form.id) { update(e=>({...e,lineItems:e.lineItems.map(i=>i.id===form.id?{...item,id:form.id}:i)})); }
-    else { update(e=>({...e,lineItems:[...e.lineItems,{...item,id:uid()}]})); }
+    else { update(e=>({...e,lineItems:[...e.lineItems,{...item,id:uid(),_isNew:true}]})); }
     setForm(null);
   };
 
@@ -1188,7 +1200,7 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
   const importFromBudget = () => {
     const toImport = projBudget.filter(b=>budgetSel[b.id]);
     if(toImport.length===0){toast.error("Select at least one budget line to import");return;}
-    const newLines = toImport.map(b=>({id:uid(),category:b.category,description:b.category+(b.notes?` — ${b.notes}`:""),qty:1,unit:"LS",cost:b.budgeted||0,markup:co.defaultMarkup||20}));
+    const newLines = toImport.map(b=>({id:uid(),_isNew:true,category:b.category,description:b.category+(b.notes?` — ${b.notes}`:""),qty:1,unit:"LS",cost:b.budgeted||0,markup:co.defaultMarkup||20}));
     update(e=>({...e,lineItems:[...e.lineItems,...newLines]}));
     setShowBudgetImport(false); setBudgetSel({});
     toast.success(`${newLines.length} line${newLines.length!==1?"s":""} imported from budget`);
@@ -1443,7 +1455,7 @@ const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,company
 
   const create = () => {
     if(!form.name) return;
-    const e = {id:uid(),projectId,name:form.name,notes:form.notes,status:"Draft",date:today(),lineItems:[]};
+    const e = {id:uid(),_isNew:true,projectId,name:form.name,notes:form.notes,status:"Draft",date:today(),lineItems:[]};
     setEstimates([...estimates,e]);
     setSelectedId(e.id);
     setShowForm(false);
@@ -1512,6 +1524,7 @@ const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,company
 const ProjInvoices = ({projectId,invoices,setInvoices,project}) => {
   const [form,setForm] = useState(null);
   const [delId,setDelId] = useState(null);
+  useUnsavedWarning(form !== null);
   const items = invoices.filter(i=>i.projectId===projectId);
   const paid=items.filter(i=>i.status==="Paid").reduce((s,i)=>s+i.amount,0);
   const outstanding=items.filter(i=>i.status!=="Paid").reduce((s,i)=>s+i.amount,0);
@@ -1522,7 +1535,7 @@ const ProjInvoices = ({projectId,invoices,setInvoices,project}) => {
     if(form.id) {
       setInvoices(invoices.map(i=>i.id===form.id?{...form,amount:parseFloat(form.amount)}:i));
     } else {
-      setInvoices([...invoices,{...form,id:uid(),projectId,number:num,status:"Pending",issued:today(),amount:parseFloat(form.amount)}]);
+      setInvoices([...invoices,{...form,id:uid(),_isNew:true,projectId,number:num,status:"Pending",issued:today(),amount:parseFloat(form.amount)}]);
     }
     setForm(null);
   };
@@ -1586,6 +1599,7 @@ const ProjInvoices = ({projectId,invoices,setInvoices,project}) => {
 // ─── CHANGE ORDERS (used inside project + global) ─────────────────────────────
 const ChangeOrders = ({projectId,cos,setCos,projects}) => {
   const [form,setForm] = useState(null);
+  useUnsavedWarning(form !== null);
   const [delId,setDelId] = useState(null);
   const [filter,setFilter] = useState("All");
   const items = projectId ? cos.filter(c=>c.projectId===projectId) : cos;
@@ -1602,7 +1616,7 @@ const ChangeOrders = ({projectId,cos,setCos,projects}) => {
       const projId=form.projectId||projectId;
       const projCOs=cos.filter(c=>c.projectId===projId);
       const num=`CO-${String(projCOs.length+1).padStart(3,"0")}`;
-      setCos([...cos,{...form,id:uid(),number:num,status:"Pending",date:today(),projectId:projId,amount:parseFloat(form.amount)}]);
+      setCos([...cos,{...form,id:uid(),_isNew:true,number:num,status:"Pending",date:today(),projectId:projId,amount:parseFloat(form.amount)}]);
     }
     setForm(null);
   };
@@ -1689,6 +1703,7 @@ const DailyLogs = ({projectId,logs,setLogs,projects}) => {
   const [form,setForm] = useState(null);
   const [delId,setDelId] = useState(null);
   const [filterProj,setFilterProj] = useState(projectId||"All");
+  useUnsavedWarning(form !== null);
   const items = projectId ? logs.filter(l=>l.projectId===projectId) : (filterProj==="All"?logs:logs.filter(l=>l.projectId===filterProj));
 
   const save = () => {
@@ -1696,7 +1711,7 @@ const DailyLogs = ({projectId,logs,setLogs,projects}) => {
     if(form.id) {
       setLogs(logs.map(l=>l.id===form.id?{...form,crew:parseInt(form.crew)||0}:l));
     } else {
-      setLogs([{...form,id:uid(),projectId:form.projectId,crew:parseInt(form.crew)||0,photos:0},...logs]);
+      setLogs([{...form,id:uid(),_isNew:true,projectId:form.projectId,crew:parseInt(form.crew)||0,photos:0},...logs]);
     }
     setForm(null);
     toast.success(form.id?"Log updated":"Field log saved");
@@ -1775,6 +1790,7 @@ const SubBids = ({projectId,bids,setBids,projects}) => {
   const [bidForm,setBidForm] = useState(null);
   const [delPkgId,setDelPkgId] = useState(null);
   const [delBidId,setDelBidId] = useState(null);
+  useUnsavedWarning(pkgForm !== null || bidForm !== null);
   const items = projectId ? bids.filter(b=>b.projectId===projectId) : bids;
   const pkg = selectedId ? bids.find(b=>b.id===selectedId) : null;
 
@@ -1782,14 +1798,14 @@ const SubBids = ({projectId,bids,setBids,projects}) => {
     if(!pkgForm.trade) return;
     const projId=pkgForm.projectId||projectId;
     if(pkgForm.id){setBids(bids.map(b=>b.id===pkgForm.id?{...pkgForm,projectId:projId||pkgForm.projectId}:b));}
-    else{setBids([...bids,{...pkgForm,id:uid(),projectId:projId,status:"Open",bids:[]}]);}
+    else{setBids([...bids,{...pkgForm,id:uid(),_isNew:true,projectId:projId,status:"Open",bids:[]}]);}
     setPkgForm(null);
   };
 
   const saveBid = () => {
     if(!bidForm.subName||!bidForm.amount) return;
     if(bidForm.id){setBids(bids.map(b=>b.id===selectedId?{...b,bids:b.bids.map(x=>x.subId===bidForm.id?{...bidForm,amount:parseFloat(bidForm.amount)}:x)}:b));}
-    else{setBids(bids.map(b=>b.id===selectedId?{...b,bids:[...b.bids,{...bidForm,subId:uid(),amount:parseFloat(bidForm.amount),submitted:today(),awarded:false}]}:b));}
+    else{setBids(bids.map(b=>b.id===selectedId?{...b,bids:[...b.bids,{...bidForm,subId:uid(),_isNew:true,amount:parseFloat(bidForm.amount),submitted:today(),awarded:false}]}:b));}
     setBidForm(null);
   };
 
@@ -1896,6 +1912,7 @@ const SubBids = ({projectId,bids,setBids,projects}) => {
 // ─── DOCUMENTS ────────────────────────────────────────────────────────────────
 const Documents = ({projectId,docs,setDocs,projects}) => {
   const [form,setForm] = useState(null);
+  useUnsavedWarning(form !== null);
   const [delId,setDelId] = useState(null);
   const [filterType,setFilterType] = useState("All");
   const [uploading,setUploading] = useState(false);
@@ -2005,6 +2022,7 @@ const Documents = ({projectId,docs,setDocs,projects}) => {
 // ─── PHOTOS ───────────────────────────────────────────────────────────────────
 const Photos = ({projectId,photos,setPhotos,projects}) => {
   const [form,setForm] = useState(null);
+  useUnsavedWarning(form !== null);
   const [lightbox,setLightbox] = useState(null);
   const [delId,setDelId] = useState(null);
   const [filterTag,setFilterTag] = useState("All");
@@ -2134,6 +2152,7 @@ const CompanySettings = ({settings,onSave}) => {
   const [form,setForm] = useState({...settings});
   const [logoUploading,setLogoUploading] = useState(false);
   const logoRef = useRef(null);
+  useUnsavedWarning(JSON.stringify(form) !== JSON.stringify(settings));
 
   const onLogoSelect = (e) => {
     const file = e.target.files?.[0];
@@ -2212,6 +2231,7 @@ const CompanySettings = ({settings,onSave}) => {
 // ─── CONTACTS ────────────────────────────────────────────────────────────────
 const Contacts = ({contacts,setContacts}) => {
   const [form,setForm] = useState(null);
+  useUnsavedWarning(form !== null);
   const [delId,setDelId] = useState(null);
   const [search,setSearch] = useState("");
   const [filter,setFilter] = useState("All");
@@ -2227,7 +2247,7 @@ const Contacts = ({contacts,setContacts}) => {
   const save = () => {
     if(!form.name) return;
     if(form.id){setContacts(contacts.map(c=>c.id===form.id?form:c));}
-    else{setContacts([...contacts,{...form,id:uid(),projects:[]}]);}
+    else{setContacts([...contacts,{...form,id:uid(),_isNew:true,projects:[]}]);}
     setForm(null);
     toast.success(form.id?"Contact updated":"Contact added");
   };
@@ -2308,7 +2328,7 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
 
   const createProject = () => {
     if(!form.name||!form.client) return;
-    const p={...form,id:uid(),value:parseFloat(form.value)||0,spent:0,progress:0};
+    const p={...form,id:uid(),_isNew:true,value:parseFloat(form.value)||0,spent:0,progress:0};
     setProjects([...projects,p]);
     setSelectedId(p.id);
     setActiveTab("overview");
@@ -2603,11 +2623,12 @@ const GlobalInvoices = ({invoices,setInvoices,projects}) => {
   const [form,setForm] = useState(null);
   const [delId,setDelId] = useState(null);
   const [filterStatus,setFilterStatus] = useState("All");
+  useUnsavedWarning(form !== null);
 
   const save = () => {
     if(!form.description||!form.amount||!form.projectId) return;
     const yr=new Date().getFullYear(); const maxSeq=invoices.filter(i=>i.number.startsWith(`INV-${yr}`)).reduce((m,i)=>{const n=parseInt(i.number.split("-")[2]||0);return Math.max(m,n);},0); const num=`INV-${yr}-${String(maxSeq+1).padStart(3,"0")}`;
-    setInvoices([...invoices,{...form,id:uid(),number:num,status:"Pending",issued:today(),projectId:form.projectId,amount:parseFloat(form.amount)}]);
+    setInvoices([...invoices,{...form,id:uid(),_isNew:true,number:num,status:"Pending",issued:today(),projectId:form.projectId,amount:parseFloat(form.amount)}]);
     setForm(null);
     toast.success("Invoice created");
   };
@@ -2674,6 +2695,7 @@ const GlobalEstimates = ({estimates,setEstimates,projects,budgetItems,companySet
   const [wizardProjectId,setWizardProjectId] = useState(null);
   const [form,setForm] = useState({projectId:projects[0]?.id||"",name:"",notes:""});
   const [navTo,setNavTo] = useState(null);
+  useUnsavedWarning(showForm || showWizard);
   const calcTotal=items=>items.reduce((s,i)=>s+i.qty*i.cost*(1+i.markup/100),0);
   // Clear navTo if referenced estimate no longer exists (safe: runs after render)
   React.useEffect(()=>{ if(navTo&&!estimates.find(e=>e.id===navTo)) setNavTo(null); },[navTo,estimates]);
@@ -2690,7 +2712,7 @@ const GlobalEstimates = ({estimates,setEstimates,projects,budgetItems,companySet
 
   const create = () => {
     if(!form.name||!form.projectId) return;
-    const e={id:uid(),projectId:form.projectId,name:form.name,notes:form.notes,status:"Draft",date:today(),lineItems:[]};
+    const e={id:uid(),_isNew:true,projectId:form.projectId,name:form.name,notes:form.notes,status:"Draft",date:today(),lineItems:[]};
     setEstimates([...estimates,e]);
     setNavTo(e.id);
     setShowForm(false);
@@ -2746,6 +2768,7 @@ const RFIs = ({projectId,rfis,setRfis,projects}) => {
   const [form,setForm] = useState(null);
   const [delId,setDelId] = useState(null);
   const [filter,setFilter] = useState("All");
+  useUnsavedWarning(form !== null);
   const items = projectId ? rfis.filter(r=>r.projectId===projectId) : rfis;
   const filtered = filter==="All" ? items : items.filter(r=>r.status===filter);
   const PRIORITIES = ["Low","Normal","High","Critical"];
@@ -2759,7 +2782,7 @@ const RFIs = ({projectId,rfis,setRfis,projects}) => {
     const maxNum = rfis.filter(r=>r.projectId===projId).reduce((m,r)=>{const n=parseInt(r.number?.split("-")[1]||0);return Math.max(m,n);},0);
     const number = form.id ? form.number : `RFI-${String(maxNum+1).padStart(3,"0")}`;
     if(form.id){setRfis(rfis.map(r=>r.id===form.id?{...form}:r));}
-    else{setRfis([...rfis,{...form,id:uid(),number,projectId:projId,dateSubmitted:today(),status:"Open"}]);}
+    else{setRfis([...rfis,{...form,id:uid(),_isNew:true,number,projectId:projId,dateSubmitted:today(),status:"Open"}]);}
     setForm(null);
     toast.success(form.id?"RFI updated":"RFI submitted");
   };
@@ -2854,6 +2877,7 @@ const PunchList = ({projectId,punchList,setPunchList,projects}) => {
   const [form,setForm] = useState(null);
   const [delId,setDelId] = useState(null);
   const [filter,setFilter] = useState("All");
+  useUnsavedWarning(form !== null);
   const items = projectId ? punchList.filter(p=>p.projectId===projectId) : punchList;
   const filtered = filter==="All" ? items : items.filter(p=>p.status===filter);
   const PRIORITIES = ["Low","Normal","High","Critical"];
@@ -2867,7 +2891,7 @@ const PunchList = ({projectId,punchList,setPunchList,projects}) => {
     const maxNum = punchList.filter(p=>p.projectId===projId).reduce((m,p)=>{const n=parseInt(p.number?.split("-")[1]||0);return Math.max(m,n);},0);
     const number = form.id ? form.number : `PL-${String(maxNum+1).padStart(3,"0")}`;
     if(form.id){setPunchList(punchList.map(p=>p.id===form.id?{...form}:p));}
-    else{setPunchList([...punchList,{...form,id:uid(),number,projectId:projId,status:"Open"}]);}
+    else{setPunchList([...punchList,{...form,id:uid(),_isNew:true,number,projectId:projId,status:"Open"}]);}
     setForm(null);
     toast.success(form.id?"Item updated":"Punch item added");
   };
@@ -2962,6 +2986,7 @@ const PurchaseOrders = ({projectId,pos,setPOs,projects}) => {
   const [form,setForm] = useState(null);
   const [delId,setDelId] = useState(null);
   const [filter,setFilter] = useState("All");
+  useUnsavedWarning(form !== null);
   const CATS = ["Demo & Site Prep","Foundation","Concrete","Framing","Roofing","Windows & Doors","Electrical","Plumbing","HVAC","Insulation","Drywall","Flooring","Cabinets & Millwork","Countertops","Tile","Painting","Exterior & Landscaping","Permits & Fees","Equipment Rental","General Conditions","Contingency","Other"];
   const items = projectId ? pos.filter(p=>p.projectId===projectId) : pos;
   const filtered = filter==="All" ? items : items.filter(p=>p.status===filter);
@@ -2974,7 +2999,7 @@ const PurchaseOrders = ({projectId,pos,setPOs,projects}) => {
     const maxNum = pos.filter(p=>p.projectId===projId).reduce((m,p)=>{const n=parseInt(p.number?.split("-")[1]||0);return Math.max(m,n);},0);
     const number = form.id ? form.number : `PO-${String(maxNum+1).padStart(3,"0")}`;
     if(form.id){setPOs(pos.map(p=>p.id===form.id?{...form,amount:parseFloat(form.amount)||0}:p));}
-    else{setPOs([...pos,{...form,id:uid(),number,projectId:projId,status:"Draft",date:today(),amount:parseFloat(form.amount)||0}]);}
+    else{setPOs([...pos,{...form,id:uid(),_isNew:true,number,projectId:projId,status:"Draft",date:today(),amount:parseFloat(form.amount)||0}]);}
     setForm(null);
     toast.success(form.id?"PO updated":"Purchase order created");
   };
@@ -3051,12 +3076,13 @@ const PurchaseOrders = ({projectId,pos,setPOs,projects}) => {
 const MeetingMinutes = ({projectId,meetings,setMeetings,projects}) => {
   const [form,setForm] = useState(null);
   const [delId,setDelId] = useState(null);
+  useUnsavedWarning(form !== null);
   const items = projectId ? meetings.filter(m=>m.projectId===projectId) : meetings;
 
   const save = () => {
     if(!form.title) return;
     if(form.id){setMeetings(meetings.map(m=>m.id===form.id?{...form}:m));}
-    else{setMeetings([...meetings,{...form,id:uid(),projectId:form.projectId||projectId}]);}
+    else{setMeetings([...meetings,{...form,id:uid(),_isNew:true,projectId:form.projectId||projectId}]);}
     setForm(null);
     toast.success(form.id?"Meeting updated":"Meeting minutes saved");
   };
@@ -3252,51 +3278,51 @@ const fromDb = {
 // DB operations via tenant-safe API — org_id is injected server-side from JWT
 const db = {
   // Projects
-  async saveProject(p) { try { if(p._isNew) { await api.projects.create({name:p.name,client:p.client,status:p.status,phase:p.phase,type:p.type,value:p.value||0,spent:p.spent||0,progress:p.progress||0,address:p.address,start_date:p.start||null,end_date:p.end||null,notes:p.notes}); } else { await api.projects.update(p.id,{name:p.name,client:p.client,status:p.status,phase:p.phase,type:p.type,value:p.value||0,spent:p.spent||0,progress:p.progress||0,address:p.address,start_date:p.start||null,end_date:p.end||null,notes:p.notes}); } return true; } catch(e) { console.error("saveProject",e); return false; } },
-  async deleteProject(id) { try { await api.projects.delete(id); } catch(e) { console.error("deleteProject",e); } },
+  async saveProject(p) { try { if(p._isNew) { const r = await api.projects.create({name:p.name,client:p.client,status:p.status,phase:p.phase,type:p.type,value:p.value||0,spent:p.spent||0,progress:p.progress||0,address:p.address,start_date:p.start||null,end_date:p.end||null,notes:p.notes}); return r ? { id: r.id } : true; } else { await api.projects.update(p.id,{name:p.name,client:p.client,status:p.status,phase:p.phase,type:p.type,value:p.value||0,spent:p.spent||0,progress:p.progress||0,address:p.address,start_date:p.start||null,end_date:p.end||null,notes:p.notes}); } return true; } catch(e) { console.error("saveProject",e); return false; } },
+  async deleteProject(id) { try { await api.projects.delete(id); return true; } catch(e) { console.error("deleteProject",e); return false; } },
   // Contacts
-  async saveContact(c) { try { if(c._isNew) { await api.contacts.create({name:c.name,company:c.company,type:c.type,email:c.email,phone:c.phone,city:c.city}); } else { await api.contacts.update(c.id,{name:c.name,company:c.company,type:c.type,email:c.email,phone:c.phone,city:c.city}); } return true; } catch(e) { console.error("saveContact",e); return false; } },
-  async deleteContact(id) { try { await api.contacts.delete(id); } catch(e) { console.error("deleteContact",e); } },
+  async saveContact(c) { try { if(c._isNew) { const r = await api.contacts.create({name:c.name,company:c.company,type:c.type,email:c.email,phone:c.phone,city:c.city}); return r ? { id: r.id } : true; } else { await api.contacts.update(c.id,{name:c.name,company:c.company,type:c.type,email:c.email,phone:c.phone,city:c.city}); } return true; } catch(e) { console.error("saveContact",e); return false; } },
+  async deleteContact(id) { try { await api.contacts.delete(id); return true; } catch(e) { console.error("deleteContact",e); return false; } },
   // Budget
-  async saveBudget(b) { try { if(b._isNew) { await api.budgetItems.create({project_id:b.projectId,category:b.category,division:b.division||null,code:b.code||null,budgeted:b.budgeted||0,actual:b.actual||0,committed:b.committed||0,notes:b.notes}); } else { await api.budgetItems.update(b.id,{project_id:b.projectId,category:b.category,division:b.division||null,code:b.code||null,budgeted:b.budgeted||0,actual:b.actual||0,committed:b.committed||0,notes:b.notes}); } return true; } catch(e) { console.error("saveBudget",e); return false; } },
-  async deleteBudget(id) { try { await api.budgetItems.delete(id); } catch(e) { console.error("deleteBudget",e); } },
+  async saveBudget(b) { try { if(b._isNew) { const r = await api.budgetItems.create({project_id:b.projectId,category:b.category,division:b.division||null,code:b.code||null,budgeted:b.budgeted||0,actual:b.actual||0,committed:b.committed||0,notes:b.notes}); return r ? { id: r.id } : true; } else { await api.budgetItems.update(b.id,{project_id:b.projectId,category:b.category,division:b.division||null,code:b.code||null,budgeted:b.budgeted||0,actual:b.actual||0,committed:b.committed||0,notes:b.notes}); } return true; } catch(e) { console.error("saveBudget",e); return false; } },
+  async deleteBudget(id) { try { await api.budgetItems.delete(id); return true; } catch(e) { console.error("deleteBudget",e); return false; } },
   // Estimates
-  async saveEstimate(e) { try { if(e._isNew) { await api.estimates.create({project_id:e.projectId,name:e.name,status:e.status,date:e.date||null,notes:e.notes}); } else { await api.estimates.update(e.id,{project_id:e.projectId,name:e.name,status:e.status,date:e.date||null,notes:e.notes}); } return true; } catch(err) { console.error("saveEstimate",err); return false; } },
-  async deleteEstimate(id) { try { await api.estimates.delete(id); } catch(e) { console.error("deleteEstimate",e); } },
-  async saveLineItem(l,estimateId) { try { if(l._isNew) { await api.estimates.createLineItem(estimateId,{category:l.category,description:l.description,qty:l.qty||1,unit:l.unit,cost:l.cost||0,markup:l.markup||0}); } else { await api.estimates.updateLineItem(l.id,{category:l.category,description:l.description,qty:l.qty||1,unit:l.unit,cost:l.cost||0,markup:l.markup||0}); } return true; } catch(e) { console.error("saveLineItem",e); return false; } },
-  async deleteLineItem(id) { try { await api.estimates.deleteLineItem(id); } catch(e) { console.error("deleteLineItem",e); } },
+  async saveEstimate(e) { try { if(e._isNew) { const r = await api.estimates.create({project_id:e.projectId,name:e.name,status:e.status,date:e.date||null,notes:e.notes}); return r ? { id: r.id } : true; } else { await api.estimates.update(e.id,{project_id:e.projectId,name:e.name,status:e.status,date:e.date||null,notes:e.notes}); } return true; } catch(err) { console.error("saveEstimate",err); return false; } },
+  async deleteEstimate(id) { try { await api.estimates.delete(id); return true; } catch(e) { console.error("deleteEstimate",e); return false; } },
+  async saveLineItem(l,estimateId) { try { if(l._isNew) { const r = await api.estimates.createLineItem(estimateId,{category:l.category,description:l.description,qty:l.qty||1,unit:l.unit,cost:l.cost||0,markup:l.markup||0}); return r ? { id: r.id } : true; } else { await api.estimates.updateLineItem(l.id,{category:l.category,description:l.description,qty:l.qty||1,unit:l.unit,cost:l.cost||0,markup:l.markup||0}); } return true; } catch(e) { console.error("saveLineItem",e); return false; } },
+  async deleteLineItem(id) { try { await api.estimates.deleteLineItem(id); return true; } catch(e) { console.error("deleteLineItem",e); return false; } },
   // Invoices
-  async saveInvoice(i) { try { if(i._isNew) { await api.invoices.create({project_id:i.projectId,number:i.number,description:i.description,amount:i.amount||0,issued:i.issued||null,due:i.due||null,status:i.status}); } else { await api.invoices.update(i.id,{project_id:i.projectId,number:i.number,description:i.description,amount:i.amount||0,issued:i.issued||null,due:i.due||null,status:i.status}); } return true; } catch(e) { console.error("saveInvoice",e); return false; } },
-  async deleteInvoice(id) { try { await api.invoices.delete(id); } catch(e) { console.error("deleteInvoice",e); } },
+  async saveInvoice(i) { try { if(i._isNew) { const r = await api.invoices.create({project_id:i.projectId,number:i.number,description:i.description,amount:i.amount||0,issued:i.issued||null,due:i.due||null,status:i.status}); return r ? { id: r.id } : true; } else { await api.invoices.update(i.id,{project_id:i.projectId,number:i.number,description:i.description,amount:i.amount||0,issued:i.issued||null,due:i.due||null,status:i.status}); } return true; } catch(e) { console.error("saveInvoice",e); return false; } },
+  async deleteInvoice(id) { try { await api.invoices.delete(id); return true; } catch(e) { console.error("deleteInvoice",e); return false; } },
   // Change Orders
-  async saveCO(c) { try { if(c._isNew) { await api.changeOrders.create({project_id:c.projectId,number:c.number,title:c.title,category:c.category,description:c.description,amount:c.amount||0,status:c.status,requested_by:c.requestedBy,date:c.date||null}); } else { await api.changeOrders.update(c.id,{project_id:c.projectId,number:c.number,title:c.title,category:c.category,description:c.description,amount:c.amount||0,status:c.status,requested_by:c.requestedBy,date:c.date||null}); } return true; } catch(e) { console.error("saveCO",e); return false; } },
-  async deleteCO(id) { try { await api.changeOrders.delete(id); } catch(e) { console.error("deleteCO",e); } },
+  async saveCO(c) { try { if(c._isNew) { const r = await api.changeOrders.create({project_id:c.projectId,number:c.number,title:c.title,category:c.category,description:c.description,amount:c.amount||0,status:c.status,requested_by:c.requestedBy,date:c.date||null}); return r ? { id: r.id } : true; } else { await api.changeOrders.update(c.id,{project_id:c.projectId,number:c.number,title:c.title,category:c.category,description:c.description,amount:c.amount||0,status:c.status,requested_by:c.requestedBy,date:c.date||null}); } return true; } catch(e) { console.error("saveCO",e); return false; } },
+  async deleteCO(id) { try { await api.changeOrders.delete(id); return true; } catch(e) { console.error("deleteCO",e); return false; } },
   // Daily Logs
-  async saveLog(l) { try { if(l._isNew) { await api.dailyLogs.create({project_id:l.projectId,date:l.date||null,author:l.author,weather:l.weather,crew:l.crew||0,notes:l.notes}); } else { await api.dailyLogs.update(l.id,{project_id:l.projectId,date:l.date||null,author:l.author,weather:l.weather,crew:l.crew||0,notes:l.notes}); } return true; } catch(e) { console.error("saveLog",e); return false; } },
-  async deleteLog(id) { try { await api.dailyLogs.delete(id); } catch(e) { console.error("deleteLog",e); } },
+  async saveLog(l) { try { if(l._isNew) { const r = await api.dailyLogs.create({project_id:l.projectId,date:l.date||null,author:l.author,weather:l.weather,crew:l.crew||0,notes:l.notes}); return r ? { id: r.id } : true; } else { await api.dailyLogs.update(l.id,{project_id:l.projectId,date:l.date||null,author:l.author,weather:l.weather,crew:l.crew||0,notes:l.notes}); } return true; } catch(e) { console.error("saveLog",e); return false; } },
+  async deleteLog(id) { try { await api.dailyLogs.delete(id); return true; } catch(e) { console.error("deleteLog",e); return false; } },
   // Bid Packages
-  async saveBidPkg(p) { try { if(p._isNew) { await api.bidPackages.create({project_id:p.projectId,trade:p.trade,scope:p.scope,due_date:p.dueDate||null,status:p.status}); } else { await api.bidPackages.update(p.id,{project_id:p.projectId,trade:p.trade,scope:p.scope,due_date:p.dueDate||null,status:p.status}); } return true; } catch(e) { console.error("saveBidPkg",e); return false; } },
-  async deleteBidPkg(id) { try { await api.bidPackages.delete(id); } catch(e) { console.error("deleteBidPkg",e); } },
-  async saveBid(b,pkgId) { try { if(b._isNew) { await api.bidPackages.createBid(pkgId,{sub_name:b.subName,amount:b.amount||0,notes:b.notes,submitted:b.submitted||null,awarded:b.awarded||false}); } else { await api.bidPackages.updateBid(b.subId,{sub_name:b.subName,amount:b.amount||0,notes:b.notes,submitted:b.submitted||null,awarded:b.awarded||false}); } return true; } catch(e) { console.error("saveBid",e); return false; } },
-  async deleteBid(id) { try { await api.bidPackages.deleteBid(id); } catch(e) { console.error("deleteBid",e); } },
+  async saveBidPkg(p) { try { if(p._isNew) { const r = await api.bidPackages.create({project_id:p.projectId,trade:p.trade,scope:p.scope,due_date:p.dueDate||null,status:p.status}); return r ? { id: r.id } : true; } else { await api.bidPackages.update(p.id,{project_id:p.projectId,trade:p.trade,scope:p.scope,due_date:p.dueDate||null,status:p.status}); } return true; } catch(e) { console.error("saveBidPkg",e); return false; } },
+  async deleteBidPkg(id) { try { await api.bidPackages.delete(id); return true; } catch(e) { console.error("deleteBidPkg",e); return false; } },
+  async saveBid(b,pkgId) { try { if(b._isNew) { const r = await api.bidPackages.createBid(pkgId,{sub_name:b.subName,amount:b.amount||0,notes:b.notes,submitted:b.submitted||null,awarded:b.awarded||false}); return r ? { subId: r.id } : true; } else { await api.bidPackages.updateBid(b.subId,{sub_name:b.subName,amount:b.amount||0,notes:b.notes,submitted:b.submitted||null,awarded:b.awarded||false}); } return true; } catch(e) { console.error("saveBid",e); return false; } },
+  async deleteBid(id) { try { await api.bidPackages.deleteBid(id); return true; } catch(e) { console.error("deleteBid",e); return false; } },
   // Documents
-  async saveDoc(d) { try { if(d._isNew) { await api.documents.create({project_id:d.projectId,name:d.name,type:d.type,date:d.date||null,notes:d.notes,uploader:d.uploader,file_url:d.fileUrl||null}); } else { await api.documents.update(d.id,{project_id:d.projectId,name:d.name,type:d.type,date:d.date||null,notes:d.notes,uploader:d.uploader,file_url:d.fileUrl||null}); } return true; } catch(e) { console.error("saveDoc",e); return false; } },
-  async deleteDoc(id) { try { await api.documents.delete(id); } catch(e) { console.error("deleteDoc",e); } },
+  async saveDoc(d) { try { if(d._isNew) { const r = await api.documents.create({project_id:d.projectId,name:d.name,type:d.type,date:d.date||null,notes:d.notes,uploader:d.uploader,file_url:d.fileUrl||null}); return r ? { id: r.id } : true; } else { await api.documents.update(d.id,{project_id:d.projectId,name:d.name,type:d.type,date:d.date||null,notes:d.notes,uploader:d.uploader,file_url:d.fileUrl||null}); } return true; } catch(e) { console.error("saveDoc",e); return false; } },
+  async deleteDoc(id) { try { await api.documents.delete(id); return true; } catch(e) { console.error("deleteDoc",e); return false; } },
   // Photos
-  async savePhoto(p) { try { if(p._isNew) { await api.photos.create({project_id:p.projectId,caption:p.caption,tag:p.tag,date:p.date||null,author:p.author,emoji:p.emoji,color:p.color,file_url:p.fileUrl||null}); } else { await api.photos.update(p.id,{project_id:p.projectId,caption:p.caption,tag:p.tag,date:p.date||null,author:p.author,emoji:p.emoji,color:p.color,file_url:p.fileUrl||null}); } return true; } catch(e) { console.error("savePhoto",e); return false; } },
-  async deletePhoto(id) { try { await api.photos.delete(id); } catch(e) { console.error("deletePhoto",e); } },
+  async savePhoto(p) { try { if(p._isNew) { const r = await api.photos.create({project_id:p.projectId,caption:p.caption,tag:p.tag,date:p.date||null,author:p.author,emoji:p.emoji,color:p.color,file_url:p.fileUrl||null}); return r ? { id: r.id } : true; } else { await api.photos.update(p.id,{project_id:p.projectId,caption:p.caption,tag:p.tag,date:p.date||null,author:p.author,emoji:p.emoji,color:p.color,file_url:p.fileUrl||null}); } return true; } catch(e) { console.error("savePhoto",e); return false; } },
+  async deletePhoto(id) { try { await api.photos.delete(id); return true; } catch(e) { console.error("deletePhoto",e); return false; } },
   // RFIs
-  async saveRFI(r) { try { if(r._isNew) { await api.rfis.create({project_id:r.projectId,number:r.number,subject:r.subject,to_party:r.toParty,from_party:r.fromParty,date_submitted:r.dateSubmitted||null,date_needed:r.dateNeeded||null,priority:r.priority,status:r.status,description:r.description,response:r.response}); } else { await api.rfis.update(r.id,{project_id:r.projectId,number:r.number,subject:r.subject,to_party:r.toParty,from_party:r.fromParty,date_submitted:r.dateSubmitted||null,date_needed:r.dateNeeded||null,priority:r.priority,status:r.status,description:r.description,response:r.response}); } return true; } catch(e) { console.error("saveRFI",e); return false; } },
-  async deleteRFI(id) { try { await api.rfis.delete(id); } catch(e) { console.error("deleteRFI",e); } },
+  async saveRFI(r) { try { if(r._isNew) { const res = await api.rfis.create({project_id:r.projectId,number:r.number,subject:r.subject,to_party:r.toParty,from_party:r.fromParty,date_submitted:r.dateSubmitted||null,date_needed:r.dateNeeded||null,priority:r.priority,status:r.status,description:r.description,response:r.response}); return res ? { id: res.id } : true; } else { await api.rfis.update(r.id,{project_id:r.projectId,number:r.number,subject:r.subject,to_party:r.toParty,from_party:r.fromParty,date_submitted:r.dateSubmitted||null,date_needed:r.dateNeeded||null,priority:r.priority,status:r.status,description:r.description,response:r.response}); } return true; } catch(e) { console.error("saveRFI",e); return false; } },
+  async deleteRFI(id) { try { await api.rfis.delete(id); return true; } catch(e) { console.error("deleteRFI",e); return false; } },
   // Punch List
-  async savePunchItem(p) { try { if(p._isNew) { await api.punchList.create({project_id:p.projectId,number:p.number,location:p.location,description:p.description,assigned_to:p.assignedTo,priority:p.priority,status:p.status,due_date:p.dueDate||null,notes:p.notes}); } else { await api.punchList.update(p.id,{project_id:p.projectId,number:p.number,location:p.location,description:p.description,assigned_to:p.assignedTo,priority:p.priority,status:p.status,due_date:p.dueDate||null,notes:p.notes}); } return true; } catch(e) { console.error("savePunchItem",e); return false; } },
-  async deletePunchItem(id) { try { await api.punchList.delete(id); } catch(e) { console.error("deletePunchItem",e); } },
+  async savePunchItem(p) { try { if(p._isNew) { const r = await api.punchList.create({project_id:p.projectId,number:p.number,location:p.location,description:p.description,assigned_to:p.assignedTo,priority:p.priority,status:p.status,due_date:p.dueDate||null,notes:p.notes}); return r ? { id: r.id } : true; } else { await api.punchList.update(p.id,{project_id:p.projectId,number:p.number,location:p.location,description:p.description,assigned_to:p.assignedTo,priority:p.priority,status:p.status,due_date:p.dueDate||null,notes:p.notes}); } return true; } catch(e) { console.error("savePunchItem",e); return false; } },
+  async deletePunchItem(id) { try { await api.punchList.delete(id); return true; } catch(e) { console.error("deletePunchItem",e); return false; } },
   // Purchase Orders
-  async savePO(p) { try { if(p._isNew) { await api.purchaseOrders.create({project_id:p.projectId,number:p.number,vendor:p.vendor,description:p.description,amount:p.amount||0,status:p.status,date:p.date||null,budget_category:p.budgetCategory,delivery_date:p.deliveryDate||null,notes:p.notes}); } else { await api.purchaseOrders.update(p.id,{project_id:p.projectId,number:p.number,vendor:p.vendor,description:p.description,amount:p.amount||0,status:p.status,date:p.date||null,budget_category:p.budgetCategory,delivery_date:p.deliveryDate||null,notes:p.notes}); } return true; } catch(e) { console.error("savePO",e); return false; } },
-  async deletePO(id) { try { await api.purchaseOrders.delete(id); } catch(e) { console.error("deletePO",e); } },
+  async savePO(p) { try { if(p._isNew) { const r = await api.purchaseOrders.create({project_id:p.projectId,number:p.number,vendor:p.vendor,description:p.description,amount:p.amount||0,status:p.status,date:p.date||null,budget_category:p.budgetCategory,delivery_date:p.deliveryDate||null,notes:p.notes}); return r ? { id: r.id } : true; } else { await api.purchaseOrders.update(p.id,{project_id:p.projectId,number:p.number,vendor:p.vendor,description:p.description,amount:p.amount||0,status:p.status,date:p.date||null,budget_category:p.budgetCategory,delivery_date:p.deliveryDate||null,notes:p.notes}); } return true; } catch(e) { console.error("savePO",e); return false; } },
+  async deletePO(id) { try { await api.purchaseOrders.delete(id); return true; } catch(e) { console.error("deletePO",e); return false; } },
   // Meetings
-  async saveMeeting(m) { try { if(m._isNew) { await api.meetings.create({project_id:m.projectId,date:m.date||null,title:m.title,location:m.location,attendees:m.attendees,agenda:m.agenda,notes:m.notes,action_items:m.actionItems}); } else { await api.meetings.update(m.id,{project_id:m.projectId,date:m.date||null,title:m.title,location:m.location,attendees:m.attendees,agenda:m.agenda,notes:m.notes,action_items:m.actionItems}); } return true; } catch(e) { console.error("saveMeeting",e); return false; } },
-  async deleteMeeting(id) { try { await api.meetings.delete(id); } catch(e) { console.error("deleteMeeting",e); } },
+  async saveMeeting(m) { try { if(m._isNew) { const r = await api.meetings.create({project_id:m.projectId,date:m.date||null,title:m.title,location:m.location,attendees:m.attendees,agenda:m.agenda,notes:m.notes,action_items:m.actionItems}); return r ? { id: r.id } : true; } else { await api.meetings.update(m.id,{project_id:m.projectId,date:m.date||null,title:m.title,location:m.location,attendees:m.attendees,agenda:m.agenda,notes:m.notes,action_items:m.actionItems}); } return true; } catch(e) { console.error("saveMeeting",e); return false; } },
+  async deleteMeeting(id) { try { await api.meetings.delete(id); return true; } catch(e) { console.error("deleteMeeting",e); return false; } },
 };
 
 // ─── LOGIN / SIGNUP PAGE ─────────────────────────────────────────────────────
@@ -3409,6 +3435,9 @@ export default function App() {
     restoreSession().then(result => {
       if (result) handleAuth(result);
       else setLoading(false);
+    }).catch(e => {
+      console.error("Session restore failed:", e);
+      setLoading(false);
     });
   }, []);
 
@@ -3443,10 +3472,12 @@ export default function App() {
           i.status === "Pending" && i.due && i.due < todayStr ? {...i, status:"Overdue"} : i
         );
         const loadedInvoices = autoOverdue((invs||[]).map(fromDb.invoice));
-        loadedInvoices.forEach(i => {
+        // Persist auto-overdue status changes to the server
+        const overdueUpdates = loadedInvoices.filter(i => {
           const orig = (invs||[]).find(r => r.id === i.id);
-          if(orig && orig.status !== i.status) db.saveInvoice(i);
+          return orig && orig.status !== i.status;
         });
+        await Promise.all(overdueUpdates.map(i => db.saveInvoice(i).catch(e => console.error("Auto-overdue save failed:", e))));
         setInvoices(loadedInvoices);
         setCos((cosr||[]).map(fromDb.co));
         setLogs((lgsr||[]).map(fromDb.log));
@@ -3466,6 +3497,34 @@ export default function App() {
       } catch(e) { console.error("Load failed:",e); }
       setLoading(false);
     })();
+  }, [authenticated]);
+
+  // Manual data refresh — re-fetches all entities from the server
+  const refreshData = useCallback(async () => {
+    if (!authenticated) return;
+    try {
+      const [proj, cont, budg, ests, invs, cosr, lgsr, pkgs, dcsr, phsr, rfisR, punchR, posR, meetR] = await Promise.all([
+        api.projects.list(), api.contacts.list(), api.budgetItems.list(), api.estimates.list(),
+        api.invoices.list(), api.changeOrders.list(), api.dailyLogs.list(), api.bidPackages.list(),
+        api.documents.list(), api.photos.list(), api.rfis.list().catch(()=>[]), api.punchList.list().catch(()=>[]),
+        api.purchaseOrders.list().catch(()=>[]), api.meetings.list().catch(()=>[]),
+      ]);
+      setProjects((proj||[]).map(fromDb.project));
+      setContacts((cont||[]).map(fromDb.contact));
+      setBudgetItems((budg||[]).map(fromDb.budget));
+      setEstimates((ests||[]).map(fromDb.estimate));
+      setInvoices((invs||[]).map(fromDb.invoice));
+      setCos((cosr||[]).map(fromDb.co));
+      setLogs((lgsr||[]).map(fromDb.log));
+      setBids((pkgs||[]).map(fromDb.bidPkg));
+      setDocs((dcsr||[]).map(fromDb.doc));
+      setPhotos((phsr||[]).map(fromDb.photo));
+      setRfis((rfisR||[]).map(fromDb.rfi));
+      setPunchList((punchR||[]).map(fromDb.punchItem));
+      setPOs((posR||[]).map(fromDb.po));
+      setMeetings((meetR||[]).map(fromDb.meeting));
+      toast.success("Data refreshed");
+    } catch(e) { console.error("Refresh failed:", e); toast.error("Failed to refresh data"); }
   }, [authenticated]);
 
   const navigate = (t,payload=null) => { setTab(t); setNavPayload(payload); setMenuOpen(false); };
@@ -3531,16 +3590,34 @@ export default function App() {
       next.forEach((item, i) => {
         const old = prevMap.get(item[idKey]);
         if (!old || JSON.stringify(old) !== JSON.stringify(item)) {
-          saveFn(item).then(ok => {
-            if (!ok) toast.error("Failed to save — please retry");
-            else if (item._isNew) rawSetter(cur => cur.map(x => x[idKey] === item[idKey] ? (({_isNew, ...rest}) => rest)(x) : x));
+          saveFn(item).then(result => {
+            if (!result) {
+              // Save failed — rollback by restoring previous state for this item
+              if (old) rawSetter(cur => cur.map(x => x[idKey] === item[idKey] ? old : x));
+              else rawSetter(cur => cur.filter(x => x[idKey] !== item[idKey]));
+              toast.error("Failed to save — please retry");
+            } else if (item._isNew && typeof result === 'object') {
+              // Replace client-generated ID with server-generated ID and strip _isNew
+              rawSetter(cur => cur.map(x => x[idKey] === item[idKey] ? { ...x, [idKey]: result[idKey] || result.id, _isNew: undefined } : x));
+            } else if (item._isNew) {
+              rawSetter(cur => cur.map(x => x[idKey] === item[idKey] ? (({_isNew, ...rest}) => rest)(x) : x));
+            }
           });
         }
       });
       // Delete removed items
       prev.forEach(item => {
         if (!nextMap.has(item[idKey])) {
-          deleteFn(item[idKey]).catch(() => toast.error("Failed to delete — please retry"));
+          deleteFn(item[idKey]).then(ok => {
+            if (ok === false) {
+              // Delete failed — re-add the item
+              rawSetter(cur => [...cur, item]);
+              toast.error("Failed to delete — please retry");
+            }
+          }).catch(() => {
+            rawSetter(cur => [...cur, item]);
+            toast.error("Failed to delete — please retry");
+          });
         }
       });
       return next;
@@ -3569,14 +3646,24 @@ export default function App() {
       next.forEach(e => {
         const old = prevMap.get(e.id);
         if (!old || JSON.stringify({...old, lineItems:[]}) !== JSON.stringify({...e, lineItems:[]})) {
-          db.saveEstimate(e).then(ok => { if (!ok) toast.error("Failed to save estimate"); });
+          db.saveEstimate(e).then(result => {
+            if (!result) toast.error("Failed to save estimate");
+            else if (e._isNew && typeof result === 'object') {
+              // Sync server-generated ID back to local state
+              setEstimates(cur => cur.map(x => x.id === e.id ? { ...x, id: result.id, _isNew: undefined } : x));
+            }
+          });
         }
         // Save changed/new line items
         const oldItems = new Map((old?.lineItems||[]).map(l => [l.id, l]));
         e.lineItems.forEach(l => {
           const ol = oldItems.get(l.id);
           if (!ol || JSON.stringify(ol) !== JSON.stringify(l)) {
-            db.saveLineItem(l, e.id);
+            db.saveLineItem(l, e.id).then(result => {
+              if (l._isNew && typeof result === 'object') {
+                setEstimates(cur => cur.map(x => x.id === e.id ? { ...x, lineItems: x.lineItems.map(li => li.id === l.id ? { ...li, id: result.id, _isNew: undefined } : li) } : x));
+              }
+            });
           }
         });
         // Delete removed line items
@@ -3599,12 +3686,22 @@ export default function App() {
       next.forEach(pkg => {
         const old = prevMap.get(pkg.id);
         if (!old || JSON.stringify({...old, bids:[]}) !== JSON.stringify({...pkg, bids:[]})) {
-          db.saveBidPkg(pkg);
+          db.saveBidPkg(pkg).then(result => {
+            if (pkg._isNew && typeof result === 'object') {
+              setBids(cur => cur.map(x => x.id === pkg.id ? { ...x, id: result.id, _isNew: undefined } : x));
+            }
+          });
         }
         const oldBids = new Map((old?.bids||[]).map(b => [b.subId, b]));
         pkg.bids.forEach(b => {
           const ob = oldBids.get(b.subId);
-          if (!ob || JSON.stringify(ob) !== JSON.stringify(b)) db.saveBid(b, pkg.id);
+          if (!ob || JSON.stringify(ob) !== JSON.stringify(b)) {
+            db.saveBid(b, pkg.id).then(result => {
+              if (b._isNew && typeof result === 'object') {
+                setBids(cur => cur.map(x => x.id === pkg.id ? { ...x, bids: x.bids.map(bi => bi.subId === b.subId ? { ...bi, subId: result.subId, _isNew: undefined } : bi) } : x));
+              }
+            });
+          }
         });
         if (old) {
           const newBidIds = new Set(pkg.bids.map(b => b.subId));
@@ -3785,8 +3882,13 @@ export default function App() {
             <Projects {...sharedProps} contacts={contacts} initialId={navPayload}/>
           </div>
           {tab==="dashboard"&&<Dashboard projects={projects} invoices={invoices} cos={cos} rfis={rfis} punchList={punchList} onNav={navigate}/>}
-          {tab==="estimates"&&<GlobalEstimates estimates={estimates} setEstimates={setEstimatesDB} projects={projects} budgetItems={budgetItems} companySettings={companySettings}/>}
-          {tab==="invoices"&&<GlobalInvoices invoices={invoices} setInvoices={setInvoicesDB} projects={projects}/>}
+          {/* Keep Estimates, Invoices, Contacts mounted so form/filter state survives tab switches */}
+          <div style={{display:tab==="estimates"?"block":"none"}}>
+            <GlobalEstimates estimates={estimates} setEstimates={setEstimatesDB} projects={projects} budgetItems={budgetItems} companySettings={companySettings}/>
+          </div>
+          <div style={{display:tab==="invoices"?"block":"none"}}>
+            <GlobalInvoices invoices={invoices} setInvoices={setInvoicesDB} projects={projects}/>
+          </div>
           {tab==="cos"&&<ChangeOrders cos={cos} setCos={setCosDB} projects={projects}/>}
           {tab==="budget"&&<div style={{display:"flex",flexDirection:"column",gap:20}}>
             <PageHead eyebrow="Cost Management" title="Budget Tracker"/>
@@ -3807,7 +3909,9 @@ export default function App() {
           {tab==="logs"&&<DailyLogs logs={logs} setLogs={setLogsDB} projects={projects}/>}
           {tab==="docs"&&<Documents docs={docs} setDocs={setDocsDB} projects={projects}/>}
           {tab==="photos"&&<Photos photos={photos} setPhotos={setPhotosDB} projects={projects}/>}
-          {tab==="contacts"&&<Contacts contacts={contacts} setContacts={setContactsDB}/>}
+          <div style={{display:tab==="contacts"?"block":"none"}}>
+            <Contacts contacts={contacts} setContacts={setContactsDB}/>
+          </div>
           {tab==="reports"&&<Reports projects={projects} invoices={invoices} estimates={estimates} cos={cos} budgetItems={budgetItems} pos={pos}/>}
           {tab==="settings"&&<CompanySettings settings={companySettings} onSave={saveCompany}/>}
         </div>
