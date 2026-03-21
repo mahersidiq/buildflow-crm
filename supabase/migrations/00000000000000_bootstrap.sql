@@ -81,6 +81,7 @@ CREATE TABLE projects (
   client      TEXT,
   value       NUMERIC,
   status      TEXT DEFAULT 'Lead',
+  phase       TEXT DEFAULT 'Pre-Construction',
   type        TEXT,
   address     TEXT,
   "start"     DATE,

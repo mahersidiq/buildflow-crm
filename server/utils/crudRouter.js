@@ -14,11 +14,22 @@ const authorize = require('../middleware/authorize');
  * @param {string} [options.selectColumns] - Columns to select (default '*')
  * @param {Function} [options.beforeCreate] - Hook to transform data before insert
  * @param {Function} [options.afterList] - Hook to transform list results
+ * @param {string[]} [options.allowedColumns] - Whitelist of columns allowed in insert/update
  */
 function crudRouter(table, options = {}) {
   const router = Router();
   const perm = options.permission || table;
   const selectColumns = options.selectColumns || '*';
+
+  // If allowedColumns is set, strip any fields not in the whitelist
+  function pickAllowed(body) {
+    if (!options.allowedColumns) return body;
+    const filtered = {};
+    for (const col of options.allowedColumns) {
+      if (col in body) filtered[col] = body[col];
+    }
+    return filtered;
+  }
 
   // GET / - List all for tenant
   router.get('/', authorize(`${perm}.read`), async (req, res, next) => {
@@ -57,6 +68,7 @@ function crudRouter(table, options = {}) {
       }
       // Strip org_id from body — always injected from JWT
       delete body.org_id;
+      body = pickAllowed(body);
 
       if (options.beforeCreate) {
         body = options.beforeCreate(body, req);
@@ -81,6 +93,7 @@ function crudRouter(table, options = {}) {
       // Strip org_id and id from body
       delete body.org_id;
       delete body.id;
+      body = pickAllowed(body);
 
       const tq = tenantQuery(supabase, table, req.orgId);
       const { data, error } = await tq.update(req.params.id, body);
