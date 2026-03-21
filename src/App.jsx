@@ -1068,7 +1068,7 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
 
         {/* Step 1 — Pick Template */}
         {step===1&&(
-          <div style={{padding:24,display:"flex",flexDirection:"column",gap:16}}>
+          <div style={{padding:24,display:"flex",flexDirection:"column",gap:16,overflowY:"auto",flex:1}}>
             {/* Project picker — only shown in global context */}
             {projects&&!initialProjectId&&(
               <div>
