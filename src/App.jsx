@@ -583,11 +583,260 @@ const Dashboard = ({projects,invoices,cos,rfis,punchList,onNav}) => {
 };
 
 // ─── BUDGET (used inside project detail) ─────────────────────────────────────
+// ─── BUDGET TEMPLATE WIZARD ──────────────────────────────────────────────────
+const BudgetTemplateWizard = ({projectId,budgetItems,setBudgetItems,onClose}) => {
+  const [step,setStep] = useState(1);
+  const [tKey,setTKey] = useState(null);
+  const [sqft,setSqft] = useState("");
+  const [cpsf,setCpsf] = useState("");
+  const [profit,setProfit] = useState(15);
+  const [margin,setMargin] = useState(13.04);
+  const [phases,setPhases] = useState([]);
+  const [expandedPhases,setExpandedPhases] = useState(new Set());
+  const sqftN = parseFloat(sqft)||0;
+  const cpsfN = parseFloat(cpsf)||0;
+  const hardCpsfN = cpsfN/(1+profit/100);
+  const mu2mg = mu => { const v=parseFloat(mu)||0; return Math.round(v/(100+v)*10000)/100; };
+  const mg2mu = mg => { const v=parseFloat(mg)||0; return v>=100?99.99:Math.round(v/(100-v)*10000)/100; };
+  const pctSum = phases.reduce((s,p)=>s+parseFloat(p.pct||0),0);
+  const contractTotal = sqftN*cpsfN;
+  const hardCostTotal = sqftN*hardCpsfN;
+
+  const ICONS = {"New Home Construction":"home","Apartment Construction":"proj","Tenant Improvements (TI)":"budget","Custom Home (High-End Residential)":"award","Residential Rehab / Renovation":"hard","Ground-Up Commercial (Core & Shell)":"budget","Restaurant Buildout":"co","Retail Buildout":"proj","Office Buildout":"est","Warehouse / PEMB Construction":"docs","Site Development / Civil":"trend"};
+
+  const pickTemplate = key => {
+    const t = ESTIMATE_TEMPLATES[key];
+    setTKey(key); setCpsf(String(t.defaultCpsf));
+    setPhases(t.phases.map(p=>({...p,tasks:(p.tasks||[]).map(tk=>({name:tk,budgeted:0}))})));
+    setStep(2);
+  };
+
+  // Recalc task budgets when sqft/cpsf/profit/pct changes
+  const recalcPhase = (phaseIdx) => {
+    setPhases(prev=>prev.map((p,i)=>{
+      if(i!==phaseIdx) return p;
+      const phaseBudget = (p.pct/100)*hardCpsfN*sqftN;
+      const taskCount = p.tasks.length;
+      if(taskCount===0) return p;
+      const perTask = Math.round((phaseBudget/taskCount)*100)/100;
+      return {...p,tasks:p.tasks.map((t,ti)=>({...t,budgeted:ti===taskCount-1?Math.round((phaseBudget-perTask*(taskCount-1))*100)/100:perTask}))};
+    }));
+  };
+
+  const recalcAll = () => {
+    setPhases(prev=>prev.map(p=>{
+      const phaseBudget = (p.pct/100)*hardCpsfN*sqftN;
+      const taskCount = p.tasks.length;
+      if(taskCount===0) return p;
+      const perTask = Math.round((phaseBudget/taskCount)*100)/100;
+      return {...p,tasks:p.tasks.map((t,ti)=>({...t,budgeted:ti===taskCount-1?Math.round((phaseBudget-perTask*(taskCount-1))*100)/100:perTask}))};
+    }));
+  };
+
+  const updatePct = (i,val) => {
+    setPhases(ph=>ph.map((p,idx)=>idx===i?{...p,pct:parseFloat(val)||0}:p));
+  };
+
+  const updateTaskBudget = (pi,ti,val) => {
+    setPhases(prev=>prev.map((p,i)=>i!==pi?p:{...p,tasks:p.tasks.map((t,j)=>j!==ti?t:{...t,budgeted:parseFloat(val)||0})}));
+  };
+
+  const updateTaskName = (pi,ti,val) => {
+    setPhases(prev=>prev.map((p,i)=>i!==pi?p:{...p,tasks:p.tasks.map((t,j)=>j!==ti?t:{...t,name:val})}));
+  };
+
+  const addTask = (pi) => {
+    setPhases(prev=>prev.map((p,i)=>i!==pi?p:{...p,tasks:[...p.tasks,{name:"",budgeted:0}]}));
+  };
+
+  const removeTask = (pi,ti) => {
+    setPhases(prev=>prev.map((p,i)=>i!==pi?p:{...p,tasks:p.tasks.filter((_,j)=>j!==ti)}));
+  };
+
+  const create = () => {
+    if(sqftN<=0||cpsfN<=0){toast.error("Please fill in square footage and $/sqft");return;}
+    if(Math.abs(pctSum-100)>0.01){toast.error(`Phase percentages must sum to 100% (currently ${pctSum.toFixed(1)}%)`);return;}
+    const newItems = [];
+    phases.forEach(p=>{
+      p.tasks.forEach(t=>{
+        if(t.name) {
+          newItems.push({
+            id:uid(), _isNew:true, projectId,
+            category:t.name,
+            division:p.category,
+            code:"",
+            budgeted:t.budgeted||0,
+            actual:0, committed:0,
+            notes:p.description
+          });
+        }
+      });
+      // If phase has no tasks, add the phase itself as a line
+      if(p.tasks.length===0||p.tasks.every(t=>!t.name)) {
+        newItems.push({
+          id:uid(), _isNew:true, projectId,
+          category:p.category,
+          division:p.category,
+          code:"",
+          budgeted:(p.pct/100)*hardCpsfN*sqftN,
+          actual:0, committed:0,
+          notes:p.description
+        });
+      }
+    });
+    setBudgetItems(prev=>[...prev,...newItems]);
+    toast.success(`${newItems.length} budget items created from ${tKey} template`);
+    onClose();
+  };
+
+  return (
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(15,17,23,0.6)",zIndex:600,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:6,maxWidth:step===1?600:1000,width:"100%",maxHeight:"92vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 24px 80px rgba(0,0,0,0.35)"}}>
+        <div style={{padding:"18px 24px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+          <div>
+            <div style={{fontSize:16,fontWeight:700,color:C.text}}>Budget from Template</div>
+            <div style={{fontSize:12,color:C.textSub,marginTop:2}}>{step===1?"Choose a project type — tasks will become budget line items":"Configure pricing — each task is an editable budget item"}</div>
+          </div>
+          <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",color:C.textMuted,fontSize:22,lineHeight:1,padding:4}}>×</button>
+        </div>
+
+        {step===1&&(
+          <div style={{padding:24,display:"flex",flexDirection:"column",gap:12,overflowY:"auto",flex:1}}>
+            {Object.entries(ESTIMATE_TEMPLATES).map(([key,t])=>(
+              <div key={key} onClick={()=>pickTemplate(key)}
+                style={{padding:"16px 20px",border:`2px solid ${C.border}`,borderRadius:4,cursor:"pointer",display:"flex",alignItems:"center",gap:16,transition:"all 0.15s"}}
+                onMouseEnter={el=>{el.currentTarget.style.borderColor=C.accent;el.currentTarget.style.background=C.accentL;}}
+                onMouseLeave={el=>{el.currentTarget.style.borderColor=C.border;el.currentTarget.style.background="transparent";}}>
+                <div style={{width:44,height:44,borderRadius:6,background:C.accentL,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Ic d={I[ICONS[key]]||I.proj} s={20} stroke={C.accent}/></div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14,fontWeight:700,color:C.text}}>{key}</div>
+                  <div style={{fontSize:12,color:C.textSub,marginTop:2}}>{t.desc}</div>
+                  <div style={{fontSize:11,color:C.textMuted,marginTop:3}}>{t.hint}</div>
+                </div>
+                <div style={{fontSize:12,color:C.textMuted,flexShrink:0,textAlign:"right"}}><div>{t.phases.length} phases</div><div style={{fontSize:10}}>{t.phases.reduce((s,p)=>s+(p.tasks?p.tasks.length:0),0)} tasks</div></div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {step===2&&(
+          <>
+            <div style={{overflowY:"auto",flex:1,padding:24,display:"flex",flexDirection:"column",gap:20}}>
+              {/* Inputs row */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+                <div>
+                  <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:5}}>Total Sq Ft</div>
+                  <input type="number" value={sqft} onChange={e=>setSqft(e.target.value)} placeholder="e.g. 2,400"
+                    style={{width:"100%",padding:"8px 11px",borderRadius:4,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
+                </div>
+                <div>
+                  <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:5}}>Total $/Sqft (client price)</div>
+                  <input type="number" value={cpsf} onChange={e=>setCpsf(e.target.value)} placeholder="e.g. 85"
+                    style={{width:"100%",padding:"8px 11px",borderRadius:4,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:13,fontFamily:"inherit",boxSizing:"border-box"}}/>
+                </div>
+                <div>
+                  <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:5}}>Markup %</div>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    <input type="number" min={0} value={profit}
+                      onChange={e=>{const mu=parseFloat(e.target.value)||0;setProfit(mu);setMargin(mu2mg(mu));}}
+                      style={{flex:1,padding:"8px 10px",borderRadius:4,border:`1px solid ${C.border}`,background:C.bg,color:C.amber,fontSize:13,fontWeight:700,fontFamily:"inherit",textAlign:"center"}}/>
+                    <span style={{fontSize:10,color:C.textMuted}}>= {margin}% margin</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Summary */}
+              {sqftN>0&&cpsfN>0&&(
+                <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+                  <div style={{flex:1,padding:"10px 14px",background:C.bg,borderRadius:4,border:`1px solid ${C.border}`,minWidth:140}}>
+                    <div style={{fontSize:10,color:C.textMuted}}>Contract Total</div>
+                    <div style={{fontSize:15,fontWeight:700,color:C.accent}}>{fmt(contractTotal)}</div>
+                  </div>
+                  <div style={{flex:1,padding:"10px 14px",background:C.bg,borderRadius:4,border:`1px solid ${C.border}`,minWidth:140}}>
+                    <div style={{fontSize:10,color:C.textMuted}}>Hard Cost Budget</div>
+                    <div style={{fontSize:15,fontWeight:700,color:C.blue}}>{fmt(hardCostTotal)}</div>
+                  </div>
+                  <button onClick={recalcAll} style={{padding:"10px 16px",borderRadius:4,border:`1px solid ${C.accentB}`,background:C.accentL,color:C.accent,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                    Distribute Evenly
+                  </button>
+                </div>
+              )}
+
+              {/* Phase + Task Breakdown */}
+              <div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <div style={{fontSize:13,fontWeight:700,color:C.text}}>Phase & Task Breakdown</div>
+                  <div style={{fontSize:12,fontWeight:600,color:Math.abs(pctSum-100)<0.01?"#22c55e":C.amber}}>
+                    Total: {pctSum.toFixed(1)}%{Math.abs(pctSum-100)<0.01?"":`  (${(100-pctSum).toFixed(1)}% remaining)`}
+                  </div>
+                </div>
+                <div style={{border:`1px solid ${C.border}`,borderRadius:4,overflow:"hidden",maxHeight:420,overflowY:"auto"}}>
+                  {phases.map((p,pi)=>{
+                    const phaseBudget = (p.pct/100)*hardCpsfN*sqftN;
+                    const taskTotal = p.tasks.reduce((s,t)=>s+(t.budgeted||0),0);
+                    const isExpanded = expandedPhases.has(pi);
+                    return (
+                      <div key={pi} style={{borderBottom:pi<phases.length-1?`1px solid ${C.border}`:"none"}}>
+                        {/* Phase header */}
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 80px 100px 100px",padding:"8px 14px",alignItems:"center",background:C.bg+"88",cursor:"pointer"}} onClick={()=>setExpandedPhases(s=>{const n=new Set(s);n.has(pi)?n.delete(pi):n.add(pi);return n;})}>
+                          <div style={{display:"flex",alignItems:"center",gap:8}}>
+                            <span style={{fontSize:10,color:C.textMuted}}>{isExpanded?"▾":"▸"}</span>
+                            <span style={{fontSize:12,fontWeight:700,color:C.accent}}>{p.category}</span>
+                            <span style={{fontSize:10,color:C.textMuted}}>({p.tasks.length} tasks)</span>
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:3,justifyContent:"flex-end"}} onClick={e=>e.stopPropagation()}>
+                            <input type="number" value={p.pct} onChange={e=>updatePct(pi,e.target.value)} min={0} max={100} step={0.5}
+                              style={{width:48,padding:"3px 6px",borderRadius:4,border:`1px solid ${C.border}`,background:C.surface,color:C.text,fontSize:11,fontFamily:"inherit",textAlign:"right"}}/>
+                            <span style={{fontSize:10,color:C.textMuted}}>%</span>
+                          </div>
+                          <div style={{fontSize:11,color:C.textMuted,textAlign:"right"}}>{sqftN>0&&cpsfN>0?fmt(phaseBudget):"—"}</div>
+                          <div style={{fontSize:10,textAlign:"right",color:Math.abs(taskTotal-phaseBudget)<1?C.green:C.amber}}>{sqftN>0&&cpsfN>0?`Tasks: ${fmt(taskTotal)}`:""}</div>
+                        </div>
+                        {/* Task rows */}
+                        {isExpanded&&(
+                          <div style={{padding:"4px 14px 8px 36px",background:C.surface}}>
+                            {p.tasks.map((t,ti)=>(
+                              <div key={ti} style={{display:"grid",gridTemplateColumns:"1fr 120px 28px",gap:8,alignItems:"center",padding:"3px 0"}}>
+                                <input value={t.name} onChange={e=>updateTaskName(pi,ti,e.target.value)} placeholder="Task name..."
+                                  style={{padding:"4px 8px",borderRadius:4,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:11,fontFamily:"inherit"}}/>
+                                <div style={{display:"flex",alignItems:"center",gap:3}}>
+                                  <span style={{fontSize:9,color:C.textMuted}}>$</span>
+                                  <input type="number" value={t.budgeted||""} onChange={e=>updateTaskBudget(pi,ti,e.target.value)} placeholder="0"
+                                    style={{width:"100%",padding:"4px 6px",borderRadius:4,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:11,fontFamily:"inherit",textAlign:"right"}}/>
+                                </div>
+                                <button onClick={()=>removeTask(pi,ti)} style={{background:"none",border:"none",color:C.textMuted,cursor:"pointer",fontSize:14,padding:0,lineHeight:1}}>×</button>
+                              </div>
+                            ))}
+                            <button onClick={()=>addTask(pi)} style={{fontSize:10,color:C.accent,background:"none",border:"none",cursor:"pointer",padding:"4px 0",fontFamily:"inherit"}}>+ Add task</button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{padding:"14px 24px",borderTop:`1px solid ${C.border}`,display:"flex",gap:10,alignItems:"center",flexShrink:0}}>
+              <Btn onClick={create}>Create Budget Items</Btn>
+              <Btn v="secondary" onClick={()=>setStep(1)}>← Change Template</Btn>
+              <Btn v="ghost" onClick={onClose} style={{marginLeft:"auto"}}>Cancel</Btn>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Budget = ({projectId,budgetItems,setBudgetItems,projects,setProjects}) => {
   const [form,setForm] = useState(null);
   const [delId,setDelId] = useState(null);
   const [codeSearch,setCodeSearch] = useState("");
   const [showCodePicker,setShowCodePicker] = useState(false);
+  const [showTemplateWizard,setShowTemplateWizard] = useState(false);
+  const [collapsedDivisions,setCollapsedDivisions] = useState(new Set());
   useUnsavedWarning(form !== null);
   const items = budgetItems.filter(b=>b.projectId===projectId);
   const tot = (k) => items.reduce((s,b)=>s+(parseFloat(b[k])||0),0);
@@ -632,7 +881,10 @@ const Budget = ({projectId,budgetItems,setBudgetItems,projects,setProjects}) => 
 
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontSize:13,fontWeight:600,color:C.text}}>Cost Breakdown</div>
-        <Btn sm onClick={()=>{setForm({category:"",division:"",code:"",budgeted:"",actual:"",committed:"",notes:""});setShowCodePicker(true);setCodeSearch("");}}><Ic d={I.plus} s={13}/> Add Line Item</Btn>
+        <div style={{display:"flex",gap:8}}>
+          <Btn sm v="secondary" onClick={()=>setShowTemplateWizard(true)}>From Template</Btn>
+          <Btn sm onClick={()=>{setForm({category:"",division:"",code:"",budgeted:"",actual:"",committed:"",notes:""});setShowCodePicker(true);setCodeSearch("");}}><Ic d={I.plus} s={13}/> Add Line Item</Btn>
+        </div>
       </div>
 
       {form!==null&&(
@@ -691,29 +943,64 @@ const Budget = ({projectId,budgetItems,setBudgetItems,projects,setProjects}) => 
         </Card>
       )}
 
+      {showTemplateWizard&&<BudgetTemplateWizard projectId={projectId} budgetItems={budgetItems} setBudgetItems={setBudgetItems} onClose={()=>setShowTemplateWizard(false)}/>}
+
       {items.length===0&&form===null?(
-        <Card><EmptyState msg="No budget items yet. Add cost categories to track your job costs." action={<Btn sm onClick={()=>{setForm({category:"",division:"",code:"",budgeted:"",actual:"",committed:"",notes:""});setShowCodePicker(true);setCodeSearch("");}}>+ Add First Item</Btn>}/></Card>
+        <Card><EmptyState msg="No budget items yet. Use a template to auto-populate from a construction project type, or add items manually." action={<div style={{display:"flex",gap:8}}><Btn sm onClick={()=>setShowTemplateWizard(true)}>From Template</Btn><Btn sm v="secondary" onClick={()=>{setForm({category:"",division:"",code:"",budgeted:"",actual:"",committed:"",notes:""});setShowCodePicker(true);setCodeSearch("");}}>+ Add Manually</Btn></div>}/></Card>
       ):(
         <Table heads={[{l:"Code"},{l:"Category"},{l:"Notes"},{l:"Budgeted",r:true},{l:"Actual",r:true},{l:"Committed",r:true},{l:"Variance",r:true},{l:"% Used",r:true},{l:""}]}>
-          {items.map(b=>{
-            const v=b.budgeted-b.actual; const p=b.budgeted?Math.round((b.actual/b.budgeted)*100):0;
-            return <TR key={b.id}>
-              <td style={{padding:"11px 14px"}}>{b.code?<span style={{fontSize:10,fontWeight:700,color:C.accent,background:C.accentL,padding:"2px 7px",borderRadius:4}}>{b.code}</span>:<span style={{color:C.textMuted,fontSize:11}}>—</span>}</td>
-              <TD><div style={{fontWeight:600}}>{b.category}</div>{b.division&&<div style={{fontSize:10,color:C.textMuted}}>{b.division}</div>}</TD>
-              <TD muted>{b.notes||"—"}</TD>
-              <TD right>{fmt(b.budgeted)}</TD>
-              <TD right bold>{fmt(b.actual)}</TD>
-              <TD right muted>{fmt(b.committed)}</TD>
-              <TD right color={v<0?C.red:C.green}>{v<0?"-":"+"}{fmt(Math.abs(v))}</TD>
-              <td style={{padding:"12px 14px",minWidth:100}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <div style={{flex:1,height:5,background:C.bg,borderRadius:3}}><div style={{height:"100%",width:`${Math.min(p,100)}%`,background:p>100?C.red:p>80?C.amber:C.green,borderRadius:3}}/></div>
-                  <span style={{fontSize:11,fontWeight:600,color:p>100?C.red:C.textMid,minWidth:32}}>{p}%</span>
-                </div>
-              </td>
-              <td style={{padding:"12px 14px"}}><div style={{display:"flex",gap:6}}><EditBtn onClick={()=>setForm({...b})}/><DeleteBtn onClick={()=>setDelId(b.id)}/></div></td>
-            </TR>;
-          })}
+          {(()=>{
+            const toggleDiv = d => setCollapsedDivisions(s=>{const n=new Set(s);n.has(d)?n.delete(d):n.add(d);return n;});
+            const renderBudgetRow = b => {
+              const v=b.budgeted-b.actual; const p=b.budgeted?Math.round((b.actual/b.budgeted)*100):0;
+              return <TR key={b.id}>
+                <td style={{padding:"11px 14px"}}>{b.code?<span style={{fontSize:10,fontWeight:700,color:C.accent,background:C.accentL,padding:"2px 7px",borderRadius:4}}>{b.code}</span>:<span style={{color:C.textMuted,fontSize:11}}>—</span>}</td>
+                <TD><div style={{fontWeight:600}}>{b.category}</div></TD>
+                <TD muted>{b.notes||"—"}</TD>
+                <TD right>{fmt(b.budgeted)}</TD>
+                <TD right bold>{fmt(b.actual)}</TD>
+                <TD right muted>{fmt(b.committed)}</TD>
+                <TD right color={v<0?C.red:C.green}>{v<0?"-":"+"}{fmt(Math.abs(v))}</TD>
+                <td style={{padding:"12px 14px",minWidth:100}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{flex:1,height:5,background:C.bg,borderRadius:3}}><div style={{height:"100%",width:`${Math.min(p,100)}%`,background:p>100?C.red:p>80?C.amber:C.green,borderRadius:3}}/></div>
+                    <span style={{fontSize:11,fontWeight:600,color:p>100?C.red:C.textMid,minWidth:32}}>{p}%</span>
+                  </div>
+                </td>
+                <td style={{padding:"12px 14px"}}><div style={{display:"flex",gap:6}}><EditBtn onClick={()=>setForm({...b})}/><DeleteBtn onClick={()=>setDelId(b.id)}/></div></td>
+              </TR>;
+            };
+            // Group by division — show division headers for items that have divisions
+            const divGroups = {};
+            items.forEach(b => {
+              const key = b.division || "";
+              if(!divGroups[key]) divGroups[key] = [];
+              divGroups[key].push(b);
+            });
+            const rows = [];
+            Object.entries(divGroups).forEach(([div,divItems]) => {
+              if(div) {
+                const divBudgeted = divItems.reduce((s,b)=>s+(parseFloat(b.budgeted)||0),0);
+                const divActual = divItems.reduce((s,b)=>s+(parseFloat(b.actual)||0),0);
+                const isCollapsed = collapsedDivisions.has(div);
+                rows.push(
+                  <tr key={`div-${div}`} onClick={()=>toggleDiv(div)} style={{cursor:"pointer",background:C.bg,borderTop:`1px solid ${C.border}`}}>
+                    <td colSpan={3} style={{padding:"9px 14px",fontSize:12,fontWeight:700,color:C.accent}}>
+                      <span style={{marginRight:6,fontSize:10}}>{isCollapsed?"▸":"▾"}</span>
+                      {div} <span style={{fontWeight:400,color:C.textMuted,fontSize:11}}>({divItems.length} items)</span>
+                    </td>
+                    <td style={{padding:"9px 14px",fontSize:12,fontWeight:600,textAlign:"right",color:C.text}}>{fmt(divBudgeted)}</td>
+                    <td style={{padding:"9px 14px",fontSize:12,fontWeight:600,textAlign:"right",color:divActual>divBudgeted?C.red:C.text}}>{fmt(divActual)}</td>
+                    <td colSpan={4}/>
+                  </tr>
+                );
+                if(!isCollapsed) divItems.forEach(b => rows.push(renderBudgetRow(b)));
+              } else {
+                divItems.forEach(b => rows.push(renderBudgetRow(b)));
+              }
+            });
+            return rows;
+          })()}
           {items.length>0&&(
             <tr style={{background:C.accentL,borderTop:`2px solid ${C.accentB}`}}>
               <td colSpan={3} style={{padding:"12px 14px",fontSize:13,fontWeight:700,color:C.accent}}>TOTALS</td>
@@ -1714,9 +2001,12 @@ const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,company
   const [selectedId,setSelectedId] = useState(null);
   const [showForm,setShowForm] = useState(false);
   const [showWizard,setShowWizard] = useState(false);
+  const [showBudgetGen,setShowBudgetGen] = useState(false);
+  const [budgetGenMarkup,setBudgetGenMarkup] = useState(companySettings?.defaultMarkup||20);
   const [delId,setDelId] = useState(null);
   const [form,setForm] = useState({name:"",notes:""});
   const items = estimates.filter(e=>e.projectId===projectId);
+  const projBudget = (budgetItems||[]).filter(b=>b.projectId===projectId);
   // Clear selectedId if the referenced estimate no longer exists (safe: runs after render)
   React.useEffect(()=>{ if(selectedId&&!estimates.find(e=>e.id===selectedId)) setSelectedId(null); },[selectedId,estimates]);
   const calcTotal = items => items.reduce((s,i)=>s+i.qty*i.cost*(1+i.markup/100),0);
@@ -1728,6 +2018,30 @@ const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,company
     setSelectedId(e.id);
     setShowForm(false);
     setForm({name:"",notes:""});
+  };
+
+  const generateFromBudget = () => {
+    if(projBudget.length===0){toast.error("No budget items to generate from");return;}
+    // Group budget items by division → becomes estimate categories
+    const lineItems = projBudget.map(b=>({
+      id:uid(), _isNew:true,
+      category:b.division||b.category,
+      description:b.category+(b.notes?` — ${b.notes}`:""),
+      qty:1, unit:"LS",
+      cost:b.budgeted||0,
+      markup:budgetGenMarkup
+    }));
+    const totalBudget = projBudget.reduce((s,b)=>s+(b.budgeted||0),0);
+    const est = {
+      id:uid(), _isNew:true, projectId,
+      name:`${project?.name||"Project"} — Budget Estimate`,
+      notes:`Generated from budget · ${projBudget.length} items · ${fmt(totalBudget)} hard cost · ${budgetGenMarkup}% markup`,
+      status:"Draft", date:today(), lineItems
+    };
+    setEstimates(prev=>[...prev,est]);
+    setShowBudgetGen(false);
+    setSelectedId(est.id);
+    toast.success(`Estimate generated from ${projBudget.length} budget items`);
   };
 
   const del = () => { setEstimates(estimates.filter(e=>e.id!==delId)); setDelId(null); if(selectedId===delId)setSelectedId(null); };
@@ -1745,10 +2059,51 @@ const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,company
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontSize:13,fontWeight:600,color:C.text}}>Estimates</div>
         <div style={{display:"flex",gap:8}}>
+          {projBudget.length>0&&<Btn sm v="secondary" onClick={()=>setShowBudgetGen(true)}>Generate from Budget</Btn>}
           <Btn sm v="secondary" onClick={()=>setShowWizard(true)}>From Template</Btn>
           <Btn sm onClick={()=>setShowForm(true)}><Ic d={I.plus} s={13}/> Blank Estimate</Btn>
         </div>
       </div>
+
+      {/* Generate from Budget modal */}
+      {showBudgetGen&&(
+        <Card style={{border:`1px solid ${C.accentB}`}}>
+          <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:8}}>Generate Estimate from Budget</div>
+          <div style={{fontSize:12,color:C.textSub,marginBottom:14}}>This will create an estimate with {projBudget.length} line items from your budget. Each budget item becomes an estimate line with your chosen markup applied.</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:14}}>
+            <div style={{padding:"10px 14px",background:C.bg,borderRadius:4,border:`1px solid ${C.border}`}}>
+              <div style={{fontSize:10,color:C.textMuted}}>Budget Items</div>
+              <div style={{fontSize:15,fontWeight:700,color:C.blue}}>{projBudget.length}</div>
+            </div>
+            <div style={{padding:"10px 14px",background:C.bg,borderRadius:4,border:`1px solid ${C.border}`}}>
+              <div style={{fontSize:10,color:C.textMuted}}>Hard Cost Total</div>
+              <div style={{fontSize:15,fontWeight:700,color:C.blue}}>{fmt(projBudget.reduce((s,b)=>s+(b.budgeted||0),0))}</div>
+            </div>
+            <div style={{padding:"10px 14px",background:C.bg,borderRadius:4,border:`1px solid ${C.border}`}}>
+              <div style={{fontSize:10,color:C.textMuted}}>Estimate Total (w/ markup)</div>
+              <div style={{fontSize:15,fontWeight:700,color:C.accent}}>{fmt(projBudget.reduce((s,b)=>s+(b.budgeted||0),0)*(1+budgetGenMarkup/100))}</div>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:12,alignItems:"flex-end",marginBottom:14}}>
+            <div style={{width:160}}>
+              <div style={{fontSize:11,fontWeight:600,color:C.textSub,marginBottom:5}}>Markup %</div>
+              <input type="number" min={0} value={budgetGenMarkup} onChange={e=>setBudgetGenMarkup(parseFloat(e.target.value)||0)}
+                style={{width:"100%",padding:"8px 10px",borderRadius:4,border:`1px solid ${C.border}`,background:C.bg,color:C.amber,fontSize:15,fontWeight:700,fontFamily:"inherit",textAlign:"center"}}/>
+            </div>
+            <div style={{display:"flex",gap:5}}>
+              {[10,15,20,25,30].map(mu=>(
+                <button key={mu} onClick={()=>setBudgetGenMarkup(mu)}
+                  style={{padding:"5px 9px",borderRadius:5,border:`1px solid ${budgetGenMarkup===mu?C.accent:C.border}`,background:budgetGenMarkup===mu?C.accentL:"transparent",color:budgetGenMarkup===mu?C.accent:C.textMid,fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{mu}%</button>
+              ))}
+            </div>
+          </div>
+          <div style={{display:"flex",gap:10}}>
+            <Btn onClick={generateFromBudget}>Generate Estimate</Btn>
+            <Btn v="secondary" onClick={()=>setShowBudgetGen(false)}>Cancel</Btn>
+          </div>
+        </Card>
+      )}
+
       {showForm&&(
         <Card style={{border:`1px solid ${C.accentB}`}}>
           <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:14}}>New Blank Estimate</div>
@@ -1763,7 +2118,7 @@ const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,company
           </div>
         </Card>
       )}
-      {items.length===0&&!showForm&&<Card><EmptyState msg="No estimates yet. Use a template to auto-populate line items, or start blank." action={<div style={{display:"flex",gap:8}}><Btn sm onClick={()=>setShowWizard(true)}>From Template</Btn><Btn sm v="secondary" onClick={()=>setShowForm(true)}>+ Blank</Btn></div>}/></Card>}
+      {items.length===0&&!showForm&&!showBudgetGen&&<Card><EmptyState msg={projBudget.length>0?"Budget is ready — generate an estimate from it, or start blank.":"No estimates yet. Complete your budget first, then generate an estimate from it."} action={<div style={{display:"flex",gap:8}}>{projBudget.length>0&&<Btn sm onClick={()=>setShowBudgetGen(true)}>Generate from Budget</Btn>}<Btn sm v="secondary" onClick={()=>setShowWizard(true)}>From Template</Btn><Btn sm v="secondary" onClick={()=>setShowForm(true)}>+ Blank</Btn></div>}/></Card>}
       {items.map(e=>{
         const total=calcTotal(e.lineItems);
         return (
@@ -1789,11 +2144,13 @@ const Estimates = ({projectId,estimates,setEstimates,project,budgetItems,company
 };
 
 // ─── INVOICES (used inside project detail) ────────────────────────────────────
-const ProjInvoices = ({projectId,invoices,setInvoices,project}) => {
+const ProjInvoices = ({projectId,invoices,setInvoices,project,estimates}) => {
   const [form,setForm] = useState(null);
   const [delId,setDelId] = useState(null);
+  const [showEstGen,setShowEstGen] = useState(false);
   useUnsavedWarning(form !== null);
   const items = invoices.filter(i=>i.projectId===projectId);
+  const projEstimates = (estimates||[]).filter(e=>e.projectId===projectId&&e.status==="Approved");
   const paid=items.filter(i=>i.status==="Paid").reduce((s,i)=>s+i.amount,0);
   const outstanding=items.filter(i=>i.status!=="Paid").reduce((s,i)=>s+i.amount,0);
 
@@ -1808,6 +2165,23 @@ const ProjInvoices = ({projectId,invoices,setInvoices,project}) => {
     setForm(null);
   };
 
+  const generateFromEstimate = (est) => {
+    const estTotal = est.lineItems.filter(i=>!i.hidden).reduce((s,i)=>s+i.qty*i.cost*(1+i.markup/100),0);
+    const yr=new Date().getFullYear(); const maxSeq=invoices.filter(i=>i.number.startsWith(`INV-${yr}`)).reduce((m,i)=>{const n=parseInt(i.number.split("-")[2]||0);return Math.max(m,n);},0); const num=`INV-${yr}-${String(maxSeq+1).padStart(3,"0")}`;
+    const inv = {
+      id:uid(), _isNew:true, projectId, number:num,
+      description:`Invoice for ${est.name}`,
+      amount:estTotal,
+      issued:today(),
+      due:"",
+      status:"Pending",
+      estimateId:est.id
+    };
+    setInvoices(prev=>[...prev,inv]);
+    setShowEstGen(false);
+    toast.success(`Invoice ${num} created from estimate — ${fmt(estTotal)}`);
+  };
+
   const del = () => { setInvoices(invoices.filter(i=>i.id!==delId)); setDelId(null); toast("Invoice deleted",{}); };
   const setStatus = (id,s) => { setInvoices(invoices.map(i=>i.id===id?{...i,status:s}:i)); if(s==="Paid") toast.success("Invoice marked as paid"); };
 
@@ -1819,8 +2193,37 @@ const ProjInvoices = ({projectId,invoices,setInvoices,project}) => {
           <div><div style={{fontSize:11,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.06em"}}>Collected</div><div style={{fontSize:18,fontWeight:700,color:C.green}}>{fmt(paid)}</div></div>
           <div><div style={{fontSize:11,color:C.textMuted,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.06em"}}>Outstanding</div><div style={{fontSize:18,fontWeight:700,color:C.amber}}>{fmt(outstanding)}</div></div>
         </div>
-        <Btn sm onClick={()=>setForm({description:"",amount:"",due:""})}><Ic d={I.plus} s={13}/> New Invoice</Btn>
+        <div style={{display:"flex",gap:8}}>
+          {projEstimates.length>0&&<Btn sm v="secondary" onClick={()=>setShowEstGen(v=>!v)}>From Estimate</Btn>}
+          <Btn sm onClick={()=>setForm({description:"",amount:"",due:""})}><Ic d={I.plus} s={13}/> New Invoice</Btn>
+        </div>
       </div>
+
+      {/* Generate from Estimate */}
+      {showEstGen&&(
+        <Card style={{border:`1px solid ${C.accentB}`}}>
+          <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:8}}>Generate Invoice from Approved Estimate</div>
+          <div style={{fontSize:12,color:C.textSub,marginBottom:12}}>Select an approved estimate to create an invoice from.</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {projEstimates.map(est=>{
+              const estTotal = est.lineItems.filter(i=>!i.hidden).reduce((s,i)=>s+i.qty*i.cost*(1+i.markup/100),0);
+              return (
+                <div key={est.id} onClick={()=>generateFromEstimate(est)}
+                  style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",border:`1px solid ${C.border}`,borderRadius:4,cursor:"pointer",transition:"all 0.15s"}}
+                  onMouseEnter={el=>{el.currentTarget.style.borderColor=C.accent;el.currentTarget.style.background=C.accentL;}}
+                  onMouseLeave={el=>{el.currentTarget.style.borderColor=C.border;el.currentTarget.style.background="transparent";}}>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:600,color:C.text}}>{est.name}</div>
+                    <div style={{fontSize:11,color:C.textSub}}>{est.date} · {est.lineItems.length} items</div>
+                  </div>
+                  <div style={{fontSize:16,fontWeight:700,color:C.accent}}>{fmt(estTotal)}</div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{marginTop:10}}><Btn v="secondary" sm onClick={()=>setShowEstGen(false)}>Cancel</Btn></div>
+        </Card>
+      )}
 
       {form!==null&&(
         <Card style={{border:`1px solid ${C.accentB}`}}>
@@ -2715,7 +3118,7 @@ const Projects = ({projects,setProjects,estimates,setEstimates,invoices,setInvoi
 
         {activeTab==="budget"&&<Budget projectId={p.id} budgetItems={budgetItems} setBudgetItems={setBudgetItems} projects={projects} setProjects={setProjects}/>}
         {activeTab==="estimates"&&<Estimates projectId={p.id} estimates={estimates} setEstimates={setEstimates} project={p} budgetItems={budgetItems} companySettings={companySettings}/>}
-        {activeTab==="invoices"&&<ProjInvoices projectId={p.id} invoices={invoices} setInvoices={setInvoices} project={p}/>}
+        {activeTab==="invoices"&&<ProjInvoices projectId={p.id} invoices={invoices} setInvoices={setInvoices} project={p} estimates={estimates}/>}
         {activeTab==="change orders"&&<ChangeOrders projectId={p.id} cos={cos} setCos={setCos} projects={projects}/>}
         {activeTab==="sub bids"&&<SubBids projectId={p.id} bids={bids} setBids={setBids} projects={projects}/>}
         {activeTab==="rfis"&&<RFIs projectId={p.id} rfis={rfis} setRfis={setRfis} projects={projects}/>}
