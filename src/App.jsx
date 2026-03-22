@@ -738,26 +738,26 @@ const ESTIMATE_TEMPLATES = {
     hint:"Builder-grade: ~$75–100/sqft  ·  Custom: ~$125–175/sqft",
     defaultCpsf:85,
     phases:[
-      {category:"Permits & Fees",  description:"Building permits, plan check, and city fees",         pct:2 },
-      {category:"Demo",            description:"Site clearing and preparation",                        pct:2 },
-      {category:"Site Work",       description:"Excavation, grading, drainage, and utilities",         pct:3 },
-      {category:"Foundation",      description:"Concrete slab, footings, and stem walls",              pct:12},
-      {category:"Framing",         description:"Structural lumber, sheathing, and hardware",           pct:14},
-      {category:"Roofing",         description:"Roof system, underlayment, and gutters",               pct:5 },
-      {category:"Windows & Doors", description:"Windows, exterior doors, and weatherstripping",        pct:4 },
-      {category:"Plumbing",        description:"Rough and finish plumbing",                            pct:8 },
-      {category:"Electrical",      description:"Rough and finish electrical, panel",                   pct:7 },
-      {category:"HVAC",            description:"Mechanical systems, ductwork, and equipment",          pct:7 },
-      {category:"Insulation",      description:"Wall, ceiling, and floor insulation",                  pct:3 },
-      {category:"Drywall",         description:"Hang, tape, texture, and finish",                      pct:5 },
-      {category:"Flooring",        description:"Flooring materials and installation",                  pct:7 },
-      {category:"Cabinets",        description:"Kitchen and bath cabinetry",                           pct:5 },
-      {category:"Countertops",     description:"Kitchen and bath countertops",                         pct:3 },
-      {category:"Tile",            description:"Tile work for bathrooms and kitchen",                  pct:2 },
-      {category:"Painting",        description:"Interior and exterior paint",                          pct:4 },
-      {category:"Exterior",        description:"Siding, trim, and exterior finishes",                  pct:4 },
-      {category:"Landscaping",     description:"Final grade, sod, and landscaping",                    pct:2 },
-      {category:"GC Overhead",     description:"General conditions and project management",            pct:1 },
+      {category:"Permits & Fees",  description:"Building permits, plan check, and city fees",         pct:2, tasks:["Pull building permit","Submit plans for plan check","Pay city impact fees","Schedule inspections","Obtain utility connection permits"] },
+      {category:"Demo",            description:"Site clearing and preparation",                        pct:2, tasks:["Clear trees and brush","Remove existing structures","Haul debris off-site","Grade rough pad","Install erosion control"] },
+      {category:"Site Work",       description:"Excavation, grading, drainage, and utilities",         pct:3, tasks:["Excavate foundation trenches","Rough grade building pad","Install underground drainage","Trench for water/sewer/gas","Compact subgrade to spec","Install temporary power pole"] },
+      {category:"Foundation",      description:"Concrete slab, footings, and stem walls",              pct:12, tasks:["Set batter boards and string lines","Dig and form footings","Place rebar and mesh","Pour footings","Form and pour stem walls","Install anchor bolts","Place vapor barrier","Pour slab on grade","Strip forms and backfill"] },
+      {category:"Framing",         description:"Structural lumber, sheathing, and hardware",           pct:14, tasks:["Deliver lumber package","Frame first-floor walls","Set floor trusses/joists (if 2-story)","Frame second-floor walls","Set roof trusses","Install ridge beam/rafters","Sheath walls with OSB/plywood","Sheath roof deck","Install hurricane ties and hardware","Frame interior partition walls","Install window and door bucks","Frame soffits and overhangs"] },
+      {category:"Roofing",         description:"Roof system, underlayment, and gutters",               pct:5, tasks:["Install ice/water shield at eaves","Roll out synthetic underlayment","Install drip edge and flashing","Lay shingles or metal panels","Flash chimneys, vents, and valleys","Install ridge vent","Hang gutters and downspouts"] },
+      {category:"Windows & Doors", description:"Windows, exterior doors, and weatherstripping",        pct:4, tasks:["Deliver windows and doors","Set and flash exterior windows","Install front entry door","Install sliding/French patio doors","Install garage service door","Apply weatherstripping and sealant","Install window sills/trim bucks"] },
+      {category:"Plumbing",        description:"Rough and finish plumbing",                            pct:8, tasks:["Underground sewer and water rough-in","Run supply lines (PEX/copper)","Run DWV waste and vent piping","Install tub/shower valves","Set water heater","Install hose bibs","Stub out for fixtures","Finish-set kitchen faucet and disposal","Finish-set bathroom faucets and fixtures","Install toilets","Connect dishwasher and ice maker","Pressure test and inspect"] },
+      {category:"Electrical",      description:"Rough and finish electrical, panel",                   pct:7, tasks:["Set main panel and meter base","Run branch circuits per plan","Install boxes for outlets and switches","Pull wire for lighting circuits","Rough-in for ceiling fans","Install low-voltage wiring (data, TV, alarm)","Install recessed can housings","Finish-set switches and outlets","Finish-set light fixtures","Install panel cover and label breakers","Final inspection and energize"] },
+      {category:"HVAC",            description:"Mechanical systems, ductwork, and equipment",          pct:7, tasks:["Size and engineer duct layout","Set furnace/air handler","Set condenser unit on pad","Run main trunk duct lines","Run branch ducts to each room","Install duct boots and registers","Install thermostat wiring","Install exhaust fans (bath/kitchen)","Charge refrigerant and test","Balance airflow across zones"] },
+      {category:"Insulation",      description:"Wall, ceiling, and floor insulation",                  pct:3, tasks:["Install batt insulation in exterior walls","Blow-in attic/ceiling insulation","Insulate band joists","Insulate around tubs and fireplaces","Install vapor retarder where required","Insulate garage/house common wall","Inspection sign-off"] },
+      {category:"Drywall",         description:"Hang, tape, texture, and finish",                      pct:5, tasks:["Hang drywall on ceilings","Hang drywall on walls","Tape and first coat (mud)","Second coat","Third coat and skim","Sand smooth","Apply texture (knock-down, orange peel, or smooth)","Patch nail pops and touch-up"] },
+      {category:"Flooring",        description:"Flooring materials and installation",                  pct:7, tasks:["Prep subfloor (level, screed)","Install hardwood in living areas","Install LVP/laminate in bedrooms","Install carpet and pad","Install tile in wet areas (see Tile phase)","Install transition strips","Install shoe molding/quarter round"] },
+      {category:"Cabinets",        description:"Kitchen and bath cabinetry",                           pct:5, tasks:["Deliver cabinets to job site","Set kitchen base cabinets and level","Set kitchen wall cabinets","Install pantry/utility cabinets","Set bathroom vanity cabinets","Install cabinet hardware (knobs/pulls)","Install under-cabinet lighting rough-in"] },
+      {category:"Countertops",     description:"Kitchen and bath countertops",                         pct:3, tasks:["Template countertops after cabinet set","Fabricate countertops","Install kitchen countertops","Install bath vanity tops","Cut and polish sink openings","Apply backsplash caulk and sealant"] },
+      {category:"Tile",            description:"Tile work for bathrooms and kitchen",                  pct:2, tasks:["Install cement board/Kerdi in showers","Waterproof shower pan and curb","Set wall tile in showers","Set floor tile in bathrooms","Install kitchen backsplash tile","Grout and seal all tile","Install tile trim and edge pieces"] },
+      {category:"Painting",        description:"Interior and exterior paint",                          pct:4, tasks:["Prime all drywall surfaces","Caulk trim-to-wall joints","Paint ceilings","Paint walls — first coat","Paint walls — second coat","Paint interior trim and doors","Stain and seal any wood features","Paint exterior siding","Paint exterior trim and fascia","Touch-up after final trades"] },
+      {category:"Exterior",        description:"Siding, trim, and exterior finishes",                  pct:4, tasks:["Install house wrap/WRB","Install siding (lap, board & batten, etc.)","Install exterior trim boards","Install fascia and soffit","Install stone/brick veneer (if applicable)","Caulk and seal all penetrations","Install exterior light fixtures","Install house numbers and mailbox"] },
+      {category:"Landscaping",     description:"Final grade, sod, and landscaping",                    pct:2, tasks:["Fine grade yard","Install irrigation system","Lay sod or hydroseed","Plant trees and shrubs","Install mulch beds","Build walkways and patios","Install driveway (concrete or asphalt)","Final cleanup and punch items"] },
+      {category:"GC Overhead",     description:"General conditions and project management",            pct:1, tasks:["Project scheduling and coordination","Weekly site meetings","Temporary utilities and port-a-john","Dumpster and waste management","Final clean and detail","Punch list walk-through","Certificate of occupancy"] },
     ]
   },
   "Apartment Construction":{
@@ -765,25 +765,25 @@ const ESTIMATE_TEMPLATES = {
     hint:"Market-rate: ~$110–145/sqft  ·  Luxury: ~$160–220/sqft",
     defaultCpsf:130,
     phases:[
-      {category:"Permits & Fees",  description:"Building permits, plan check, and impact fees",       pct:4 },
-      {category:"Demo",            description:"Site demolition and preparation",                      pct:2 },
-      {category:"Site Work",       description:"Excavation, grading, and site utilities",              pct:4 },
-      {category:"Foundation",      description:"Concrete slab, mat foundation, or podium deck",        pct:10},
-      {category:"Framing",         description:"Structural framing, sheathing, and hardware",          pct:13},
-      {category:"Roofing",         description:"Roof membrane, insulation, and drainage",              pct:4 },
-      {category:"Windows & Doors", description:"Windows, unit entry doors, and corridors",             pct:3 },
-      {category:"Plumbing",        description:"Rough and finish plumbing (multi-unit)",               pct:9 },
-      {category:"Electrical",      description:"Rough and finish electrical, meters, panels",          pct:8 },
-      {category:"HVAC",            description:"Mechanical systems per unit and common areas",         pct:7 },
-      {category:"Insulation",      description:"Insulation and sound attenuation between units",       pct:3 },
-      {category:"Drywall",         description:"Hang, tape, and finish (units and corridors)",         pct:6 },
-      {category:"Flooring",        description:"Unit flooring and common area finishes",               pct:5 },
-      {category:"Cabinets",        description:"Kitchen and bath cabinetry per unit",                  pct:4 },
-      {category:"Countertops",     description:"Kitchen and bath countertops",                         pct:2 },
-      {category:"Tile",            description:"Bath and kitchen tile per unit",                       pct:3 },
-      {category:"Painting",        description:"Interior and exterior paint",                          pct:4 },
-      {category:"Exterior",        description:"Siding, stucco, and exterior envelope",                pct:5 },
-      {category:"GC Overhead",     description:"Common areas, amenities, and GC management",           pct:4 },
+      {category:"Permits & Fees",  description:"Building permits, plan check, and impact fees",       pct:4, tasks:["Pull building permit","Submit plans for plan check","Pay impact and connection fees","Obtain fire marshal approval","Post permit on site"] },
+      {category:"Demo",            description:"Site demolition and preparation",                      pct:2, tasks:["Demolish existing structures","Clear and grub site","Environmental testing (Phase I/II)","Haul off debris","Install perimeter fencing and erosion control"] },
+      {category:"Site Work",       description:"Excavation, grading, and site utilities",              pct:4, tasks:["Mass grading and compaction","Trench for underground utilities","Install storm drain system","Install water and sewer mains","Install fire water line","Grade building pad to elevation","Install temp construction road"] },
+      {category:"Foundation",      description:"Concrete slab, mat foundation, or podium deck",        pct:10, tasks:["Excavate footings and grade beams","Form and place rebar cages","Pour spread footings","Form and pour grade beams","Install post-tension cables (if applicable)","Pour podium deck or mat slab","Waterproof below-grade walls","Backfill and compact"] },
+      {category:"Framing",         description:"Structural framing, sheathing, and hardware",          pct:13, tasks:["Deliver lumber and trusses","Frame first-floor unit walls","Set floor trusses between levels","Frame upper-floor unit walls","Frame corridor and stairwell walls","Set roof trusses","Sheath exterior walls","Sheath roof deck","Install fire blocking per code","Frame balcony and breezeway structures"] },
+      {category:"Roofing",         description:"Roof membrane, insulation, and drainage",              pct:4, tasks:["Install roof insulation board","Lay TPO/EPDM membrane","Flash all penetrations and curbs","Install roof drains and overflow","Install cap flashing at parapets","Install ridge vents or turbine vents","Hang gutters and downspouts"] },
+      {category:"Windows & Doors", description:"Windows, unit entry doors, and corridors",             pct:3, tasks:["Install unit windows and flash","Install unit entry doors and hardware","Install corridor fire doors","Install sliding glass/patio doors","Install storefront entry system","Apply weatherstripping and seals"] },
+      {category:"Plumbing",        description:"Rough and finish plumbing (multi-unit)",               pct:9, tasks:["Install main water risers per building","Run unit supply lines (PEX manifold)","Run DWV stacks and branch lines","Install tub/shower valves per unit","Set water heaters (central or per unit)","Rough-in laundry connections","Finish-set kitchen fixtures per unit","Finish-set bath fixtures per unit","Install toilets per unit","Test and inspect all systems"] },
+      {category:"Electrical",      description:"Rough and finish electrical, meters, panels",          pct:8, tasks:["Set main switchgear","Install individual unit meter bank","Set unit sub-panels","Run branch circuits per unit","Install lighting circuit wiring","Install low-voltage (cable, data)","Rough-in for smoke/CO detectors","Finish-set outlets and switches","Finish-set light fixtures","Install common area lighting","Label panels and final inspection"] },
+      {category:"HVAC",            description:"Mechanical systems per unit and common areas",         pct:7, tasks:["Set rooftop units or split systems","Run ductwork main trunks","Run branch ducts per unit","Install registers and returns","Install bath exhaust fans per unit","Install kitchen range hood venting","Install corridor ventilation/pressurization","Set thermostats per unit","Charge and test systems","Balance airflow per unit"] },
+      {category:"Insulation",      description:"Insulation and sound attenuation between units",       pct:3, tasks:["Install batt insulation in exterior walls","Install sound attenuation batts at party walls","Install sound mat at floor/ceiling assemblies","Blow-in attic insulation","Insulate water pipes in unconditioned spaces","Inspection sign-off"] },
+      {category:"Drywall",         description:"Hang, tape, and finish (units and corridors)",         pct:6, tasks:["Hang drywall in units — ceilings","Hang drywall in units — walls","Hang drywall in corridors and common areas","Tape and first coat","Second and third coat","Sand smooth","Apply texture","Touch-up and patch"] },
+      {category:"Flooring",        description:"Unit flooring and common area finishes",               pct:5, tasks:["Prep subfloors in all units","Install LVP in unit living areas","Install carpet in bedrooms","Install tile in unit bathrooms","Install common area flooring (tile/polished concrete)","Install transition strips","Install base molding"] },
+      {category:"Cabinets",        description:"Kitchen and bath cabinetry per unit",                  pct:4, tasks:["Deliver and stage cabinets","Install kitchen base cabinets per unit","Install kitchen wall cabinets per unit","Install bath vanity cabinets per unit","Install cabinet hardware","Install shelf and closet systems"] },
+      {category:"Countertops",     description:"Kitchen and bath countertops",                         pct:2, tasks:["Template after cabinet install","Fabricate countertops","Install kitchen countertops per unit","Install bath vanity tops per unit","Cut sink openings and polish","Seal and caulk"] },
+      {category:"Tile",            description:"Bath and kitchen tile per unit",                       pct:3, tasks:["Install backer board in wet areas","Waterproof shower pans and tub surrounds","Set shower wall tile","Set bathroom floor tile","Set kitchen backsplash","Grout and seal","Install edge trim"] },
+      {category:"Painting",        description:"Interior and exterior paint",                          pct:4, tasks:["Prime all drywall","Caulk trim joints","Paint ceilings — all units","Paint walls — all units","Paint trim and doors — all units","Paint common areas and corridors","Paint exterior surfaces","Touch-up after punch list"] },
+      {category:"Exterior",        description:"Siding, stucco, and exterior envelope",                pct:5, tasks:["Install WRB/house wrap","Install siding or stucco system","Install exterior trim and reveals","Install soffit and fascia","Apply exterior caulk and sealant","Install balcony railings","Install exterior lighting","Install unit address signage"] },
+      {category:"GC Overhead",     description:"Common areas, amenities, and GC management",           pct:4, tasks:["Project management and scheduling","Weekly OAC meetings","Temp utilities, fencing, port-a-johns","Dumpsters and waste hauling","Build-out amenity spaces (gym, lounge)","Install mailbox cluster units","Final clean — all units and common areas","Punch list and CO inspections"] },
     ]
   },
   "Tenant Improvements (TI)":{
@@ -791,22 +791,22 @@ const ESTIMATE_TEMPLATES = {
     hint:"Basic: ~$40–65/sqft  ·  Mid-grade: ~$70–120/sqft  ·  High-end: ~$130+/sqft",
     defaultCpsf:75,
     phases:[
-      {category:"Demo",            description:"Demolition of existing interior finishes",             pct:7 },
-      {category:"Foundation",      description:"Structural patching and concrete work",                pct:4 },
-      {category:"Site Work",       description:"Concrete flooring prep, leveling, and patching",       pct:3 },
-      {category:"Framing",         description:"Metal stud framing and blocking",                      pct:10},
-      {category:"Plumbing",        description:"Rough and finish plumbing",                            pct:7 },
-      {category:"Electrical",      description:"Rough and finish electrical, panels, lighting",        pct:12},
-      {category:"HVAC",            description:"Mechanical, ductwork, VAV boxes, and controls",        pct:12},
-      {category:"Insulation",      description:"Insulation and acoustical treatments",                 pct:3 },
-      {category:"Drywall",         description:"Hang, tape, texture, and finish",                      pct:10},
-      {category:"Flooring",        description:"Flooring materials and installation",                  pct:8 },
-      {category:"Cabinets",        description:"Ceiling grid, tile, and specialty ceilings",           pct:5 },
-      {category:"Windows & Doors", description:"Interior doors, frames, and hardware",                 pct:4 },
-      {category:"Painting",        description:"Interior paint and wall coverings",                    pct:6 },
-      {category:"Countertops",     description:"Millwork, casework, and built-ins",                    pct:4 },
-      {category:"Permits & Fees",  description:"Building permits and city fees",                       pct:3 },
-      {category:"GC Overhead",     description:"General conditions and project management",            pct:2 },
+      {category:"Demo",            description:"Demolition of existing interior finishes",             pct:7, tasks:["Remove existing ceiling grid and tile","Demo existing partition walls","Remove old flooring","Demo existing restroom fixtures","Haul debris to dumpster","Cap existing plumbing and electrical"] },
+      {category:"Foundation",      description:"Structural patching and concrete work",                pct:4, tasks:["Patch slab penetrations","Level uneven concrete areas","Core drill for new plumbing","Pour equipment pads","Repair cracks and spalls"] },
+      {category:"Site Work",       description:"Concrete flooring prep, leveling, and patching",       pct:3, tasks:["Grind high spots","Apply self-leveling compound","Prep for new flooring adhesion","Seal concrete where exposed","Patch trenched areas"] },
+      {category:"Framing",         description:"Metal stud framing and blocking",                      pct:10, tasks:["Layout new walls per plan","Frame metal stud partitions","Install door frames and headers","Add blocking for wall-mount items","Frame soffits and bulkheads","Frame server/IT room walls"] },
+      {category:"Plumbing",        description:"Rough and finish plumbing",                            pct:7, tasks:["Rough-in new restroom supply and waste","Rough-in break room sink","Install water heater","Set restroom fixtures (toilets, sinks)","Install break room faucet","Connect to building main","Test and inspect"] },
+      {category:"Electrical",      description:"Rough and finish electrical, panels, lighting",        pct:12, tasks:["Set new sub-panel from building main","Run conduit and branch circuits","Install outlet boxes per plan","Pull wire and make terminations","Install data/low-voltage conduit","Install recessed lighting layout","Install emergency/exit lighting","Set switches, dimmers, and outlets","Set light fixtures","Install panel schedule and labels","Final electrical inspection"] },
+      {category:"HVAC",            description:"Mechanical, ductwork, VAV boxes, and controls",        pct:12, tasks:["Review and modify existing duct layout","Install new VAV boxes","Extend ductwork to new rooms","Install flex duct and registers","Install return air grilles","Connect to building BAS/controls","Install thermostat per zone","Install restroom exhaust fans","Test and balance airflow","Commission HVAC controls"] },
+      {category:"Insulation",      description:"Insulation and acoustical treatments",                 pct:3, tasks:["Install sound batt in partition walls","Insulate above ceiling in server room","Install acoustical blankets where needed","Seal penetrations for sound","Inspection sign-off"] },
+      {category:"Drywall",         description:"Hang, tape, texture, and finish",                      pct:10, tasks:["Hang drywall on new walls","Hang drywall on ceilings (if hard-lid)","Tape and first coat","Second and finish coat","Sand smooth","Apply texture to match existing","Patch and repair existing walls"] },
+      {category:"Flooring",        description:"Flooring materials and installation",                  pct:8, tasks:["Install carpet tile in offices","Install LVT in common areas","Install tile in restrooms","Install transition strips","Install rubber base or wood base","Polish/seal exposed concrete (if applicable)"] },
+      {category:"Cabinets",        description:"Ceiling grid, tile, and specialty ceilings",           pct:5, tasks:["Install new ceiling grid system","Lay ceiling tile","Install specialty/cloud ceilings","Frame and finish drywall soffits at perimeter","Install access panels for above-ceiling access"] },
+      {category:"Windows & Doors", description:"Interior doors, frames, and hardware",                 pct:4, tasks:["Install hollow metal door frames","Hang solid core doors","Install glass sidelites/borrowed lights","Install door hardware (levers, closers)","Install barn door or sliding door hardware","Install ADA-compliant hardware"] },
+      {category:"Painting",        description:"Interior paint and wall coverings",                    pct:6, tasks:["Prime all new drywall","Paint walls — two coats","Paint accent walls","Paint doors and frames","Install wall coverings/wallpaper","Touch-up after move-in"] },
+      {category:"Countertops",     description:"Millwork, casework, and built-ins",                    pct:4, tasks:["Install break room countertop and cabinets","Install reception desk millwork","Build out conference room credenza","Install custom shelving and storage","Apply laminate or solid surface tops"] },
+      {category:"Permits & Fees",  description:"Building permits and city fees",                       pct:3, tasks:["Submit plans to city","Pull building permit","Schedule inspections","Coordinate fire marshal review","Obtain final sign-off"] },
+      {category:"GC Overhead",     description:"General conditions and project management",            pct:2, tasks:["Project scheduling","Coordinate with building management","Temp protection of common areas","Dumpster and waste removal","Final clean","Punch list walk-through"] },
     ]
   },
   "Custom Home (High-End Residential)":{
@@ -814,26 +814,26 @@ const ESTIMATE_TEMPLATES = {
     hint:"Custom: ~$150–225/sqft  ·  Ultra-luxury: ~$250–400+/sqft",
     defaultCpsf:175,
     phases:[
-      {category:"Permits & Fees",  description:"Building permits, plan check, HOA review, and impact fees",          pct:2 },
-      {category:"Demo",            description:"Existing structure demo, tree removal, and site clearing",            pct:1 },
-      {category:"Site Work",       description:"Excavation, grading, retaining walls, and utility trenching",         pct:4 },
-      {category:"Foundation",      description:"Engineered footings, stem walls, post-tension slab or basement",      pct:10},
-      {category:"Framing",         description:"Engineered lumber, steel beams, complex roof framing, sheathing",     pct:12},
-      {category:"Roofing",         description:"Standing seam metal, clay tile, or slate roof system with flashing",  pct:5 },
-      {category:"Windows & Doors", description:"Custom windows, folding/sliding glass walls, entry doors",            pct:6 },
-      {category:"Plumbing",        description:"Rough and finish plumbing, radiant heat, multi-zone manifolds",       pct:7 },
-      {category:"Electrical",      description:"Rough/finish electrical, smart home wiring, low-voltage, lighting control", pct:7 },
-      {category:"HVAC",            description:"Multi-zone HVAC, ERV, zoned ductwork, whole-house controls",          pct:6 },
-      {category:"Insulation",      description:"Spray foam, continuous exterior insulation, sound attenuation",        pct:3 },
-      {category:"Drywall",         description:"Hang, tape, Level 5 finish, arches and soffits",                      pct:4 },
-      {category:"Flooring",        description:"Hardwood, natural stone, heated floors, custom patterns",             pct:8 },
-      {category:"Cabinets",        description:"Custom cabinetry, butler's pantry, built-in closet systems",          pct:7 },
-      {category:"Countertops",     description:"Natural stone slab, quartzite, waterfall edges, outdoor kitchen tops", pct:4 },
-      {category:"Tile",            description:"Custom tile, stone showers, feature walls, heated floor tile",         pct:4 },
-      {category:"Painting",        description:"Premium interior/exterior paint, specialty finishes, staining",        pct:3 },
-      {category:"Exterior",        description:"Stone/stucco veneer, custom trim, architectural details",             pct:4 },
-      {category:"Landscaping",     description:"Hardscape, irrigation, lighting, pool/spa rough-in, final grade",     pct:2 },
-      {category:"GC Overhead",     description:"Project management, supervision, general conditions, and cleanup",    pct:1 },
+      {category:"Permits & Fees",  description:"Building permits, plan check, HOA review, and impact fees",          pct:2, tasks:["Submit architectural plans for review","Pull building permit","HOA/design review approval","Pay impact and school fees","Schedule all required inspections"] },
+      {category:"Demo",            description:"Existing structure demo, tree removal, and site clearing",            pct:1, tasks:["Demolish existing structure (if any)","Remove protected trees with permit","Clear brush and debris","Haul-off demo waste","Install tree protection fencing"] },
+      {category:"Site Work",       description:"Excavation, grading, retaining walls, and utility trenching",         pct:4, tasks:["Survey and stake property","Mass excavation and cut/fill","Build retaining walls","Trench for utilities (water, sewer, gas, electric)","Install French drains and site drainage","Compact subgrade to engineer spec","Install temporary construction access"] },
+      {category:"Foundation",      description:"Engineered footings, stem walls, post-tension slab or basement",      pct:10, tasks:["Excavate per engineered plans","Form engineered footings","Place rebar per structural drawings","Pour footings and grade beams","Form and pour stem walls","Install post-tension cables and stress","Waterproof basement walls (if applicable)","Install drain tile system","Pour garage and main slabs","Backfill and compact around foundation"] },
+      {category:"Framing",         description:"Engineered lumber, steel beams, complex roof framing, sheathing",     pct:12, tasks:["Set structural steel beams and columns","Frame first-floor walls with engineered lumber","Set engineered floor joists/trusses","Frame second-floor walls","Frame complex roof system (hips, valleys, dormers)","Install ridge beams and rafters","Sheath walls and roof deck","Frame custom soffits, trays, and arches","Install hurricane ties and hold-downs","Frame outdoor living structures (covered patio, pergola)"] },
+      {category:"Roofing",         description:"Standing seam metal, clay tile, or slate roof system with flashing",  pct:5, tasks:["Install peel-and-stick underlayment at valleys/eaves","Roll out synthetic underlayment","Install standing seam metal or clay tile","Flash all valleys, hips, and ridges","Flash chimneys with custom crickets","Install skylight curbs and flash","Install copper or custom gutters and downspouts","Install snow guards (if applicable)"] },
+      {category:"Windows & Doors", description:"Custom windows, folding/sliding glass walls, entry doors",            pct:6, tasks:["Set custom-order windows","Install folding/bi-fold glass wall systems","Install sliding glass pocket doors","Set custom front entry door","Install interior barn doors and specialty doors","Flash and seal all window openings","Install motorized window treatments rough-in"] },
+      {category:"Plumbing",        description:"Rough and finish plumbing, radiant heat, multi-zone manifolds",       pct:7, tasks:["Install underground plumbing rough-in","Run PEX manifold supply system","Run DWV waste and vent stacks","Install radiant floor heat tubing","Install multi-zone manifold system","Set tankless water heaters","Rough-in steam shower and body sprays","Finish-set designer fixtures (kitchen)","Finish-set designer fixtures (master bath)","Finish-set fixtures in secondary baths","Install outdoor kitchen plumbing","Pressure test and inspect"] },
+      {category:"Electrical",      description:"Rough/finish electrical, smart home wiring, low-voltage, lighting control", pct:7, tasks:["Set 400A main panel","Run branch circuits per plan","Install smart home backbone wiring","Run Cat6/fiber for network","Run speaker wire for whole-house audio","Install motorized shade wiring","Install security camera conduit","Install lighting control system (Lutron/Savant)","Set designer switches and outlets","Set decorative light fixtures","Install landscape lighting transformer","Commission smart home system"] },
+      {category:"HVAC",            description:"Multi-zone HVAC, ERV, zoned ductwork, whole-house controls",          pct:6, tasks:["Install multi-zone air handlers","Set high-efficiency condensers","Run insulated ductwork per zone","Install ERV/HRV for fresh air","Install zoned dampers and controls","Install designer registers and grilles","Wire and mount smart thermostats per zone","Install wine room cooling unit","Install garage exhaust system","Charge, test, and commission","Balance airflow across all zones"] },
+      {category:"Insulation",      description:"Spray foam, continuous exterior insulation, sound attenuation",        pct:3, tasks:["Spray closed-cell foam on exterior walls","Spray open-cell foam in attic/roof deck","Install continuous rigid insulation on exterior","Install sound attenuation batts at bedrooms","Insulate media room for soundproofing","Seal all penetrations with foam","Third-party HERS testing and inspection"] },
+      {category:"Drywall",         description:"Hang, tape, Level 5 finish, arches and soffits",                      pct:4, tasks:["Hang drywall on ceilings (Level 5 areas)","Hang drywall on walls","Tape and coat — three passes minimum","Skim coat for Level 5 finish","Form radius arches and custom soffits","Sand and prep for paint","Touch-up and final inspection"] },
+      {category:"Flooring",        description:"Hardwood, natural stone, heated floors, custom patterns",             pct:8, tasks:["Install electric floor heat mats","Sand and prep subfloors","Install wide-plank hardwood","Install natural stone (marble, travertine)","Install custom inlay patterns or borders","Install carpet in bedrooms/closets","Install heated floor tile in bathrooms","Apply finish coats to hardwood","Install custom thresholds and transitions"] },
+      {category:"Cabinets",        description:"Custom cabinetry, butler's pantry, built-in closet systems",          pct:7, tasks:["Deliver and stage custom cabinetry","Install kitchen cabinets (base and wall)","Install kitchen island cabinetry","Install butler's pantry cabinets","Install master closet built-in system","Install library/office built-ins","Install laundry room cabinets","Install bath vanity cabinets","Install designer hardware","Install under-cabinet lighting"] },
+      {category:"Countertops",     description:"Natural stone slab, quartzite, waterfall edges, outdoor kitchen tops", pct:4, tasks:["Template all countertop surfaces","Fabricate stone slabs","Install kitchen countertops with waterfall edges","Install island countertop","Install butler's pantry counter","Install bath vanity stone tops","Install outdoor kitchen countertop","Polish edges and cutouts","Seal natural stone"] },
+      {category:"Tile",            description:"Custom tile, stone showers, feature walls, heated floor tile",         pct:4, tasks:["Install Kerdi/Schluter waterproofing system","Build custom shower benches and niches","Install steam shower membrane","Set master shower stone/tile walls","Set master shower floor (pebble, mosaic)","Install feature wall tile (fireplace, entry)","Set floor tile over heated mats","Set secondary bath tile","Grout, seal, and polish all tile work"] },
+      {category:"Painting",        description:"Premium interior/exterior paint, specialty finishes, staining",        pct:3, tasks:["Prime all surfaces","Caulk all trim joints","Paint ceilings — two coats","Paint walls — two coats premium paint","Apply specialty finishes (Venetian plaster, limewash)","Paint/stain all trim, casing, and crown","Stain and seal wood beams","Paint exterior body and trim","Stain exterior wood elements","Final touch-up after all trades"] },
+      {category:"Exterior",        description:"Stone/stucco veneer, custom trim, architectural details",             pct:4, tasks:["Install stone veneer on facade","Apply stucco system (3-coat or EIFS)","Install custom exterior trim and moldings","Install copper flashings and details","Install decorative brackets and corbels","Install exterior columns and capitals","Apply masonry sealant","Install address monument/pillar"] },
+      {category:"Landscaping",     description:"Hardscape, irrigation, lighting, pool/spa rough-in, final grade",     pct:2, tasks:["Fine grade all yard areas","Install irrigation system","Install landscape lighting","Pour pool shell and equipment pad (if applicable)","Build outdoor kitchen and fireplace","Pour driveway and walkways","Install pavers or flagstone patios","Plant trees, shrubs, and sod","Install mulch beds","Final site cleanup"] },
+      {category:"GC Overhead",     description:"Project management, supervision, general conditions, and cleanup",    pct:1, tasks:["Full-time project superintendent","Weekly architect/owner meetings","Temporary utilities and facilities","Dumpsters and waste management","Construction cleaning — progressive","Punch list and final walk-through","Certificate of occupancy","Warranty binder and close-out docs"] },
     ]
   },
   "Residential Rehab / Renovation":{
@@ -841,24 +841,24 @@ const ESTIMATE_TEMPLATES = {
     hint:"Moderate: ~$60–90/sqft  ·  Full gut: ~$90–150/sqft  ·  Historic: ~$150+/sqft",
     defaultCpsf:95,
     phases:[
-      {category:"Permits & Fees",  description:"Permits, plan review, historic review (if applicable)",              pct:3 },
-      {category:"Demo",            description:"Selective demo, hazmat abatement (lead/asbestos), debris haul-off",   pct:10},
-      {category:"Site Work",       description:"Temp shoring, underpinning, site protection, dumpster staging",       pct:3 },
-      {category:"Foundation",      description:"Foundation repair, crack injection, slab leveling, new footings",     pct:7 },
-      {category:"Framing",         description:"Structural repair, sistered joists, header upgrades, new walls",      pct:10},
-      {category:"Roofing",         description:"Roof tear-off, re-deck, new underlayment and shingles/membrane",      pct:5 },
-      {category:"Windows & Doors", description:"Window replacement, door upgrades, weatherstripping, egress windows", pct:5 },
-      {category:"Plumbing",        description:"Re-pipe supply and waste, fixture rough-in, water heater",            pct:9 },
-      {category:"Electrical",      description:"Panel upgrade, full rewire, new circuits, fixture rough-in",          pct:9 },
-      {category:"HVAC",            description:"New ductwork or mini-splits, equipment replacement, ventilation",     pct:7 },
-      {category:"Insulation",      description:"Wall cavity insulation, attic blow-in, vapor barrier",                pct:3 },
-      {category:"Drywall",         description:"Hang, tape, texture, patching existing plaster where retained",       pct:6 },
-      {category:"Flooring",        description:"Subfloor repair, hardwood refinish or new install, tile, LVP",        pct:6 },
-      {category:"Cabinets",        description:"Kitchen and bath cabinetry, pantry, vanities",                        pct:5 },
-      {category:"Countertops",     description:"Kitchen and bath countertops, backsplash prep",                       pct:3 },
-      {category:"Tile",            description:"Bath tile, kitchen backsplash, shower surrounds, floor tile",          pct:3 },
-      {category:"Painting",        description:"Full interior/exterior repaint, trim, stain, and caulking",           pct:3 },
-      {category:"GC Overhead",     description:"Project management, supervision, temp utilities, and protection",     pct:3 },
+      {category:"Permits & Fees",  description:"Permits, plan review, historic review (if applicable)",              pct:3, tasks:["Submit renovation plans","Pull building permit","Historic preservation review (if applicable)","Schedule inspections","Obtain lead/asbestos clearance permits"] },
+      {category:"Demo",            description:"Selective demo, hazmat abatement (lead/asbestos), debris haul-off",   pct:10, tasks:["Test for lead paint and asbestos","Abate hazardous materials","Selective demo of walls and ceilings","Remove old kitchen and bath fixtures","Remove old flooring","Strip old wiring and plumbing (as needed)","Haul debris to dumpster","Clearance testing after abatement"] },
+      {category:"Site Work",       description:"Temp shoring, underpinning, site protection, dumpster staging",       pct:3, tasks:["Install temporary shoring","Set up dumpster and staging area","Protect floors and features to remain","Install dust barriers between work zones","Set up temporary egress and safety"] },
+      {category:"Foundation",      description:"Foundation repair, crack injection, slab leveling, new footings",     pct:7, tasks:["Inspect and document existing foundation","Inject epoxy into foundation cracks","Install helical piers or push piers","Level slab with mudjacking or poly foam","Pour new footings for additions","Waterproof basement walls","Install new sump pump"] },
+      {category:"Framing",         description:"Structural repair, sistered joists, header upgrades, new walls",      pct:10, tasks:["Sister damaged floor joists","Install new LVL headers at removed walls","Add structural posts and beams","Frame new partition walls","Frame new window and door openings","Reinforce stairway structure","Install blocking for cabinets and fixtures","Sheath any new exterior walls"] },
+      {category:"Roofing",         description:"Roof tear-off, re-deck, new underlayment and shingles/membrane",      pct:5, tasks:["Tear off existing roofing","Inspect and repair roof deck","Replace damaged sheathing","Install ice and water shield","Install synthetic underlayment","Lay new shingles or metal roofing","Re-flash chimneys, vents, and walls","Install new gutters and downspouts"] },
+      {category:"Windows & Doors", description:"Window replacement, door upgrades, weatherstripping, egress windows", pct:5, tasks:["Remove old windows","Install new energy-efficient windows","Flash and seal window openings","Install new exterior doors","Install egress windows in bedrooms","Install new interior doors","Apply weatherstripping throughout"] },
+      {category:"Plumbing",        description:"Re-pipe supply and waste, fixture rough-in, water heater",            pct:9, tasks:["Re-pipe supply lines (PEX or copper)","Replace cast-iron waste with PVC","Rough-in new fixture locations","Install new water heater","Install new hose bibs","Rough-in for washing machine","Finish-set all fixtures (kitchen, bath)","Install toilets","Test and inspect"] },
+      {category:"Electrical",      description:"Panel upgrade, full rewire, new circuits, fixture rough-in",          pct:9, tasks:["Upgrade electrical panel (100A to 200A)","Run new branch circuits throughout","Install GFCI/AFCI breakers per code","Wire new outlet and switch locations","Install recessed lighting rough-in","Run low-voltage wiring (data, cable)","Install smoke and CO detectors","Finish-set outlets, switches, fixtures","Final inspection and energize"] },
+      {category:"HVAC",            description:"New ductwork or mini-splits, equipment replacement, ventilation",     pct:7, tasks:["Remove old equipment","Install new furnace or air handler","Install new condenser","Run new ductwork (or install mini-splits)","Install registers and returns","Install bath exhaust fans","Install range hood ducting","Set thermostat","Charge, test, and balance"] },
+      {category:"Insulation",      description:"Wall cavity insulation, attic blow-in, vapor barrier",                pct:3, tasks:["Insulate opened wall cavities","Blow-in attic insulation","Install vapor barrier in crawlspace","Insulate rim joists","Seal air leaks at penetrations","Inspection sign-off"] },
+      {category:"Drywall",         description:"Hang, tape, texture, patching existing plaster where retained",       pct:6, tasks:["Hang new drywall on framed walls/ceilings","Patch existing plaster where retained","Tape and coat — three passes","Sand smooth","Apply texture to match existing","Repair and skim damaged plaster"] },
+      {category:"Flooring",        description:"Subfloor repair, hardwood refinish or new install, tile, LVP",        pct:6, tasks:["Repair and level subfloor","Sand and refinish existing hardwood","Install new hardwood where needed","Install LVP in secondary areas","Install tile in bathrooms","Install carpet in bedrooms","Install transitions and base molding"] },
+      {category:"Cabinets",        description:"Kitchen and bath cabinetry, pantry, vanities",                        pct:5, tasks:["Install kitchen base and wall cabinets","Install kitchen island","Install pantry cabinetry","Install bathroom vanity cabinets","Install cabinet hardware","Install closet shelving systems"] },
+      {category:"Countertops",     description:"Kitchen and bath countertops, backsplash prep",                       pct:3, tasks:["Template countertops","Fabricate and install kitchen counters","Install bathroom vanity tops","Cut and polish sink openings","Prep backsplash area for tile"] },
+      {category:"Tile",            description:"Bath tile, kitchen backsplash, shower surrounds, floor tile",          pct:3, tasks:["Install backer board in wet areas","Waterproof shower/tub areas","Set shower wall and floor tile","Set bathroom floor tile","Install kitchen backsplash","Grout and seal all tile"] },
+      {category:"Painting",        description:"Full interior/exterior repaint, trim, stain, and caulking",           pct:3, tasks:["Prime all new and patched surfaces","Caulk all trim joints","Paint ceilings","Paint walls — two coats","Paint all trim, casing, and doors","Stain and seal wood features","Paint exterior","Touch-up after all trades complete"] },
+      {category:"GC Overhead",     description:"Project management, supervision, temp utilities, and protection",     pct:3, tasks:["Project scheduling and coordination","Temporary utilities and protection","Dumpster and debris management","Progressive cleaning","Punch list walk-through","Final clean and handover","Warranty documentation"] },
     ]
   },
   "Ground-Up Commercial (Core & Shell)":{
@@ -866,24 +866,24 @@ const ESTIMATE_TEMPLATES = {
     hint:"Tilt-up/masonry: ~$85–130/sqft  ·  Steel frame: ~$120–175/sqft  ·  High-rise: ~$200+/sqft",
     defaultCpsf:110,
     phases:[
-      {category:"Permits & Fees",  description:"Building permits, plan check, zoning review, impact fees",            pct:3 },
-      {category:"Demo",            description:"Existing structure demo, environmental remediation, clearing",         pct:2 },
-      {category:"Site Work",       description:"Mass grading, underground utilities, stormwater management",           pct:8 },
-      {category:"Foundation",      description:"Spread footings, grade beams, mat slab, or caissons/piles",           pct:10},
-      {category:"Framing",         description:"Structural steel erection, metal decking, concrete topping slab",     pct:14},
-      {category:"Roofing",         description:"TPO/EPDM membrane, insulation board, roof drains, flashing",          pct:5 },
-      {category:"Windows & Doors", description:"Curtain wall, storefront glazing, hollow metal frames, loading doors",pct:6 },
-      {category:"Plumbing",        description:"Core plumbing risers, roof drains, restroom rough-in, fire mains",    pct:6 },
-      {category:"Electrical",      description:"Main switchgear, distribution, panels, site lighting, generator",     pct:9 },
-      {category:"HVAC",            description:"Rooftop units, VAV systems, main ductwork, BAS controls",             pct:8 },
-      {category:"Insulation",      description:"Building envelope insulation, fireproofing, firestopping",            pct:2 },
-      {category:"Drywall",         description:"Core area walls, shaft walls, demising walls, elevator lobbies",       pct:4 },
-      {category:"Flooring",        description:"Sealed concrete, lobby finishes, restroom tile, stair treads",        pct:3 },
-      {category:"Painting",        description:"Core area paint, stairwells, restrooms, exterior accent",              pct:2 },
-      {category:"Exterior",        description:"Tilt-up panels, masonry, EIFS/stucco, loading docks, canopies",       pct:7 },
-      {category:"Landscaping",     description:"Parking lot paving, striping, curb/gutter, landscaping, irrigation",  pct:5 },
-      {category:"Cabinets",        description:"Fire protection — sprinkler risers, heads, standpipes, FDC",          pct:4 },
-      {category:"GC Overhead",     description:"General conditions, project management, temp facilities, cleanup",    pct:2 },
+      {category:"Permits & Fees",  description:"Building permits, plan check, zoning review, impact fees",            pct:3, tasks:["Submit plans for plan check","Pull building permit","Obtain zoning/entitlement approval","Pay impact fees","Coordinate fire marshal review","Post permit on site"] },
+      {category:"Demo",            description:"Existing structure demo, environmental remediation, clearing",         pct:2, tasks:["Demolish existing structures","Conduct environmental remediation","Clear and grub site","Haul off debris","Install perimeter fencing"] },
+      {category:"Site Work",       description:"Mass grading, underground utilities, stormwater management",           pct:8, tasks:["Mass grading and earthwork","Install storm drain system","Install sanitary sewer main","Install water main and fire line","Install underground electrical conduit","Build detention/retention basin","Compact subgrade to spec","Install erosion control BMPs"] },
+      {category:"Foundation",      description:"Spread footings, grade beams, mat slab, or caissons/piles",           pct:10, tasks:["Drive piles or drill caissons (if required)","Excavate for spread footings","Form and place rebar","Pour footings and pile caps","Form and pour grade beams","Pour slab on grade","Install anchor bolts for steel","Waterproof below-grade elements","Backfill and compact"] },
+      {category:"Framing",         description:"Structural steel erection, metal decking, concrete topping slab",     pct:14, tasks:["Deliver structural steel","Erect steel columns and beams","Install steel bracing and connections","Lay metal decking","Install headed studs for composite action","Place rebar on deck","Pour concrete topping slab","Install miscellaneous metals (stairs, railings, lintels)","Torque-test high-strength bolts","Touch-up fireproofing at connections"] },
+      {category:"Roofing",         description:"TPO/EPDM membrane, insulation board, roof drains, flashing",          pct:5, tasks:["Install roof insulation board","Mechanically attach TPO/EPDM membrane","Flash all roof penetrations","Install roof drains and overflow scuppers","Install parapet cap flashing","Install roof hatch and safety railings","Test roof for water-tightness"] },
+      {category:"Windows & Doors", description:"Curtain wall, storefront glazing, hollow metal frames, loading doors",pct:6, tasks:["Install curtain wall system","Install storefront glazing at entries","Set hollow metal door frames","Hang exterior and interior doors","Install overhead coiling doors at loading","Install dock levelers and bumpers","Install hardware and closers"] },
+      {category:"Plumbing",        description:"Core plumbing risers, roof drains, restroom rough-in, fire mains",    pct:6, tasks:["Install domestic water risers","Install sanitary waste risers and stacks","Connect to site water and sewer","Install roof drain piping","Rough-in core restrooms","Set water heaters","Finish-set restroom fixtures","Install exterior hose bibs","Test and inspect all systems"] },
+      {category:"Electrical",      description:"Main switchgear, distribution, panels, site lighting, generator",     pct:9, tasks:["Set main switchgear and transformer","Install electrical distribution panels","Run feeders to tenant panel locations","Install site and parking lot lighting","Install emergency generator and ATS","Install fire alarm system","Install elevator power feeds","Install core area lighting","Install exit and emergency lighting","Final inspections and energize"] },
+      {category:"HVAC",            description:"Rooftop units, VAV systems, main ductwork, BAS controls",             pct:8, tasks:["Set rooftop units on curbs","Install main supply and return ductwork","Install VAV boxes for core areas","Install exhaust systems","Install building automation system (BAS)","Install core area thermostats","Insulate ductwork","Install restroom exhaust fans","Charge and start up units","Commission and balance HVAC"] },
+      {category:"Insulation",      description:"Building envelope insulation, fireproofing, firestopping",            pct:2, tasks:["Install building envelope insulation","Apply spray-on fireproofing to steel","Install firestopping at penetrations","Insulate mechanical piping","Seal building envelope"] },
+      {category:"Drywall",         description:"Core area walls, shaft walls, demising walls, elevator lobbies",       pct:4, tasks:["Frame shaft walls and stairwells","Hang drywall on core walls","Hang drywall on elevator lobbies","Tape and finish core areas","Install demising wall framing and drywall","Apply fire-rated assemblies at shafts"] },
+      {category:"Flooring",        description:"Sealed concrete, lobby finishes, restroom tile, stair treads",        pct:3, tasks:["Seal and polish concrete in common areas","Install lobby finish flooring","Install restroom floor tile","Install stair treads and risers","Install base at core areas"] },
+      {category:"Painting",        description:"Core area paint, stairwells, restrooms, exterior accent",              pct:2, tasks:["Prime and paint core area walls","Paint stairwells","Paint restrooms","Paint mechanical/electrical rooms","Apply exterior accent paint","Touch-up throughout"] },
+      {category:"Exterior",        description:"Tilt-up panels, masonry, EIFS/stucco, loading docks, canopies",       pct:7, tasks:["Erect tilt-up panels or lay CMU","Install EIFS or stucco system","Build loading dock structures","Install entry canopies","Install building signage","Apply exterior caulk and sealant","Install trash enclosure","Install bike racks and bollards"] },
+      {category:"Landscaping",     description:"Parking lot paving, striping, curb/gutter, landscaping, irrigation",  pct:5, tasks:["Pave parking lot (asphalt or concrete)","Install curb and gutter","Stripe parking stalls and fire lanes","Install ADA-compliant ramps and signage","Install irrigation system","Plant trees and shrubs","Install site furnishings (benches, etc.)","Install monument sign"] },
+      {category:"Cabinets",        description:"Fire protection — sprinkler risers, heads, standpipes, FDC",          pct:4, tasks:["Install fire sprinkler risers","Run branch lines and drops","Install sprinkler heads throughout","Install standpipes in stairwells","Install FDC (fire department connection)","Install fire pump (if required)","Test and inspect system","Obtain fire marshal sign-off"] },
+      {category:"GC Overhead",     description:"General conditions, project management, temp facilities, cleanup",    pct:2, tasks:["Project management and scheduling","Weekly OAC meetings","Temporary facilities and utilities","Dumpsters and waste management","Site safety program","Final clean","Punch list and close-out","As-built drawings and O&M manuals"] },
     ]
   },
   "Restaurant Buildout":{
@@ -891,24 +891,24 @@ const ESTIMATE_TEMPLATES = {
     hint:"Fast-casual: ~$100–150/sqft  ·  Full-service: ~$150–250/sqft  ·  Fine dining: ~$250+/sqft",
     defaultCpsf:150,
     phases:[
-      {category:"Permits & Fees",  description:"Building, health dept, fire marshal, liquor license coordination",    pct:3 },
-      {category:"Demo",            description:"Interior demo, grease trap removal, existing equipment demo",          pct:5 },
-      {category:"Site Work",       description:"Concrete cutting, slab prep, underslab plumbing trenching",            pct:3 },
-      {category:"Foundation",      description:"Grease interceptor install, walk-in cooler slabs, depressed slabs",    pct:4 },
-      {category:"Framing",         description:"Metal stud framing, soffits, kitchen partition walls, blocking",       pct:6 },
-      {category:"Plumbing",        description:"Grease trap tie-in, floor drains, mop sink, bar sinks, gas lines",    pct:12},
-      {category:"Electrical",      description:"3-phase service, dedicated kitchen circuits, POS wiring, lighting",    pct:11},
-      {category:"HVAC",            description:"Kitchen exhaust hood, make-up air, dining zone HVAC, walk-in refrigeration", pct:13},
-      {category:"Insulation",      description:"Wall and ceiling insulation, acoustical treatments, duct wrap",        pct:2 },
-      {category:"Drywall",         description:"Hang, tape, finish — dining, restrooms, back-of-house partitions",    pct:5 },
-      {category:"Flooring",        description:"Quarry tile in kitchen, sealed concrete, hardwood/tile in dining",     pct:6 },
-      {category:"Cabinets",        description:"Bar millwork, host stand, banquette framing, custom booth builds",     pct:6 },
-      {category:"Countertops",     description:"Bar top, server station, host stand counter, pass-through shelf",      pct:3 },
-      {category:"Tile",            description:"Kitchen wall tile, restroom tile, bar face tile, decorative accents",  pct:4 },
-      {category:"Painting",        description:"Interior paint, accent walls, restrooms, back-of-house",              pct:3 },
-      {category:"Windows & Doors", description:"Storefront entry, patio doors, restroom doors, kitchen service door", pct:4 },
-      {category:"Exterior",        description:"Patio hardscape, facade improvements, signage blocking, awnings",     pct:5 },
-      {category:"GC Overhead",     description:"General conditions, health dept coordination, project management",    pct:5 },
+      {category:"Permits & Fees",  description:"Building, health dept, fire marshal, liquor license coordination",    pct:3, tasks:["Pull building permit","Submit plans to health department","Fire marshal plan review","Coordinate liquor license (if applicable)","Schedule all inspections"] },
+      {category:"Demo",            description:"Interior demo, grease trap removal, existing equipment demo",          pct:5, tasks:["Remove existing kitchen equipment","Demo interior walls and finishes","Remove old grease trap","Demo existing flooring","Haul debris off-site","Cap utilities at demo points"] },
+      {category:"Site Work",       description:"Concrete cutting, slab prep, underslab plumbing trenching",            pct:3, tasks:["Saw-cut slab for underslab plumbing","Trench for grease waste lines","Trench for floor drains","Backfill and patch concrete","Level slab for kitchen equipment"] },
+      {category:"Foundation",      description:"Grease interceptor install, walk-in cooler slabs, depressed slabs",    pct:4, tasks:["Excavate for grease interceptor","Install grease interceptor","Pour walk-in cooler slab with recessed floor","Pour depressed slab for kitchen tile","Install equipment curbs and pads"] },
+      {category:"Framing",         description:"Metal stud framing, soffits, kitchen partition walls, blocking",       pct:6, tasks:["Frame kitchen-to-dining partition wall","Frame restroom walls","Frame server station and wait station areas","Build soffits for ductwork concealment","Install blocking for TV mounts and shelving","Frame bar structure"] },
+      {category:"Plumbing",        description:"Grease trap tie-in, floor drains, mop sink, bar sinks, gas lines",    pct:12, tasks:["Connect grease interceptor to sewer","Install kitchen floor drains","Install mop sink","Run gas lines to kitchen equipment","Install bar sinks (3-compartment and hand wash)","Install restroom fixtures","Install hot water system","Install grease waste piping from fixtures","Connect dishwasher plumbing","Install ice maker water line","Test and inspect"] },
+      {category:"Electrical",      description:"3-phase service, dedicated kitchen circuits, POS wiring, lighting",    pct:11, tasks:["Upgrade to 3-phase service","Set kitchen sub-panel","Run dedicated circuits for kitchen equipment","Install POS system wiring and data drops","Install dining room lighting circuits","Install kitchen task lighting","Install decorative/mood lighting","Wire bar area (under-bar lighting, outlets)","Install emergency and exit lighting","Install exterior signage power","Final inspection and energize"] },
+      {category:"HVAC",            description:"Kitchen exhaust hood, make-up air, dining zone HVAC, walk-in refrigeration", pct:13, tasks:["Install Type I kitchen exhaust hood","Install make-up air unit","Install hood fire suppression system","Set dining area HVAC units","Run ductwork for dining zones","Install walk-in cooler refrigeration system","Install walk-in freezer refrigeration system","Install bar area cooling","Install restroom exhaust fans","Balance kitchen exhaust vs make-up air","Commission all HVAC and refrigeration"] },
+      {category:"Insulation",      description:"Wall and ceiling insulation, acoustical treatments, duct wrap",        pct:2, tasks:["Insulate exterior walls","Install acoustical treatments in dining","Wrap kitchen ductwork","Insulate walk-in cooler/freezer panels","Seal penetrations"] },
+      {category:"Drywall",         description:"Hang, tape, finish — dining, restrooms, back-of-house partitions",    pct:5, tasks:["Hang drywall in dining areas","Hang drywall in restrooms","Hang drywall in back-of-house","Tape and finish — three coats","Sand and prep for paint","Install FRP panels in kitchen and dish area"] },
+      {category:"Flooring",        description:"Quarry tile in kitchen, sealed concrete, hardwood/tile in dining",     pct:6, tasks:["Install quarry tile in kitchen","Install floor drains with tile slope","Install dining room flooring (hardwood/tile/concrete)","Install bar area flooring","Install restroom floor tile","Install non-slip mats at entries","Install transition strips and base"] },
+      {category:"Cabinets",        description:"Bar millwork, host stand, banquette framing, custom booth builds",     pct:6, tasks:["Build and install custom bar structure","Install bar die and foot rail","Build host stand/reception desk","Frame and upholster banquettes","Build custom booths","Install server station millwork","Install shelving and display units"] },
+      {category:"Countertops",     description:"Bar top, server station, host stand counter, pass-through shelf",      pct:3, tasks:["Fabricate and install bar top","Install server station counter","Install host stand countertop","Install kitchen pass-through shelf","Install prep table tops","Seal and finish all surfaces"] },
+      {category:"Tile",            description:"Kitchen wall tile, restroom tile, bar face tile, decorative accents",  pct:4, tasks:["Install kitchen wall tile (behind cooking line)","Install restroom wall and floor tile","Install bar face tile or stone","Install decorative accent tiles in dining","Install backsplash behind bar","Grout and seal all tile"] },
+      {category:"Painting",        description:"Interior paint, accent walls, restrooms, back-of-house",              pct:3, tasks:["Prime all surfaces","Paint dining room walls and ceiling","Paint accent walls and features","Paint restrooms","Paint back-of-house areas","Stain and seal wood elements","Touch-up after equipment install"] },
+      {category:"Windows & Doors", description:"Storefront entry, patio doors, restroom doors, kitchen service door", pct:4, tasks:["Install storefront entry system","Install patio doors (if applicable)","Install restroom doors with ADA hardware","Install kitchen service/swing door","Install walk-in cooler/freezer doors","Install interior passage doors","Install window treatments"] },
+      {category:"Exterior",        description:"Patio hardscape, facade improvements, signage blocking, awnings",     pct:5, tasks:["Build outdoor patio and hardscape","Install patio railing and barriers","Improve building facade","Install signage and blade sign","Install awnings or canopies","Install exterior lighting","Install dumpster enclosure","Install ADA-compliant ramp/entrance"] },
+      {category:"GC Overhead",     description:"General conditions, health dept coordination, project management",    pct:5, tasks:["Project management and scheduling","Health department coordination and inspections","Temporary utilities","Dumpsters and waste hauling","Equipment delivery coordination","Final clean and detail","Punch list walk-through","Certificate of occupancy"] },
     ]
   },
   "Retail Buildout":{
@@ -916,22 +916,22 @@ const ESTIMATE_TEMPLATES = {
     hint:"Basic shell: ~$45–70/sqft  ·  Mid-range: ~$75–110/sqft  ·  High-end boutique: ~$120+/sqft",
     defaultCpsf:85,
     phases:[
-      {category:"Permits & Fees",  description:"Building permits, plan check, sign permit, ADA review",               pct:3 },
-      {category:"Demo",            description:"Interior demo, storefront removal, ceiling grid demo",                 pct:6 },
-      {category:"Site Work",       description:"Concrete patching, floor leveling, ADA ramp modifications",            pct:2 },
-      {category:"Framing",         description:"Metal stud walls, fitting rooms, stockroom partitions, soffits",       pct:8 },
-      {category:"Plumbing",        description:"Restroom rough-in, break room sink, floor drains if required",         pct:5 },
-      {category:"Electrical",      description:"New panel, track/accent lighting, POS drops, security wiring",         pct:14},
-      {category:"HVAC",            description:"RTU connection, ductwork modifications, thermostat controls",           pct:8 },
-      {category:"Insulation",      description:"Demising wall insulation, acoustical batt, duct insulation",            pct:2 },
-      {category:"Drywall",         description:"Hang, tape, finish, feature walls, bulkheads, display niches",         pct:8 },
-      {category:"Flooring",        description:"Polished concrete, LVT, carpet, transition strips, floor prep",        pct:8 },
-      {category:"Cabinets",        description:"Display fixtures, checkout counter millwork, shelving systems",         pct:7 },
-      {category:"Countertops",     description:"Checkout counter tops, display case surfaces",                         pct:3 },
-      {category:"Painting",        description:"Interior paint, accent walls, ceiling paint, trim and doors",           pct:5 },
-      {category:"Windows & Doors", description:"Storefront system, entry doors, ADA hardware, security gates",         pct:8 },
-      {category:"Exterior",        description:"Facade upgrades, signage, canopy, exterior lighting",                  pct:7 },
-      {category:"GC Overhead",     description:"General conditions, project management, and tenant coordination",      pct:6 },
+      {category:"Permits & Fees",  description:"Building permits, plan check, sign permit, ADA review",               pct:3, tasks:["Submit plans for review","Pull building permit","Obtain sign permit","ADA compliance review","Schedule inspections"] },
+      {category:"Demo",            description:"Interior demo, storefront removal, ceiling grid demo",                 pct:6, tasks:["Remove existing storefront system","Demo interior partition walls","Remove ceiling grid and tile","Remove old flooring","Demo existing restroom fixtures","Haul off debris"] },
+      {category:"Site Work",       description:"Concrete patching, floor leveling, ADA ramp modifications",            pct:2, tasks:["Patch slab at demo areas","Level floor with self-leveler","Modify ADA ramp if needed","Prep concrete for new finishes"] },
+      {category:"Framing",         description:"Metal stud walls, fitting rooms, stockroom partitions, soffits",       pct:8, tasks:["Frame fitting room walls","Frame stockroom partitions","Frame restroom walls","Build soffits and bulkheads","Install blocking for fixtures and displays","Frame checkout counter area"] },
+      {category:"Plumbing",        description:"Restroom rough-in, break room sink, floor drains if required",         pct:5, tasks:["Rough-in restroom supply and waste","Install break room sink plumbing","Install water heater","Set restroom fixtures","Set break room faucet","Test and inspect"] },
+      {category:"Electrical",      description:"New panel, track/accent lighting, POS drops, security wiring",         pct:14, tasks:["Set new sub-panel","Run branch circuits throughout","Install track lighting circuits","Install accent/display lighting","Install POS data and power drops","Run security system wiring","Install fitting room lighting","Install stockroom lighting","Set outlets and switches","Set light fixtures","Install security camera wiring","Final inspection"] },
+      {category:"HVAC",            description:"RTU connection, ductwork modifications, thermostat controls",           pct:8, tasks:["Connect to rooftop unit","Modify existing ductwork layout","Install new supply registers","Install return air grilles","Install thermostat controls","Install restroom exhaust","Test and balance airflow"] },
+      {category:"Insulation",      description:"Demising wall insulation, acoustical batt, duct insulation",            pct:2, tasks:["Insulate demising walls","Install acoustical batt in fitting rooms","Insulate ductwork","Seal penetrations"] },
+      {category:"Drywall",         description:"Hang, tape, finish, feature walls, bulkheads, display niches",         pct:8, tasks:["Hang drywall on new walls","Build feature wall displays and niches","Frame and finish bulkheads","Tape and finish — three coats","Sand and prep for paint","Build custom display alcoves"] },
+      {category:"Flooring",        description:"Polished concrete, LVT, carpet, transition strips, floor prep",        pct:8, tasks:["Prep subfloor throughout","Polish and seal concrete (sales floor)","Install LVT in select areas","Install carpet in fitting rooms","Install tile in restrooms","Install transition strips and base molding"] },
+      {category:"Cabinets",        description:"Display fixtures, checkout counter millwork, shelving systems",         pct:7, tasks:["Build and install checkout counter","Install wall-mounted display shelving","Install freestanding display fixtures","Build fitting room benches and hooks","Install stockroom shelving","Install window display platforms"] },
+      {category:"Countertops",     description:"Checkout counter tops, display case surfaces",                         pct:3, tasks:["Fabricate checkout counter surface","Install checkout countertop","Install display case glass tops","Install break room counter","Seal and finish all surfaces"] },
+      {category:"Painting",        description:"Interior paint, accent walls, ceiling paint, trim and doors",           pct:5, tasks:["Prime all new surfaces","Paint ceilings","Paint walls — brand colors","Paint accent and feature walls","Paint trim and doors","Paint back-of-house areas","Touch-up after fixture install"] },
+      {category:"Windows & Doors", description:"Storefront system, entry doors, ADA hardware, security gates",         pct:8, tasks:["Install new storefront glazing system","Install entry doors with ADA hardware","Install security rolling gates","Install interior doors (stockroom, restroom)","Install fitting room doors/curtains","Apply window film or graphics"] },
+      {category:"Exterior",        description:"Facade upgrades, signage, canopy, exterior lighting",                  pct:7, tasks:["Upgrade building facade","Install primary signage (channel letters)","Install blade sign or projecting sign","Install entry canopy or awning","Install exterior lighting","Install window displays","Install ADA-compliant entrance"] },
+      {category:"GC Overhead",     description:"General conditions, project management, and tenant coordination",      pct:6, tasks:["Project management and scheduling","Coordinate with landlord/property management","Temporary protection of common areas","Dumpster and waste management","Final clean and detail","Punch list walk-through","Coordinate fixture/merchandise delivery"] },
     ]
   },
   "Office Buildout":{
@@ -939,23 +939,23 @@ const ESTIMATE_TEMPLATES = {
     hint:"Basic: ~$50–75/sqft  ·  Mid-grade: ~$80–120/sqft  ·  Class A: ~$130+/sqft",
     defaultCpsf:95,
     phases:[
-      {category:"Permits & Fees",  description:"Building permits, plan check, fire marshal review",                   pct:2 },
-      {category:"Demo",            description:"Interior demo, ceiling grid removal, existing partition removal",       pct:6 },
-      {category:"Site Work",       description:"Floor prep, concrete leveling, core drilling for data/power",           pct:2 },
-      {category:"Framing",         description:"Metal stud walls, door frames, header blocking, soffit framing",       pct:8 },
-      {category:"Plumbing",        description:"Break room, restroom rough-in, water heater, coffee bar plumbing",     pct:5 },
-      {category:"Electrical",      description:"Panel, circuits, outlets, data/low-voltage, lighting controls",         pct:13},
-      {category:"HVAC",            description:"VAV box modifications, ductwork, thermostat zones, supplemental cooling", pct:10},
-      {category:"Insulation",      description:"Acoustical insulation in walls, above ceiling, sound masking prep",    pct:3 },
-      {category:"Drywall",         description:"Hang, tape, finish, reveals, sound-rated assemblies",                  pct:8 },
-      {category:"Flooring",        description:"Carpet tile, LVT, polished concrete, raised access floor areas",       pct:8 },
-      {category:"Cabinets",        description:"Ceiling grid and tile, specialty ceilings, clouds, and coffers",       pct:7 },
-      {category:"Countertops",     description:"Break room counters, reception desk, conference credenzas",             pct:3 },
-      {category:"Tile",            description:"Restroom tile, break room backsplash, entry vestibule tile",            pct:3 },
-      {category:"Painting",        description:"Interior paint, accent walls, door and frame paint, stain",             pct:5 },
-      {category:"Windows & Doors", description:"Interior glass partitions, solid doors, sidelites, hardware",           pct:7 },
-      {category:"Exterior",        description:"Suite entry signage, lobby upgrades, directory board",                  pct:4 },
-      {category:"GC Overhead",     description:"General conditions, project management, after-hours work premium",     pct:6 },
+      {category:"Permits & Fees",  description:"Building permits, plan check, fire marshal review",                   pct:2, tasks:["Submit plans for review","Pull building permit","Fire marshal plan review","Schedule inspections","ADA compliance review"] },
+      {category:"Demo",            description:"Interior demo, ceiling grid removal, existing partition removal",       pct:6, tasks:["Remove existing partition walls","Remove ceiling grid and tile","Remove old flooring","Demo existing break room","Cap utilities at demo points","Haul off debris"] },
+      {category:"Site Work",       description:"Floor prep, concrete leveling, core drilling for data/power",           pct:2, tasks:["Core drill for data/power floor boxes","Level concrete floor","Patch slab penetrations","Prep for new flooring"] },
+      {category:"Framing",         description:"Metal stud walls, door frames, header blocking, soffit framing",       pct:8, tasks:["Frame private office walls","Frame conference room walls","Frame break room and restroom walls","Install door frames and headers","Build soffits for ductwork","Install blocking for TVs, whiteboards, millwork"] },
+      {category:"Plumbing",        description:"Break room, restroom rough-in, water heater, coffee bar plumbing",     pct:5, tasks:["Rough-in break room sink and dishwasher","Rough-in restroom supply and waste","Install water heater","Rough-in coffee bar plumbing","Set restroom fixtures","Set break room fixtures","Test and inspect"] },
+      {category:"Electrical",      description:"Panel, circuits, outlets, data/low-voltage, lighting controls",         pct:13, tasks:["Set new sub-panel","Run branch circuits","Install floor boxes for open plan areas","Install wall outlets in offices","Run Cat6 data cabling throughout","Install conference room AV conduit","Install lighting control system/dimmers","Wire for access control system","Install emergency/exit lighting","Set outlets, switches, and data jacks","Set light fixtures","Final inspection and energize"] },
+      {category:"HVAC",            description:"VAV box modifications, ductwork, thermostat zones, supplemental cooling", pct:10, tasks:["Modify VAV boxes for new layout","Extend ductwork to new offices","Install supply registers in each room","Install return air grilles","Add supplemental cooling for server room","Install thermostat per zone","Install restroom and break room exhaust","Test and balance airflow"] },
+      {category:"Insulation",      description:"Acoustical insulation in walls, above ceiling, sound masking prep",    pct:3, tasks:["Install sound batt in office walls","Install sound batt in conference room walls","Insulate above ceiling plenum where needed","Install sound masking system wiring","Seal penetrations for acoustics"] },
+      {category:"Drywall",         description:"Hang, tape, finish, reveals, sound-rated assemblies",                  pct:8, tasks:["Hang drywall on all new walls","Install sound-rated assemblies at conference rooms","Tape and finish — three coats","Sand and prep for paint","Build reveals and accent details","Patch and repair existing walls"] },
+      {category:"Flooring",        description:"Carpet tile, LVT, polished concrete, raised access floor areas",       pct:8, tasks:["Install raised access floor in server room","Install carpet tile in offices and open areas","Install LVT in break room and corridors","Install tile in restrooms","Install polished concrete in lobby/reception","Install transition strips and base"] },
+      {category:"Cabinets",        description:"Ceiling grid and tile, specialty ceilings, clouds, and coffers",       pct:7, tasks:["Install ceiling grid system","Lay ceiling tile","Build ceiling clouds in open areas","Frame and finish drywall coffers in conference rooms","Install linear/specialty ceilings in lobby","Install access panels"] },
+      {category:"Countertops",     description:"Break room counters, reception desk, conference credenzas",             pct:3, tasks:["Build and install reception desk","Install break room countertops and cabinets","Build conference room credenza","Install copy room/mail room millwork","Apply laminate or solid surface tops"] },
+      {category:"Tile",            description:"Restroom tile, break room backsplash, entry vestibule tile",            pct:3, tasks:["Install restroom wall and floor tile","Install break room backsplash tile","Install entry vestibule feature tile","Grout and seal all tile","Install tile base and trim"] },
+      {category:"Painting",        description:"Interior paint, accent walls, door and frame paint, stain",             pct:5, tasks:["Prime all new drywall","Paint walls — brand/corporate colors","Paint accent walls in lobby and conference","Paint all doors and frames","Stain and finish wood millwork","Paint back-of-house areas","Touch-up after move-in"] },
+      {category:"Windows & Doors", description:"Interior glass partitions, solid doors, sidelites, hardware",           pct:7, tasks:["Install full-height glass partitions at offices","Install conference room glass walls","Install solid core doors at private offices","Install sidelites at offices","Install door hardware (levers, closers, stops)","Install barn door or sliding door at phone rooms","Apply window film for privacy"] },
+      {category:"Exterior",        description:"Suite entry signage, lobby upgrades, directory board",                  pct:4, tasks:["Install suite entry door and frame","Install suite signage and logo","Update building directory board","Upgrade common area lobby finishes","Install exterior wayfinding"] },
+      {category:"GC Overhead",     description:"General conditions, project management, after-hours work premium",     pct:6, tasks:["Project management and scheduling","After-hours work coordination with building","Temporary protection of common areas","Dumpster and waste management","Furniture delivery coordination","Final clean and detail","Punch list walk-through","IT/AV vendor coordination"] },
     ]
   },
   "Warehouse / PEMB Construction":{
@@ -963,23 +963,23 @@ const ESTIMATE_TEMPLATES = {
     hint:"Basic warehouse: ~$40–60/sqft  ·  Distribution: ~$55–80/sqft  ·  Cold storage: ~$90+/sqft",
     defaultCpsf:65,
     phases:[
-      {category:"Permits & Fees",  description:"Building permits, plan check, fire marshal, environmental review",    pct:2 },
-      {category:"Demo",            description:"Site clearing, existing slab demo, environmental remediation",          pct:2 },
-      {category:"Site Work",       description:"Mass grading, compaction, underground utilities, stormwater detention", pct:12},
-      {category:"Foundation",      description:"Spread footings, grade beams, 6\"+ reinforced slab on grade, dock pits", pct:14},
-      {category:"Framing",         description:"PEMB erection, purlins, girts, structural steel, mezzanine framing",  pct:16},
-      {category:"Roofing",         description:"Standing seam metal roof panels, insulation, skylights, gutters",      pct:6 },
-      {category:"Windows & Doors", description:"Overhead doors, dock levelers, man doors, dock seals, strip curtains", pct:5 },
-      {category:"Plumbing",        description:"Restroom rough-in, break room, hose bibs, roof drains, fire main",    pct:4 },
-      {category:"Electrical",      description:"Main switchgear, high-bay lighting, dock lights, panel boards",        pct:8 },
-      {category:"HVAC",            description:"Warehouse unit heaters, office HVAC split systems, exhaust fans",      pct:4 },
-      {category:"Insulation",      description:"Wall and roof insulation, vapor barrier, office area insulation",      pct:3 },
-      {category:"Drywall",         description:"Office area drywall, restroom walls, demising partitions",             pct:2 },
-      {category:"Flooring",        description:"Sealed/polished warehouse slab, office carpet or VCT, restroom tile",  pct:2 },
-      {category:"Painting",        description:"Office paint, door and frame paint, exterior accent, striping",        pct:2 },
-      {category:"Exterior",        description:"Metal wall panels, concrete tilt-up or CMU, dock canopy, bollards",    pct:8 },
-      {category:"Landscaping",     description:"Truck court paving, auto parking, curb/gutter, landscaping, fencing",  pct:8 },
-      {category:"GC Overhead",     description:"General conditions, project management, temp facilities, safety",      pct:2 },
+      {category:"Permits & Fees",  description:"Building permits, plan check, fire marshal, environmental review",    pct:2, tasks:["Submit plans for review","Pull building permit","Fire marshal review","Environmental/CEQA review","Schedule all inspections"] },
+      {category:"Demo",            description:"Site clearing, existing slab demo, environmental remediation",          pct:2, tasks:["Clear and grub site","Demo existing slab or structures","Environmental remediation (if needed)","Haul off debris","Install erosion control"] },
+      {category:"Site Work",       description:"Mass grading, compaction, underground utilities, stormwater detention", pct:12, tasks:["Mass grading and cut/fill earthwork","Compact subgrade to 95%","Install storm drain system","Install sanitary sewer","Install water main and fire line","Install underground electrical","Build stormwater detention basin","Install erosion control BMPs"] },
+      {category:"Foundation",      description:"Spread footings, grade beams, 6\"+ reinforced slab on grade, dock pits", pct:14, tasks:["Excavate for footings","Form and place rebar in footings","Pour spread footings","Form and pour grade beams","Install anchor bolts per PEMB drawings","Excavate and form dock pit recesses","Place welded wire/rebar in slab area","Pour 6\"+ reinforced slab on grade","Saw-cut control joints","Cure and seal slab"] },
+      {category:"Framing",         description:"PEMB erection, purlins, girts, structural steel, mezzanine framing",  pct:16, tasks:["Receive and stage PEMB package","Erect main frame columns and rafters","Install eave struts and bracing","Install wall girts","Install roof purlins","Erect mezzanine steel and decking","Install miscellaneous steel (stairs, handrails)","Plumb, align, and final-torque bolts","Install crane rail (if applicable)"] },
+      {category:"Roofing",         description:"Standing seam metal roof panels, insulation, skylights, gutters",      pct:6, tasks:["Install roof insulation (blanket or rigid)","Install standing seam metal roof panels","Install ridge cap","Install roof penetration flashings","Install skylights","Install gutters and downspouts","Install roof safety tie-off anchors"] },
+      {category:"Windows & Doors", description:"Overhead doors, dock levelers, man doors, dock seals, strip curtains", pct:5, tasks:["Install overhead coiling/sectional doors","Install dock levelers","Install dock seals or shelters","Install man doors (hollow metal)","Install strip curtains at dock doors","Install office entry door and hardware"] },
+      {category:"Plumbing",        description:"Restroom rough-in, break room, hose bibs, roof drains, fire main",    pct:4, tasks:["Rough-in restroom supply and waste","Install break room sink plumbing","Install water heater","Install interior hose bibs","Connect roof drain piping","Set restroom fixtures","Test and inspect"] },
+      {category:"Electrical",      description:"Main switchgear, high-bay lighting, dock lights, panel boards",        pct:8, tasks:["Set main switchgear and transformer","Install panel boards","Run warehouse branch circuits","Install high-bay LED lighting","Install dock lights at each door","Install office area electrical","Install exterior building lighting","Install fire alarm system","Final inspection and energize"] },
+      {category:"HVAC",            description:"Warehouse unit heaters, office HVAC split systems, exhaust fans",      pct:4, tasks:["Install warehouse gas unit heaters","Install office split system or packaged unit","Install HVLS destratification fans","Install wall exhaust fans","Install restroom exhaust","Set thermostats","Test and commission"] },
+      {category:"Insulation",      description:"Wall and roof insulation, vapor barrier, office area insulation",      pct:3, tasks:["Install wall blanket insulation","Install vapor barrier","Insulate office area walls and ceiling","Insulate exposed pipes in unconditioned areas","Seal building envelope"] },
+      {category:"Drywall",         description:"Office area drywall, restroom walls, demising partitions",             pct:2, tasks:["Frame office and restroom walls","Hang drywall in office area","Hang drywall in restrooms","Tape and finish","Install FRP in restrooms"] },
+      {category:"Flooring",        description:"Sealed/polished warehouse slab, office carpet or VCT, restroom tile",  pct:2, tasks:["Seal and polish warehouse slab","Install VCT or carpet in office area","Install tile in restrooms","Install base molding"] },
+      {category:"Painting",        description:"Office paint, door and frame paint, exterior accent, striping",        pct:2, tasks:["Paint office interior","Paint doors and frames","Paint exterior accent (wainscot, trim)","Mark interior safety striping","Paint equipment pads and bollards"] },
+      {category:"Exterior",        description:"Metal wall panels, concrete tilt-up or CMU, dock canopy, bollards",    pct:8, tasks:["Install metal wall panels","Erect tilt-up panels or lay CMU (if applicable)","Install dock canopy/bumper structure","Install steel bollards at doors and corners","Install building signage","Apply exterior sealant at joints","Install trash enclosure"] },
+      {category:"Landscaping",     description:"Truck court paving, auto parking, curb/gutter, landscaping, fencing",  pct:8, tasks:["Pave truck court (heavy-duty concrete)","Pave auto parking lot","Install curb and gutter","Stripe parking and fire lanes","Install perimeter fencing and gates","Install landscaping and irrigation","Install monument sign","Install site lighting poles"] },
+      {category:"GC Overhead",     description:"General conditions, project management, temp facilities, safety",      pct:2, tasks:["Project management and scheduling","Temporary facilities and power","Dumpsters and waste management","Site safety program","Final clean","Punch list and close-out","As-built drawings and O&M manuals"] },
     ]
   },
   "Site Development / Civil":{
@@ -987,20 +987,20 @@ const ESTIMATE_TEMPLATES = {
     hint:"Light grading/paving: ~$8–18/sqft  ·  Full site dev: ~$20–35/sqft  ·  Heavy civil: ~$40+/sqft",
     defaultCpsf:25,
     phases:[
-      {category:"Permits & Fees",  description:"Grading permit, SWPPP, utility permits, encroachment permits",        pct:4 },
-      {category:"Demo",            description:"Existing pavement demo, structure removal, clearing and grubbing",     pct:6 },
-      {category:"Site Work",       description:"Mass grading, cut/fill, compaction, rough grading, erosion control",   pct:20},
-      {category:"Foundation",      description:"Storm drain, culverts, manholes, headwalls, detention structures",     pct:12},
-      {category:"Plumbing",        description:"Sanitary sewer main, laterals, manholes, lift station if required",    pct:10},
-      {category:"Electrical",      description:"Underground conduit, transformer pads, site lighting, pull boxes",     pct:6 },
-      {category:"Framing",         description:"Water main, fire hydrants, gate valves, thrust blocks, services",      pct:10},
-      {category:"Exterior",        description:"Curb and gutter, sidewalks, ADA ramps, retaining walls, fencing",      pct:8 },
-      {category:"Landscaping",     description:"Asphalt paving, base course, striping, signage, speed bumps",          pct:12},
-      {category:"Insulation",      description:"Dry utilities — telecom, gas, fiber conduit, joint trench",            pct:4 },
-      {category:"Roofing",         description:"Erosion control, hydroseeding, permanent BMPs, swales",                pct:3 },
-      {category:"Painting",        description:"Final landscaping, irrigation, tree planting, sod, mulch",             pct:2 },
-      {category:"Tile",            description:"Final SWPPP closeout, testing, inspection, utility acceptance",         pct:1 },
-      {category:"GC Overhead",     description:"General conditions, project management, surveying, material testing",  pct:2 },
+      {category:"Permits & Fees",  description:"Grading permit, SWPPP, utility permits, encroachment permits",        pct:4, tasks:["Obtain grading permit","File SWPPP with regional board","Pull utility connection permits","Obtain encroachment permit for public ROW","Post permits on site","Pre-construction meeting with inspector"] },
+      {category:"Demo",            description:"Existing pavement demo, structure removal, clearing and grubbing",     pct:6, tasks:["Remove existing pavement and base","Demolish existing structures","Clear and grub vegetation","Haul off demo debris","Stockpile reusable materials"] },
+      {category:"Site Work",       description:"Mass grading, cut/fill, compaction, rough grading, erosion control",   pct:20, tasks:["Mobilize earthwork equipment","Strip and stockpile topsoil","Mass excavation — cut areas","Place fill and compact in lifts","Fine grade building pads","Fine grade parking and road areas","Install silt fence and erosion control","Compact to 95% per geotech specs","Survey and certify pad elevations"] },
+      {category:"Foundation",      description:"Storm drain, culverts, manholes, headwalls, detention structures",     pct:12, tasks:["Trench for storm drain pipes","Lay storm drain pipe and fittings","Set catch basins and manholes","Install culverts at crossings","Build headwall structures","Construct detention/retention basin","Install outlet control structure","Backfill and compact around structures","Video inspection and testing"] },
+      {category:"Plumbing",        description:"Sanitary sewer main, laterals, manholes, lift station if required",    pct:10, tasks:["Trench for sewer main","Lay sewer pipe at grade","Set sewer manholes","Install lateral connections","Build lift station (if required)","Backfill and compact","Mandrel test and video inspect","Obtain utility acceptance"] },
+      {category:"Electrical",      description:"Underground conduit, transformer pads, site lighting, pull boxes",     pct:6, tasks:["Trench for electrical conduit","Install conduit and pull boxes","Pour transformer pads","Install site lighting poles and fixtures","Install parking lot lighting","Pull wire and make connections","Coordinate utility company transformer set","Energize and test"] },
+      {category:"Framing",         description:"Water main, fire hydrants, gate valves, thrust blocks, services",      pct:10, tasks:["Trench for water main","Lay water main pipe","Install gate valves and tees","Pour thrust blocks","Install fire hydrants","Install water service laterals","Backfill and compact","Pressure test and chlorinate","Obtain utility acceptance"] },
+      {category:"Exterior",        description:"Curb and gutter, sidewalks, ADA ramps, retaining walls, fencing",      pct:8, tasks:["Form and pour curb and gutter","Form and pour sidewalks","Build ADA-compliant ramps with detectable warnings","Construct retaining walls","Install perimeter and interior fencing","Install gates and access controls","Install handrails where required"] },
+      {category:"Landscaping",     description:"Asphalt paving, base course, striping, signage, speed bumps",          pct:12, tasks:["Place and compact aggregate base course","Prime base course","Lay asphalt in lifts (binder + surface)","Roll and compact asphalt","Install speed bumps and wheel stops","Stripe parking stalls and fire lanes","Install traffic signs and wayfinding","Install ADA signage"] },
+      {category:"Insulation",      description:"Dry utilities — telecom, gas, fiber conduit, joint trench",            pct:4, tasks:["Trench for joint utility trench","Install telecom conduit","Install gas main and services","Install fiber optic conduit","Backfill and compact","Coordinate utility company connections"] },
+      {category:"Roofing",         description:"Erosion control, hydroseeding, permanent BMPs, swales",                pct:3, tasks:["Grade permanent swales and ditches","Install rip-rap at discharge points","Hydroseed disturbed slopes","Install permanent erosion control blankets","Build permanent BMP structures"] },
+      {category:"Painting",        description:"Final landscaping, irrigation, tree planting, sod, mulch",             pct:2, tasks:["Install irrigation mainline and laterals","Install sprinkler heads and drip lines","Plant street trees per plan","Install sod in common areas","Apply mulch to planting beds","Final grading around landscape areas"] },
+      {category:"Tile",            description:"Final SWPPP closeout, testing, inspection, utility acceptance",         pct:1, tasks:["Final SWPPP inspection","File Notice of Termination","Compile as-built drawings","Submit material testing reports","Obtain final inspection sign-off","Utility acceptance letters"] },
+      {category:"GC Overhead",     description:"General conditions, project management, surveying, material testing",  pct:2, tasks:["Project management and scheduling","Construction surveying and staking","Materials testing (compaction, concrete, asphalt)","Temporary traffic control","Dumpsters and waste management","Punch list and close-out","Warranty documentation"] },
     ]
   }
 };
@@ -1015,6 +1015,7 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
   const [profit,setProfit] = useState(15);
   const [margin,setMargin] = useState(13.04);
   const [phases,setPhases] = useState([]);
+  const [expandedPhases,setExpandedPhases] = useState(new Set());
   const co = companySettings||DEFAULT_COMPANY;
   const projectId = selectedProjectId;
   const sqftN = parseFloat(sqft)||0;
@@ -1092,7 +1093,7 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
                   <div style={{fontSize:12,color:C.textSub,marginTop:2}}>{t.desc}</div>
                   <div style={{fontSize:11,color:C.textMuted,marginTop:3}}>{t.hint}</div>
                 </div>
-                <div style={{fontSize:12,color:C.textMuted,flexShrink:0}}>{t.phases.length} phases →</div>
+                <div style={{fontSize:12,color:C.textMuted,flexShrink:0,textAlign:"right"}}><div>{t.phases.length} phases</div><div style={{fontSize:10,color:C.textMuted}}>{t.phases.reduce((s,p)=>s+(p.tasks?p.tasks.length:0),0)} tasks</div></div>
               </div>
             ))}
             </div>
@@ -1181,10 +1182,13 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
                     {phases.map((p,i)=>{
                       const dpcsf = (p.pct/100)*hardCpsfN;
                       const lineT = dpcsf*sqftN;
+                      const isExpanded = expandedPhases.has(i);
+                      const hasTasks = p.tasks&&p.tasks.length>0;
                       return (
-                        <div key={p.category} style={{display:"grid",gridTemplateColumns:"140px 1fr 90px 90px 100px",padding:"8px 14px",borderBottom:i<phases.length-1?`1px solid ${C.border}`:"none",alignItems:"center",background:i%2===0?"transparent":C.bg+"66"}}>
-                          <span style={{fontSize:11,color:C.accent,background:C.accentL,padding:"2px 7px",borderRadius:4,fontWeight:600,display:"inline-block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:130}}>{p.category}</span>
-                          <div style={{fontSize:11,color:C.textSub,paddingRight:8,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.description}</div>
+                        <React.Fragment key={p.category}>
+                        <div style={{display:"grid",gridTemplateColumns:"140px 1fr 90px 90px 100px",padding:"8px 14px",borderBottom:isExpanded?"none":(i<phases.length-1?`1px solid ${C.border}`:"none"),alignItems:"center",background:i%2===0?"transparent":C.bg+"66"}}>
+                          <span onClick={()=>{if(hasTasks){setExpandedPhases(s=>{const n=new Set(s);n.has(i)?n.delete(i):n.add(i);return n;});}}} style={{fontSize:11,color:C.accent,background:C.accentL,padding:"2px 7px",borderRadius:4,fontWeight:600,display:"inline-block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:130,cursor:hasTasks?"pointer":"default"}}>{hasTasks?(isExpanded?"▾ ":"▸ "):""}{p.category}</span>
+                          <div style={{fontSize:11,color:C.textSub,paddingRight:8,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.description}{hasTasks&&<span style={{fontSize:10,color:C.textMuted,marginLeft:6}}>({p.tasks.length} tasks)</span>}</div>
                           <div style={{textAlign:"right",display:"flex",alignItems:"center",justifyContent:"flex-end",gap:3}}>
                             <input type="number" value={p.pct} onChange={e=>updatePct(i,e.target.value)} min={0} max={100} step={0.5}
                               style={{width:52,padding:"3px 6px",borderRadius:5,border:`1px solid ${C.border}`,background:C.surface,color:C.text,fontSize:12,fontFamily:"inherit",textAlign:"right"}}/>
@@ -1193,6 +1197,18 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
                           <div style={{fontSize:12,color:C.textMuted,textAlign:"right"}}>{cpsfN>0?`$${dpcsf.toFixed(2)}/sf`:"—"}</div>
                           <div style={{fontSize:12,fontWeight:600,color:C.text,textAlign:"right"}}>{sqftN>0&&cpsfN>0?fmt(lineT):"—"}</div>
                         </div>
+                        {isExpanded&&hasTasks&&(
+                          <div style={{padding:"4px 14px 10px 28px",borderBottom:i<phases.length-1?`1px solid ${C.border}`:"none",background:C.bg+"44"}}>
+                            <div style={{display:"flex",flexWrap:"wrap",gap:"3px 12px"}}>
+                              {p.tasks.map((t,ti)=>(
+                                <div key={ti} style={{fontSize:10,color:C.textSub,padding:"2px 0",display:"flex",alignItems:"center",gap:4}}>
+                                  <span style={{color:C.accent,fontSize:8}}>●</span> {t}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        </React.Fragment>
                       );
                     })}
                   </div>
@@ -1213,7 +1229,8 @@ const EstimateTemplateWizard = ({projectId:initialProjectId,projects,estimates,s
   );
 };
 
-const printEstimate = (est, project, company, colVis={qty:true,unit:true,cost:true,markup:true}) => {
+const printEstimate = (est, project, company, colVis={qty:true,unit:true,cost:true,markup:true}, opts={}) => {
+  const {hideMargins=false, includeContract=false} = opts;
   const lineTotal = i => i.qty*i.cost*(1+i.markup/100);
   const visItems = est.lineItems.filter(i=>!i.hidden);
   const subtotal = visItems.reduce((s,i)=>s+i.qty*i.cost,0);
@@ -1227,7 +1244,7 @@ const printEstimate = (est, project, company, colVis={qty:true,unit:true,cost:tr
   const html = `<!DOCTYPE html><html><head><title>${est.name} — ${company.name}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:#1a1a1a;background:#fff;padding:40px;}
+    body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:11px;color:#1a1a1a;background:#fff;padding:${hideMargins?"0":"40px"};}
     .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:3px solid #E86C2C;}
     .logo{max-height:70px;max-width:200px;object-fit:contain;}
     .logo-placeholder{font-size:22px;font-weight:800;color:#E86C2C;letter-spacing:-0.5px;}
@@ -1258,7 +1275,7 @@ const printEstimate = (est, project, company, colVis={qty:true,unit:true,cost:tr
     .signature-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px;}
     .sig-line{border-top:1px solid #2D3340;padding-top:6px;font-size:10px;color:#5C6270;}
     .footer{margin-top:40px;padding-top:16px;border-top:1px solid #E8EAED;font-size:9px;color:#9299A6;text-align:center;}
-    @media print{body{padding:24px;}@page{margin:1cm;}}
+    @media print{body{padding:${hideMargins?"0":"24px"};}@page{margin:${hideMargins?"0":"1cm"};}}
   </style></head><body>
   <div class="header">
     <div>${company.logo?`<img src="${company.logo}" class="logo" alt="logo"/>`:`<div class="logo-placeholder">${company.name}</div>`}</div>
@@ -1317,6 +1334,12 @@ const printEstimate = (est, project, company, colVis={qty:true,unit:true,cost:tr
 
   ${est.notes?`<div class="notes-section"><div class="notes-label">Scope of Work / Notes</div><div style="font-size:11px;color:#2D3340;white-space:pre-wrap;">${est.notes}</div></div>`:""}
 
+  ${includeContract&&est.contract?`<div style="page-break-before:always;"></div>
+  <div style="margin-bottom:28px;">
+    <div style="font-size:20px;font-weight:800;color:#E86C2C;margin-bottom:16px;padding-bottom:10px;border-bottom:3px solid #E86C2C;">CONTRACT AGREEMENT</div>
+    <div style="font-size:11px;color:#2D3340;white-space:pre-wrap;line-height:1.8;">${est.contract}</div>
+  </div>`:""}
+
   ${company.terms?`<div class="terms-section"><strong>Terms & Conditions:</strong> ${company.terms}</div>`:""}
 
   <div class="signature-grid">
@@ -1342,6 +1365,10 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
   // Column visibility: qty, unit, cost, markup are toggleable; category, description, total always shown
   const [colVis,setColVis] = useState({qty:true,unit:true,cost:true,markup:true});
   const [showColMenu,setShowColMenu] = useState(false);
+  const [showPrintMenu,setShowPrintMenu] = useState(false);
+  const [hideMargins,setHideMargins] = useState(false);
+  const [includeContract,setIncludeContract] = useState(false);
+  const [showContractEditor,setShowContractEditor] = useState(false);
   // Collapsed parent rows (Set of item ids)
   const [collapsed,setCollapsed] = useState(new Set());
 
@@ -1505,7 +1532,30 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
           {est.status==="Sent"&&<Btn sm onClick={()=>setStatus("Approved")}><Ic d={I.check} s={12}/> Mark Approved</Btn>}
           {est.status!=="Draft"&&<Btn v="secondary" sm onClick={()=>setStatus("Draft")}>Revert to Draft</Btn>}
           {projBudget.length>0&&<Btn v="secondary" sm onClick={()=>setShowBudgetImport(true)}><Ic d={I.budget} s={12}/> Import Budget</Btn>}
-          <Btn v="secondary" sm onClick={()=>printEstimate(est,project,co,colVis)}><Ic d={I.docs} s={12}/> Print PDF</Btn>
+          {/* Print PDF dropdown */}
+          <div style={{position:"relative"}}>
+            <Btn v="secondary" sm onClick={e=>{e.stopPropagation();setShowPrintMenu(v=>!v);}}><Ic d={I.docs} s={12}/> Print PDF ▾</Btn>
+            {showPrintMenu&&(
+              <div onClick={e=>e.stopPropagation()} style={{position:"absolute",right:0,top:"calc(100% + 6px)",background:C.surface,border:`1px solid ${C.border}`,borderRadius:4,padding:"12px 14px",zIndex:300,minWidth:220,boxShadow:"0 8px 24px rgba(0,0,0,0.15)",display:"flex",flexDirection:"column",gap:8}}>
+                <div style={{fontSize:10,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:2}}>PDF Options</div>
+                <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:12,color:C.text,userSelect:"none"}}>
+                  <input type="checkbox" checked={hideMargins} onChange={()=>setHideMargins(v=>!v)} style={{accentColor:C.accent,width:13,height:13}}/>
+                  Hide page margins
+                </label>
+                <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:12,color:C.text,userSelect:"none"}}>
+                  <input type="checkbox" checked={includeContract} onChange={()=>setIncludeContract(v=>!v)} style={{accentColor:C.accent,width:13,height:13}}/>
+                  Include contract in PDF
+                </label>
+                {includeContract&&!est.contract&&<div style={{fontSize:10,color:C.amber,marginLeft:21}}>Add contract text below first</div>}
+                <div style={{borderTop:`1px solid ${C.border}`,paddingTop:8,marginTop:2}}>
+                  <button onClick={()=>{setShowPrintMenu(false);printEstimate(est,project,co,colVis,{hideMargins,includeContract});}}
+                    style={{width:"100%",padding:"7px 12px",borderRadius:4,border:"none",background:C.accent,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                    Generate PDF
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
           {/* Columns dropdown */}
           <div style={{position:"relative"}}>
             <Btn v="secondary" sm onClick={e=>{e.stopPropagation();setShowColMenu(v=>!v);}}>Columns ▾</Btn>
@@ -1632,6 +1682,30 @@ const EstimateDetail = ({est,estimates,setEstimates,onBack,budgetItems,project,c
           </tr>
         </>)}
       </Table>
+
+      {/* ── Contract Section ── */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{fontSize:13,fontWeight:600,color:C.text}}>Contract</div>
+        <Btn v="secondary" sm onClick={()=>setShowContractEditor(v=>!v)}>{showContractEditor?"Close":"Edit Contract"}</Btn>
+      </div>
+      {showContractEditor&&(
+        <Card style={{border:`1px solid ${C.accentB}`}}>
+          <div style={{fontSize:12,color:C.textSub,marginBottom:8}}>Add contract language to include in the PDF when printing. This will appear as a separate page.</div>
+          <textarea value={est.contract||""} onChange={e=>update(es=>({...es,contract:e.target.value}))}
+            placeholder={"CONSTRUCTION CONTRACT AGREEMENT\n\nThis agreement is entered into between [Contractor] and [Client]...\n\nScope of Work:\n...\n\nPayment Terms:\n...\n\nTimeline:\n...\n\nWarranty:\n..."}
+            rows={12}
+            style={{width:"100%",padding:"12px 14px",borderRadius:4,border:`1px solid ${C.border}`,background:C.bg,color:C.text,fontSize:12,fontFamily:"inherit",lineHeight:1.7,resize:"vertical",boxSizing:"border-box"}}/>
+          <div style={{display:"flex",gap:10,marginTop:10,alignItems:"center"}}>
+            <div style={{fontSize:11,color:est.contract?C.green:C.textMuted}}>{est.contract?`${est.contract.length} characters`:"No contract text yet"}</div>
+            <div style={{marginLeft:"auto",fontSize:11,color:C.textMuted}}>Use the Print PDF menu to include contract in export</div>
+          </div>
+        </Card>
+      )}
+      {!showContractEditor&&est.contract&&(
+        <div style={{padding:"10px 14px",background:C.bg,borderRadius:4,border:`1px solid ${C.border}`,fontSize:11,color:C.textSub}}>
+          Contract added ({est.contract.length} chars) — <button onClick={()=>setShowContractEditor(true)} style={{background:"none",border:"none",color:C.accent,cursor:"pointer",fontSize:11,fontFamily:"inherit",textDecoration:"underline"}}>edit</button>
+        </div>
+      )}
     </div>
   );
 };
